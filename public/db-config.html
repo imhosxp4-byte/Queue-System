@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>ตั้งค่าการเชื่อมต่อ — ระบบคิว</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0f1923;min-height:100vh;color:#fff}
+
+    header{background:#0d1f33;border-bottom:2px solid #1e3a5f;padding:0 28px;
+      display:flex;align-items:center;gap:14px;height:56px}
+    .back-btn{color:#90caf9;text-decoration:none;font-size:.88rem;display:flex;
+      align-items:center;gap:6px;padding:6px 14px;border-radius:20px;
+      border:1px solid #1e3a5f;transition:all .2s;white-space:nowrap}
+    .back-btn:hover{background:#1e3a5f;color:#fff}
+    header h1{font-size:1rem;font-weight:700;color:#ffd54f;flex:1}
+
+    .page{max-width:560px;margin:0 auto;padding:32px 20px}
+
+    .card{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:16px;padding:28px;margin-bottom:20px}
+    .card-title{font-size:.88rem;font-weight:700;color:#90caf9;margin-bottom:20px;
+      display:flex;align-items:center;gap:8px}
+    .card-title::before{content:'';display:block;width:4px;height:16px;
+      background:#42a5f5;border-radius:2px}
+
+    /* DB type toggle */
+    .type-toggle{display:flex;background:#0f1923;border-radius:12px;padding:4px;gap:4px;margin-bottom:24px}
+    .type-btn{flex:1;padding:11px;border:none;border-radius:9px;font-size:.9rem;font-weight:700;
+      cursor:pointer;font-family:inherit;transition:all .2s;color:#546e7a;background:transparent}
+    .type-btn.active{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;
+      box-shadow:0 2px 8px rgba(21,101,192,.4)}
+    .type-btn:not(.active):hover{color:#90caf9}
+
+    /* DB logo badges */
+    .db-badge{display:inline-block;padding:2px 9px;border-radius:6px;font-size:.72rem;
+      font-weight:700;letter-spacing:.5px;margin-left:8px;vertical-align:middle}
+    .db-mysql{background:#e65100;color:#fff}
+    .db-pg{background:#336791;color:#fff}
+
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:.78rem;color:#90caf9;font-weight:600;margin-bottom:7px}
+    .field input{width:100%;background:#0f1923;border:1.5px solid #1e3a5f;border-radius:10px;
+      padding:12px 15px;color:#fff;font-size:.92rem;font-family:inherit;transition:border-color .2s}
+    .field input:focus{outline:none;border-color:#42a5f5}
+    .field input::placeholder{color:#2e4a60}
+    .field small{display:block;font-size:.74rem;color:#455a64;margin-top:5px}
+
+    .row2{display:grid;grid-template-columns:1fr 130px;gap:12px}
+
+    .result-box{border-radius:10px;padding:12px 16px;font-size:.87rem;margin-top:14px;
+      display:none;line-height:1.5}
+    .result-box.ok{background:rgba(102,187,106,.12);border:1px solid rgba(102,187,106,.35);color:#a5d6a7;display:block}
+    .result-box.fail{background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.35);color:#ef9a9a;display:block}
+
+    .actions{display:flex;gap:12px;margin-top:8px}
+    .btn-test{flex:1;background:#0f1923;border:1.5px solid #1e3a5f;color:#90caf9;
+      border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;
+      font-family:inherit;transition:all .2s}
+    .btn-test:hover{border-color:#42a5f5;color:#fff}
+    .btn-test:disabled{opacity:.5;cursor:not-allowed}
+    .btn-save{flex:1;background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;
+      border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;
+      cursor:pointer;font-family:inherit;transition:opacity .2s}
+    .btn-save:hover{opacity:.88}
+    .btn-save:disabled{opacity:.5;cursor:not-allowed}
+
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+      border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
+      vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#1a2a3a;border:1px solid #42a5f5;color:#fff;padding:10px 26px;
+      border-radius:30px;font-size:.9rem;transition:transform .3s;z-index:200;white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/login.html" class="back-btn">← กลับหน้าเข้าสู่ระบบ</a>
+  <h1>⚙ ตั้งค่าการเชื่อมต่อฐานข้อมูล</h1>
+</header>
+
+<div class="page">
+  <div class="card">
+    <div class="card-title">ประเภทฐานข้อมูล</div>
+    <div class="type-toggle">
+      <button class="type-btn active" id="btnMySQL" onclick="setType('mysql')">
+        🐬 MySQL <span class="db-badge db-mysql">MYSQL</span>
+      </button>
+      <button class="type-btn" id="btnPG" onclick="setType('postgresql')">
+        🐘 PostgreSQL <span class="db-badge db-pg">PGSQL</span>
+      </button>
+    </div>
+
+    <div class="card-title">ข้อมูลการเชื่อมต่อ</div>
+
+    <div class="row2">
+      <div class="field">
+        <label>IP Server / Hostname</label>
+        <input type="text" id="host" placeholder="เช่น 192.168.1.100 หรือ localhost"/>
+      </div>
+      <div class="field">
+        <label>Port</label>
+        <input type="number" id="port" placeholder="3306"/>
+        <small id="portHint">ค่าเริ่มต้น MySQL: 3306</small>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ชื่อฐานข้อมูล (Database)</label>
+      <input type="text" id="database" placeholder="เช่น hospital_db"/>
+    </div>
+
+    <div class="field">
+      <label>ชื่อผู้ใช้ฐานข้อมูล (Username)</label>
+      <input type="text" id="dbUser" placeholder="เช่น root หรือ admin" autocomplete="off"/>
+    </div>
+
+    <div class="field">
+      <label>รหัสผ่านฐานข้อมูล (Password)</label>
+      <input type="password" id="dbPass" placeholder="รหัสผ่านฐานข้อมูล" autocomplete="new-password"/>
+    </div>
+
+    <div id="testResult"></div>
+
+    <div class="actions">
+      <button class="btn-test" id="testBtn" onclick="testConn()">🔌 ทดสอบการเชื่อมต่อ</button>
+      <button class="btn-save" id="saveBtn" onclick="saveConn()">💾 บันทึกข้อมูลเชื่อมต่อ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let dbType = 'mysql';
+
+  function setType(t) {
+    dbType = t;
+    document.getElementById('btnMySQL').classList.toggle('active', t === 'mysql');
+    document.getElementById('btnPG').classList.toggle('active', t === 'postgresql');
+    const portEl   = document.getElementById('port');
+    const hintEl   = document.getElementById('portHint');
+    if (t === 'mysql') {
+      if (!portEl.value || portEl.value === '5432') portEl.value = '3306';
+      hintEl.textContent = 'ค่าเริ่มต้น MySQL: 3306';
+    } else {
+      if (!portEl.value || portEl.value === '3306') portEl.value = '5432';
+      hintEl.textContent = 'ค่าเริ่มต้น PostgreSQL: 5432';
+    }
+    document.getElementById('testResult').className = '';
+    document.getElementById('testResult').textContent = '';
+  }
+
+  function getFormData() {
+    return {
+      type:     dbType,
+      host:     document.getElementById('host').value.trim(),
+      port:     document.getElementById('port').value,
+      database: document.getElementById('database').value.trim(),
+      username: document.getElementById('dbUser').value.trim(),
+      password: document.getElementById('dbPass').value,
+    };
+  }
+
+  function testConn() {
+    const data   = getFormData();
+    const resEl  = document.getElementById('testResult');
+    const btn    = document.getElementById('testBtn');
+    resEl.className = 'result-box';
+    resEl.textContent = '';
+    if (!data.host || !data.database || !data.username) {
+      resEl.textContent = 'กรุณากรอก Host, Database และ Username ก่อนทดสอบ';
+      resEl.className   = 'result-box fail';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>กำลังทดสอบ...';
+    fetch('/api/db-config/test', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(d => {
+      resEl.textContent = d.success ? '✓ ' + d.message : '✗ ' + d.message;
+      resEl.className   = 'result-box ' + (d.success ? 'ok' : 'fail');
+    })
+    .catch(() => {
+      resEl.textContent = '✗ เกิดข้อผิดพลาดในการเชื่อมต่อ';
+      resEl.className   = 'result-box fail';
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = '🔌 ทดสอบการเชื่อมต่อ';
+    });
+  }
+
+  function saveConn() {
+    const data  = getFormData();
+    const btn   = document.getElementById('saveBtn');
+    if (!data.host || !data.database || !data.username) {
+      const resEl = document.getElementById('testResult');
+      resEl.textContent = 'กรุณากรอกข้อมูลให้ครบก่อนบันทึก';
+      resEl.className   = 'result-box fail';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>กำลังบันทึก...';
+    fetch('/api/db-config/save', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        toast('บันทึกสำเร็จ กำลังกลับหน้าเข้าสู่ระบบ...');
+        setTimeout(() => { location.href = '/login.html'; }, 1200);
+      } else {
+        btn.disabled = false;
+        btn.textContent = '💾 บันทึกข้อมูลเชื่อมต่อ';
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = '💾 บันทึกข้อมูลเชื่อมต่อ';
+    });
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // Load existing config on page load
+  fetch('/api/db-config').then(r => r.json()).then(cfg => {
+    if (cfg.type) setType(cfg.type);
+    if (cfg.host)     document.getElementById('host').value     = cfg.host;
+    if (cfg.port)     document.getElementById('port').value     = cfg.port;
+    if (cfg.database) document.getElementById('database').value = cfg.database;
+    if (cfg.username) document.getElementById('dbUser').value   = cfg.username;
+  });
+</script>
+</body>
+</html>

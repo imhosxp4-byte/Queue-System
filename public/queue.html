@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>ออกบัตรคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:'Kanit','Segoe UI',sans-serif;
+      min-height:100vh;
+      background:
+        radial-gradient(ellipse 90% 70% at 0% 0%,   rgba(178,235,242,.55) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 55% at 100% 0%,  rgba(0,172,193,.45)  0%, transparent 55%),
+        radial-gradient(ellipse 80% 65% at 50% 120%, rgba(0,60,75,.6)     0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 80%, rgba(0,105,125,.5)   0%, transparent 55%),
+        linear-gradient(145deg,#29b6c8 0%,#0097a7 45%,#00696f 100%);
+      color:#fff;display:flex;flex-direction:column;overflow-x:hidden;
+    }
+
+    /* decorative blobs + grid pattern */
+    body::before{
+      content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:
+        radial-gradient(circle 420px at 8% 15%,  rgba(224,247,250,.18) 0%,transparent 65%),
+        radial-gradient(circle 320px at 92% 72%,  rgba(0,77,92,.28)    0%,transparent 60%),
+        radial-gradient(circle 260px at 75% 8%,   rgba(0,188,212,.15)  0%,transparent 60%),
+        radial-gradient(circle 200px at 20% 90%,  rgba(77,208,225,.12) 0%,transparent 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='30' y='30' text-anchor='middle' dominant-baseline='middle' fill='rgba(255,255,255,0.055)' font-size='18' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E");
+    }
+
+    /* ── Nav ── */
+    nav{
+      position:relative;z-index:10;
+      background:rgba(0,50,70,0.45);backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.12);
+      padding:0 20px;display:flex;align-items:center;height:48px;gap:4px;
+    }
+    .nav-logo{font-size:.88rem;font-weight:900;color:#ffd54f;margin-right:14px;
+      text-decoration:none;white-space:nowrap;letter-spacing:1px}
+    nav a{color:rgba(255,255,255,.78);text-decoration:none;padding:4px 11px;
+      border-radius:16px;font-size:.78rem;transition:all .2s;white-space:nowrap}
+    nav a:hover{background:rgba(255,255,255,.15)}
+    nav a.active{background:rgba(255,255,255,.18);color:#fff}
+    .nav-officer{font-size:.74rem;color:rgba(255,255,255,.55);
+      margin-left:auto;padding:0 4px;white-space:nowrap}
+    .btn-logout{background:rgba(239,83,80,.15);border:1px solid rgba(239,83,80,.25);
+      color:#ffcdd2;border-radius:16px;padding:4px 12px;font-size:.74rem;
+      cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;margin-left:6px}
+    .btn-logout:hover{background:rgba(239,83,80,.3);color:#fff}
+
+    /* ── Main ── */
+    .main{
+      flex:1;position:relative;z-index:1;
+      display:flex;flex-direction:column;align-items:center;
+      padding:20px 16px 108px;
+    }
+
+    .sys-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.15);
+      border-radius:20px;padding:3px 13px;
+      font-size:.78rem;color:rgba(255,255,255,.75);margin-bottom:14px;
+    }
+
+    /* ── SCANNER STEP ── */
+    #scannerStep{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
+
+    .scan-title{
+      font-size:1.5rem;font-weight:700;color:#ffd54f;
+      text-align:center;margin-bottom:18px;letter-spacing:.5px;
+      text-shadow:0 2px 14px rgba(0,0,0,.2);
+    }
+
+    .scanner-card{
+      width:100%;background:#fff;border-radius:24px;padding:14px;
+      box-shadow:0 18px 50px rgba(0,0,0,.32),0 4px 12px rgba(0,0,0,.14);
+      margin-bottom:18px;
+    }
+
+    .video-wrap{
+      position:relative;width:100%;aspect-ratio:4/3;
+      background:#111;border-radius:14px;overflow:hidden;
+    }
+
+    #scanVideo{width:100%;height:100%;object-fit:cover;display:block}
+
+    .scan-line{
+      position:absolute;left:8%;right:8%;height:3px;
+      background:linear-gradient(90deg,transparent,#f44336 20%,#ff1744 50%,#f44336 80%,transparent);
+      box-shadow:0 0 10px #f44336,0 0 4px rgba(244,67,54,.5);
+      border-radius:2px;
+      animation:scanMove 2.2s ease-in-out infinite;
+      display:none;
+    }
+    @keyframes scanMove{0%{top:12%}50%{top:78%}100%{top:12%}}
+
+    .no-camera{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:8px;
+      background:#1a1a1a;color:rgba(255,255,255,.4);
+    }
+    .no-camera .nc-icon{font-size:2.8rem}
+    .no-camera span{font-size:.82rem}
+    .no-camera.hidden{display:none}
+
+    .scan-status-bar{
+      background:#f5f5f5;color:#555;
+      font-size:.72rem;padding:6px 12px;
+      border-radius:0 0 12px 12px;text-align:center;
+      letter-spacing:.3px;min-height:28px;display:flex;align-items:center;justify-content:center;
+    }
+
+    /* อ่านบาร์โค้ด button */
+    .btn-scan-toggle{
+      background:linear-gradient(135deg,#00acc1,#007c91);
+      color:#fff;border:none;border-radius:40px;
+      padding:13px 44px;font-size:1rem;font-weight:700;
+      cursor:pointer;font-family:'Kanit',sans-serif;letter-spacing:.5px;
+      box-shadow:0 6px 22px rgba(0,100,120,.42);
+      transition:all .22s;display:flex;align-items:center;gap:9px;
+    }
+    .btn-scan-toggle:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,100,120,.55)}
+    .btn-scan-toggle:active{transform:translateY(0)}
+    .btn-scan-toggle.stop{
+      background:linear-gradient(135deg,#ef5350,#c62828);
+      box-shadow:0 6px 22px rgba(200,0,0,.38);
+    }
+    .btn-scan-toggle .btn-icon{font-size:1.15rem}
+
+    /* Auto-scan toggle */
+    .auto-scan-wrap{
+      display:flex;align-items:center;gap:12px;margin-top:14px;
+      background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12);
+      border-radius:30px;padding:9px 20px;cursor:pointer;user-select:none;
+      transition:border-color .2s;
+    }
+    .auto-scan-wrap:hover{border-color:rgba(255,255,255,.25)}
+    .toggle-sw{position:relative;width:44px;height:25px;flex-shrink:0}
+    .toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-knob{
+      position:absolute;inset:0;background:rgba(255,255,255,.18);
+      border-radius:25px;transition:background .25s;
+    }
+    .toggle-knob::before{
+      content:'';position:absolute;width:19px;height:19px;border-radius:50%;
+      background:#fff;top:3px;left:3px;
+      transition:transform .25s;box-shadow:0 2px 5px rgba(0,0,0,.35);
+    }
+    .toggle-sw input:checked + .toggle-knob{background:linear-gradient(135deg,#00e676,#00c853)}
+    .toggle-sw input:checked + .toggle-knob::before{transform:translateX(19px)}
+    .auto-scan-lbl{display:flex;flex-direction:column;gap:1px}
+    .auto-scan-lbl b{font-size:.86rem;font-weight:700;color:rgba(255,255,255,.9)}
+    .auto-scan-lbl small{font-size:.68rem;color:rgba(255,255,255,.42);font-weight:400}
+
+    /* ── BOTTOM BAR ── */
+    .bottom-bar{
+      position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:50;
+      width:calc(100% - 32px);max-width:740px;
+      background:rgba(0,28,40,.78);
+      backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+      border:1px solid rgba(77,208,225,.32);
+      border-radius:22px;
+      padding:12px 14px;
+      display:flex;align-items:stretch;gap:10px;
+      box-shadow:0 10px 44px rgba(0,0,0,.38),0 0 0 1px rgba(255,255,255,.04) inset;
+    }
+
+    /* QN / HN field groups */
+    .bar-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+    .bar-field-lbl{
+      font-size:.6rem;font-weight:700;letter-spacing:1.8px;
+      color:rgba(77,208,225,.75);text-transform:uppercase;padding-left:4px;
+    }
+    .bar-sep{
+      width:1px;background:rgba(255,255,255,.1);
+      align-self:stretch;flex-shrink:0;margin:2px 0;
+    }
+
+    .bar-input{
+      width:100%;min-width:0;
+      background:rgba(255,255,255,.08);
+      border:1.5px solid rgba(77,208,225,.28);
+      border-radius:12px;padding:12px 14px;
+      color:#fff;font-size:1.05rem;font-weight:700;
+      font-family:'Kanit',sans-serif;text-align:center;
+      letter-spacing:2px;transition:border-color .2s,background .2s,box-shadow .2s;
+    }
+    .bar-input:focus{
+      outline:none;border-color:#4dd0e1;background:rgba(77,208,225,.1);
+      box-shadow:0 0 0 3px rgba(77,208,225,.14);
+    }
+    .bar-input::placeholder{font-size:.78rem;letter-spacing:.5px;font-weight:300;color:rgba(255,255,255,.28)}
+    .bar-input.active-field{
+      border-color:rgba(77,208,225,.65);background:rgba(77,208,225,.1);
+      box-shadow:0 0 0 3px rgba(77,208,225,.1);
+    }
+    .bar-input.dim{opacity:.28;pointer-events:none}
+
+    .btn-bar-search{
+      flex-shrink:0;align-self:stretch;
+      background:linear-gradient(145deg,#00bcd4,#0097a7);
+      border:none;color:#fff;border-radius:15px;
+      padding:0 22px;min-width:80px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+      cursor:pointer;font-family:'Kanit',sans-serif;transition:all .22s;
+      box-shadow:0 4px 16px rgba(0,150,170,.4);
+    }
+    .btn-bar-search .si{font-size:1.35rem}
+    .btn-bar-search .st{font-size:.62rem;font-weight:700;letter-spacing:1.5px;opacity:.9}
+    .btn-bar-search:hover{
+      background:linear-gradient(145deg,#26c6da,#00acc1);
+      transform:translateY(-1px);box-shadow:0 7px 22px rgba(0,150,170,.5);
+    }
+    .btn-bar-search:active{transform:translateY(0)}
+    .btn-bar-search:disabled{opacity:.38;cursor:not-allowed;transform:none}
+
+    /* ── TYPE STEP ── */
+    #typeStep{
+      display:none;width:100%;max-width:780px;
+      flex-direction:column;align-items:center;
+    }
+    #typeStep.show{display:flex}
+
+    .pt-card{
+      width:100%;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:20px;padding:16px 22px;
+      display:flex;align-items:center;gap:16px;
+      margin-bottom:22px;
+      animation:fadeUp .35s cubic-bezier(.22,1,.36,1);
+      backdrop-filter:blur(10px);
+    }
+    .pt-ava{width:48px;height:48px;border-radius:14px;flex-shrink:0;
+      background:linear-gradient(135deg,#00acc1,#00838f);
+      display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+    .pt-body{flex:1;min-width:0}
+    .pt-name{font-size:1.02rem;font-weight:700;color:#fff;margin-bottom:6px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pt-tags{display:flex;gap:8px;flex-wrap:wrap}
+    .pt-tag{display:inline-flex;align-items:center;gap:5px;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+      border-radius:20px;padding:2px 10px;font-size:.74rem;color:rgba(255,255,255,.82)}
+    .pt-tag b{color:#fff;font-weight:700}
+    .btn-back{flex-shrink:0;background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.75);
+      border-radius:10px;padding:7px 15px;font-size:.78rem;font-weight:600;
+      cursor:pointer;font-family:'Kanit',sans-serif;transition:all .2s;white-space:nowrap}
+    .btn-back:hover{background:rgba(255,255,255,.2);color:#fff}
+
+    .cards-lbl{font-size:.66rem;color:rgba(255,255,255,.5);letter-spacing:3px;
+      text-align:center;margin-bottom:14px;width:100%;text-transform:uppercase}
+    .cards-grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%}
+    .q-card{
+      position:relative;overflow:hidden;
+      background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+      border-radius:20px;padding:26px 22px;text-align:center;
+      min-width:148px;flex:1;max-width:200px;
+      cursor:pointer;transition:all .25s;backdrop-filter:blur(8px);
+    }
+    .q-card:hover{transform:translateY(-6px);background:rgba(255,255,255,.18);
+      border-color:rgba(255,255,255,.38);box-shadow:0 14px 36px rgba(0,0,0,.25)}
+    .q-card:active{transform:translateY(-2px)}
+    .qc-icon{width:56px;height:56px;border-radius:15px;margin:0 auto 12px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.55rem;font-weight:900;color:#000;box-shadow:0 5px 18px rgba(0,0,0,.4)}
+    .qc-name{font-size:.95rem;font-weight:700;margin-bottom:8px}
+    .qc-wait{font-size:.74rem;color:rgba(255,255,255,.5)}
+    .qc-wait strong{font-size:.9rem;font-weight:800;color:#ffd54f}
+    .no-types{text-align:center;color:rgba(255,255,255,.42);padding:32px;font-size:.88rem}
+
+    /* ── RESULT overlay ── */
+    .result-overlay{
+      display:none;position:fixed;inset:0;z-index:60;
+      background:rgba(0,50,70,.88);backdrop-filter:blur(16px);
+      align-items:center;justify-content:center;
+    }
+    .result-overlay.show{display:flex}
+    .result-card{
+      background:linear-gradient(160deg,#00acc1,#006064);
+      border:1px solid rgba(255,255,255,.2);
+      border-radius:28px;padding:40px 50px;text-align:center;
+      animation:scaleUp .4s cubic-bezier(.22,1,.36,1);
+      box-shadow:0 24px 60px rgba(0,0,0,.5);
+      max-width:380px;width:90%;
+    }
+    @keyframes scaleUp{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .res-lbl{font-size:.66rem;color:rgba(255,255,255,.55);letter-spacing:4px;margin-bottom:6px}
+    .res-type-badge{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+      border-radius:22px;padding:5px 16px;font-size:.86rem;margin:8px 0 12px;
+    }
+    .res-prefix{width:28px;height:28px;border-radius:7px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;font-size:.85rem;color:#000}
+    .res-pt{font-size:.85rem;color:rgba(255,255,255,.62);margin-bottom:6px;min-height:1.2em}
+    .res-num{font-size:5.5rem;font-weight:900;letter-spacing:6px;line-height:1;
+      color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.4);margin-bottom:10px}
+    .res-time{font-size:.74rem;color:rgba(255,255,255,.42);margin-bottom:24px}
+    .btn-new{display:inline-flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+      color:#fff;border-radius:30px;padding:10px 28px;
+      font-family:'Kanit',sans-serif;font-size:.88rem;cursor:pointer;transition:all .22s}
+    .btn-new:hover{background:rgba(255,255,255,.22)}
+
+    /* Print */
+    #printDynArea{display:none}
+    @media print{
+      body>*:not(#printDynArea){display:none!important}
+      #printDynArea{display:block!important;font-family:'Segoe UI',Tahoma,sans-serif;
+        margin:0 auto;padding:4mm 5mm;text-align:center}
+    }
+  </style>
+</head>
+<body>
+
+<nav id="navBar">
+  <a href="/" class="nav-logo">⬡ ระบบคิว</a>
+  <a href="#" id="navQueue" class="active">ออกคิว</a>
+  <a href="#" id="navCashier">เรียกคิว</a>
+  <a href="#" id="navDisplay" target="_blank">แสดงคิว</a>
+  <a href="#" id="navSettings">ตั้งค่า</a>
+  <span class="nav-officer" id="navOfficer"></span>
+  <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
+</nav>
+
+<div class="main">
+  <div class="sys-badge">
+    <span id="sysIcon">📋</span>&nbsp;<span id="sysNameLabel">กำลังโหลด...</span>
+  </div>
+
+  <!-- STEP 1: Scanner -->
+  <div id="scannerStep">
+    <div class="scan-title">สแกนบาร์โค้ดจากใบนำทาง</div>
+
+    <div class="scanner-card">
+      <div class="video-wrap">
+        <video id="scanVideo" playsinline muted></video>
+        <div class="scan-line" id="scanLine"></div>
+        <div class="no-camera" id="noCameraDiv">
+          <span class="nc-icon">📷</span>
+          <span id="noCameraText">กดปุ่มด้านล่างเพื่อเปิดกล้อง</span>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">หรือใส่ HN / QN ด้านล่าง</span>
+        </div>
+      </div>
+      <div class="scan-status-bar" id="scanStatusBar">กดปุ่มด้านล่างเพื่อเริ่มสแกน</div>
+    </div>
+
+    <button class="btn-scan-toggle" id="btnScanToggle" onclick="toggleScanner()">
+      <span class="btn-icon" id="scanBtnIcon">📷</span>
+      <span id="scanBtnText">อ่านคิวอาร์โค้ด</span>
+    </button>
+
+    <label class="auto-scan-wrap" for="chkAutoScan">
+      <div class="toggle-sw">
+        <input type="checkbox" id="chkAutoScan" onchange="onAutoScanChange()"/>
+        <div class="toggle-knob"></div>
+      </div>
+      <div class="auto-scan-lbl">
+        <b>สแกนอัตโนมัติ</b>
+        <small>เปิดกล้องทันที ไม่ต้องกดปุ่ม</small>
+      </div>
+    </label>
+
+    <label class="auto-scan-wrap" for="chkSkipResult">
+      <div class="toggle-sw">
+        <input type="checkbox" id="chkSkipResult" onchange="onSkipResultChange()"/>
+        <div class="toggle-knob"></div>
+      </div>
+      <div class="auto-scan-lbl">
+        <b>ปริ้นทันที</b>
+        <small>ข้ามหน้ายืนยัน พิมพ์แล้วกลับทันที</small>
+      </div>
+    </label>
+  </div>
+
+  <!-- STEP 2: Patient + type -->
+  <div id="typeStep">
+    <div class="pt-card">
+      <div class="pt-ava">👤</div>
+      <div class="pt-body">
+        <div class="pt-name" id="ptName">-</div>
+        <div class="pt-tags">
+          <div class="pt-tag">HN: <b id="ptHN">-</b></div>
+          <div class="pt-tag">QN: <b id="ptQN">-</b></div>
+        </div>
+      </div>
+      <button class="btn-back" onclick="backToScanner()">← ค้นหาใหม่</button>
+    </div>
+    <div class="cards-lbl">เลือกประเภทการให้บริการ</div>
+    <div class="cards-grid" id="cardsGrid"><div class="no-types">กำลังโหลด...</div></div>
+  </div>
+</div>
+
+<!-- STEP 3: Result overlay -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card">
+    <div class="res-lbl">หมายเลขคิวของท่าน</div>
+    <div class="res-type-badge">
+      <div class="res-prefix" id="resPrefix" style="background:#42a5f5">A</div>
+      <span id="resTypeName">-</span>
+    </div>
+    <div class="res-pt" id="resPtName"></div>
+    <div class="res-num" id="resNum">---</div>
+    <div class="res-time" id="resTime"></div>
+    <button class="btn-new" onclick="closeResult()">← รับคิวใหม่</button>
+  </div>
+</div>
+
+<!-- Floating bottom bar -->
+<div class="bottom-bar">
+  <div class="bar-field">
+    <div class="bar-field-lbl">🔢 &nbsp;QN — เลขคิว</div>
+    <input class="bar-input" id="qnInput" type="text" placeholder="กรอกเลขคิว" autocomplete="off" inputmode="numeric"/>
+  </div>
+  <div class="bar-sep"></div>
+  <div class="bar-field">
+    <div class="bar-field-lbl">🏥 &nbsp;HN — เลขประจำตัว</div>
+    <input class="bar-input" id="hnInput" type="text" placeholder="กรอก HN" autocomplete="off" inputmode="numeric"/>
+  </div>
+  <button class="btn-bar-search" id="searchBtn" onclick="doLookup()">
+    <span class="si">🔍</span>
+    <span class="st">ค้นหา</span>
+  </button>
+</div>
+
+<div id="printDynArea"></div>
+
+<script>
+const sysId  = new URLSearchParams(location.search).get('sys') || 1;
+const socket = io();
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+let queueTypes     = [];
+let typeWaiting    = {};
+let sysInfo        = null;
+let printConfig    = {};
+let currentPatient = null;
+let isScanning     = false;
+let scanCooldown   = false;
+let codeReader     = null;
+
+// ── Auto-scan ─────────────────────────────────────────────────────────────
+const chkAutoScan = document.getElementById('chkAutoScan');
+chkAutoScan.checked = localStorage.getItem('autoScan') === '1';
+if (chkAutoScan.checked) setTimeout(() => startScanner(), 700);
+
+function onAutoScanChange() {
+  localStorage.setItem('autoScan', chkAutoScan.checked ? '1' : '0');
+  if (chkAutoScan.checked) startScanner(); else stopScanner();
+}
+
+// ── Skip result / instant print ───────────────────────────────────────────
+const chkSkipResult = document.getElementById('chkSkipResult');
+chkSkipResult.checked = localStorage.getItem('skipResult') === '1';
+
+function onSkipResultChange() {
+  localStorage.setItem('skipResult', chkSkipResult.checked ? '1' : '0');
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────
+const _n = sessionStorage.getItem('officerName');
+if (_n) document.getElementById('navOfficer').textContent = '👤 ' + _n;
+
+function doLogout() {
+  const tok = sessionStorage.getItem('authToken');
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('officerName');
+  if (tok) fetch('/api/auth/logout', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: tok })
+  });
+  location.href = '/login.html';
+}
+
+['navQueue','navCashier','navDisplay','navSettings'].forEach((id, i) => {
+  const pages = ['queue.html','cashier.html','display.html','settings.html'];
+  document.getElementById(id).href = `/${pages[i]}?sys=${sysId}`;
+});
+
+// ── Socket ────────────────────────────────────────────────────────────────
+socket.on('types_updated', t  => { queueTypes = t; renderCards(); });
+socket.on('queue_issued',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
+socket.on('queue_called',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
+socket.on('queue_reset',   () => { typeWaiting = {}; renderCards(); backToScanner(); });
+
+// ── Load ──────────────────────────────────────────────────────────────────
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  sysInfo     = d.sysInfo;
+  queueTypes  = d.queueTypes;
+  typeWaiting = d.typeWaiting;
+  printConfig = d.printConfig || {};
+  if (sysInfo) {
+    document.getElementById('sysIcon').textContent      = sysInfo.icon || '📋';
+    document.getElementById('sysNameLabel').textContent = sysInfo.name;
+    document.title = `ออกบัตรคิว — ${sysInfo.name}`;
+  }
+  renderCards();
+});
+
+// ── Barcode Scanner ───────────────────────────────────────────────────────
+const videoEl      = document.getElementById('scanVideo');
+const scanLineEl   = document.getElementById('scanLine');
+const noCameraDiv  = document.getElementById('noCameraDiv');
+const statusBar    = document.getElementById('scanStatusBar');
+
+function getReader() {
+  if (!codeReader && typeof ZXing !== 'undefined') {
+    codeReader = new ZXing.BrowserMultiFormatReader();
+  }
+  return codeReader;
+}
+
+async function toggleScanner() {
+  if (isScanning) {
+    stopScanner();
+  } else {
+    await startScanner();
+  }
+}
+
+async function startScanner() {
+  const reader = getReader();
+  if (!reader) {
+    setStatus('⚠ โหลดตัวสแกนไม่สำเร็จ');
+    return;
+  }
+  try {
+    isScanning = true;
+    setScanBtnState(true);
+    noCameraDiv.classList.add('hidden');
+    scanLineEl.style.display = 'block';
+    setStatus('🟢 กำลังสแกน...');
+
+    await reader.decodeFromVideoDevice(null, 'scanVideo', (result, err) => {
+      if (result && isScanning && !scanCooldown) {
+        const val = result.getText().trim();
+        if (val) {
+          scanCooldown = true;
+          isScanning = false;
+          reader.reset();
+          onBarcodeScanned(val);
+        }
+      }
+    });
+  } catch(e) {
+    isScanning = false;
+    setScanBtnState(false);
+    scanLineEl.style.display = 'none';
+    noCameraDiv.classList.remove('hidden');
+    setStatus('⚠ ไม่สามารถเปิดกล้องได้ — ใส่ HN / QN ด้านล่าง');
+  }
+}
+
+function stopScanner() {
+  isScanning = false;
+  if (codeReader) { try { codeReader.reset(); } catch(e){} }
+  setScanBtnState(false);
+  scanLineEl.style.display = 'none';
+  noCameraDiv.classList.remove('hidden');
+  const autoOn = document.getElementById('chkAutoScan').checked;
+  document.getElementById('noCameraText').textContent = autoOn ? 'กำลังเตรียมกล้อง...' : 'กดปุ่มด้านล่างเพื่อเปิดกล้อง';
+  setStatus(autoOn ? 'โหมดสแกนอัตโนมัติ' : 'กดปุ่มด้านล่างเพื่อเริ่มสแกน');
+}
+
+function setScanBtnState(active) {
+  const btn  = document.getElementById('btnScanToggle');
+  const icon = document.getElementById('scanBtnIcon');
+  const txt  = document.getElementById('scanBtnText');
+  btn.classList.toggle('stop', active);
+  icon.textContent = active ? '⏹' : '📷';
+  txt.textContent  = active ? 'หยุดสแกน' : 'อ่านคิวอาร์โค้ด';
+}
+
+function setStatus(msg, color) {
+  statusBar.textContent = msg;
+  statusBar.style.color = color || '';
+}
+
+function onBarcodeScanned(value) {
+  stopScanner();
+  setStatus(`✓ สแกนได้: ${value}`, '#2e7d32');
+  hnEl.value = value;
+  qnEl.value = '';
+  syncFields();
+  doLookup();
+  setTimeout(() => { scanCooldown = false; }, 3000);
+}
+
+// ── Manual inputs (bottom bar) ────────────────────────────────────────────
+const hnEl = document.getElementById('hnInput');
+const qnEl = document.getElementById('qnInput');
+
+function syncFields() {
+  const hasHN = !!hnEl.value.trim();
+  const hasQN = !!qnEl.value.trim();
+  hnEl.classList.toggle('active-field', hasHN);
+  qnEl.classList.toggle('active-field', hasQN);
+  hnEl.classList.toggle('dim', !hasHN && hasQN);
+  qnEl.classList.toggle('dim', hasHN && !hasQN);
+}
+hnEl.addEventListener('input', () => { if (hnEl.value) qnEl.value = ''; syncFields(); });
+qnEl.addEventListener('input', () => { if (qnEl.value) hnEl.value = ''; syncFields(); });
+[hnEl, qnEl].forEach(el => el.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLookup();
+}));
+
+// ── Lookup ────────────────────────────────────────────────────────────────
+function doLookup() {
+  const hn    = hnEl.value.trim();
+  const qn    = qnEl.value.trim();
+  const btn   = document.getElementById('searchBtn');
+
+  if (!hn && !qn) {
+    setStatus('กรุณากรอก HN หรือ QN', '#c62828');
+    setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 2500);
+    return;
+  }
+
+  const type  = hn ? 'hn' : 'qn';
+  const value = hn || qn;
+
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></span>`;
+
+  fetch('/api/patient-lookup', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ type, value })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      currentPatient = d.patient;
+      document.getElementById('ptName').textContent = d.patient.name;
+      document.getElementById('ptHN').textContent   = d.patient.hn;
+      document.getElementById('ptQN').textContent   = d.patient.qn;
+      stopScanner();
+      showStep('type');
+    } else {
+      setStatus(`✗ ${d.message}`, '#c62828');
+      setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
+    }
+  })
+  .catch(() => {
+    setStatus('✗ เกิดข้อผิดพลาดในการค้นหา', '#c62828');
+    setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="si">🔍</span><span class="st">ค้นหา</span>';
+  });
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────
+function showStep(step) {
+  document.getElementById('scannerStep').style.display = step === 'scanner' ? '' : 'none';
+  document.getElementById('typeStep').classList.toggle('show', step === 'type');
+  if (step !== 'result') document.getElementById('resultOverlay').classList.remove('show');
+}
+
+function backToScanner() {
+  stopScanner();
+  currentPatient = null;
+  hnEl.value = ''; qnEl.value = '';
+  hnEl.classList.remove('active-field','dim');
+  qnEl.classList.remove('active-field','dim');
+  setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน');
+  showStep('scanner');
+  if (chkAutoScan.checked) setTimeout(() => startScanner(), 400);
+}
+
+// ── Cards ─────────────────────────────────────────────────────────────────
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  if (!queueTypes.length) {
+    grid.innerHTML = `<div class="no-types">ยังไม่มีประเภทคิว — <a href="/settings.html?sys=${sysId}" style="color:#ffd54f">ตั้งค่า</a></div>`;
+    return;
+  }
+  grid.innerHTML = queueTypes.map(t => `
+    <div class="q-card" onclick="getQueue(${t.id})" style="--c:${t.color}28">
+      <div class="qc-icon" style="background:${t.color}">${t.prefix}</div>
+      <div class="qc-name">${t.name}</div>
+      <div class="qc-wait">คิวรอ <strong>${typeWaiting[t.id] || 0}</strong> คน</div>
+    </div>`).join('');
+}
+
+// ── renderSlipHtml (mirrors settings.html version) ───────────────────────
+function renderSlipHtml(cfg, d) {
+  const divider = cfg.showDividerLine
+    ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
+  let h = '';
+  if (cfg.showHeader) {
+    const name = cfg.headerName || d.sysName;
+    h += `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize||14}pt;margin-bottom:2px">${name}</div>`;
+    if (cfg.headerSubtitle)
+      h += `<div style="text-align:center;font-size:${(cfg.headerFontSize||14)-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+  }
+  h += divider;
+  if (cfg.showPatientName && d.patientName)
+    h += `<div style="font-size:${cfg.patientFontSize||11}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
+  if (cfg.showHnQn && (d.hn || d.qn)) {
+    const parts = [d.hn?'HN:'+d.hn:'', d.qn?'QN:'+d.qn:''].filter(Boolean).join('   ');
+    h += `<div style="font-size:${(cfg.patientFontSize||11)-2}pt;color:#555;text-align:center;margin-bottom:3px">${parts}</div>`;
+  }
+  h += divider;
+  if (cfg.showQueueType && d.typeName)
+    h += `<div style="font-size:${cfg.queueTypeFontSize||11}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
+  h += `<div style="font-size:${cfg.queueNumFontSize||60}pt;font-weight:900;text-align:center;
+    letter-spacing:4px;border:3px solid #000;padding:1px 10px;
+    display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
+  if (cfg.showDateTime)
+    h += `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
+  h += divider;
+  if (cfg.showFooter && cfg.footerText)
+    h += `<div style="font-size:${cfg.footerFontSize||8}pt;color:#555;text-align:center;margin-top:3px;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
+  return h;
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────
+function doPrint(ticket) {
+  if (!printConfig.autoPrint) return;
+  const data = {
+    sysName:     sysInfo?.name || 'ระบบคิว',
+    patientName: currentPatient?.name || null,
+    hn:          currentPatient?.hn   || null,
+    qn:          currentPatient?.qn   || null,
+    typeName:    ticket.typeName,
+    display:     ticket.display,
+    date:        ticket.date,
+    issuedAt:    ticket.issuedAt,
+  };
+  if (printConfig.printerName) {
+    fetch(`/api/sys/${sysId}/print-ticket`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data),
+    }).then(r => r.json()).then(r => {
+      if (!r.success) browserPrint(data);
+    }).catch(() => browserPrint(data));
+  } else {
+    browserPrint(data);
+  }
+}
+
+function browserPrint(data) {
+  const el = document.getElementById('printDynArea');
+  el.innerHTML = renderSlipHtml(printConfig, data);
+  let ps = document.getElementById('_printStyle');
+  if (!ps) { ps = document.createElement('style'); ps.id = '_printStyle'; document.head.appendChild(ps); }
+  const szMap = {'80mm':'80mm auto','58mm':'58mm auto','a4':'A4','custom':`${printConfig.customWidth||80}mm auto`};
+  ps.textContent = `@media print{@page{size:${szMap[printConfig.paperSize]||'80mm auto'};margin:3mm}}`;
+  window.print();
+}
+
+// ── Issue ticket ──────────────────────────────────────────────────────────
+function getQueue(typeId) {
+  fetch(`/api/sys/${sysId}/get-serial`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      typeId,
+      hn:          currentPatient?.hn   || null,
+      qn:          currentPatient?.qn   || null,
+      patientName: currentPatient?.name || null,
+    })
+  }).then(r => r.json()).then(d => {
+    if (!d.success) { alert(d.message); return; }
+    const t = d.ticket;
+
+    if (chkSkipResult.checked) {
+      doPrint(t);
+      backToScanner();
+    } else {
+      document.getElementById('resPrefix').style.background = t.color;
+      document.getElementById('resPrefix').textContent      = t.prefix;
+      document.getElementById('resTypeName').textContent    = t.typeName;
+      document.getElementById('resNum').textContent         = t.display;
+      document.getElementById('resTime').textContent        = `วันที่ ${t.date}  ·  เวลา ${t.issuedAt}`;
+      const ptNameEl = document.getElementById('resPtName');
+      if (currentPatient) { ptNameEl.textContent = currentPatient.name; ptNameEl.style.display = ''; }
+      else ptNameEl.style.display = 'none';
+      showStep('result');
+      document.getElementById('resultOverlay').classList.add('show');
+      doPrint(t);
+    }
+  });
+}
+
+function closeResult() {
+  backToScanner();
+}
+</script>
+</body>
+</html>

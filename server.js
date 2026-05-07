@@ -1,0 +1,848 @@
+const express = require('express');
+const http    = require('http');
+const { Server } = require('socket.io');
+const path    = require('path');
+const fs      = require('fs');
+const os      = require('os');
+const crypto  = require('crypto');
+const { exec } = require('child_process');
+
+const app    = express();
+const server = http.createServer(app);
+const io     = new Server(server);
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+// ── Persist helpers ──────────────────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+function sysDir(sysId) {
+  const d = path.join(DATA_DIR, `sys-${sysId}`);
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  return d;
+}
+function loadJson(file, defaults) {
+  if (!fs.existsSync(file)) { fs.writeFileSync(file, JSON.stringify(defaults, null, 2)); return JSON.parse(JSON.stringify(defaults)); }
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return JSON.parse(JSON.stringify(defaults)); }
+}
+function saveJson(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
+
+// ── Systems ───────────────────────────────────────────────────────────────
+const SYSTEMS_FILE = path.join(DATA_DIR, 'systems.json');
+
+function migrateIfNeeded() {
+  if (fs.existsSync(SYSTEMS_FILE)) return;
+  saveJson(SYSTEMS_FILE, [
+    { id: 1, name: 'ระบบคิวการเงิน', description: 'Finance Queue System', icon: '💰', color: '#42a5f5' }
+  ]);
+  const newDir = path.join(DATA_DIR, 'sys-1');
+  if (!fs.existsSync(newDir)) fs.mkdirSync(newDir, { recursive: true });
+  ['queue-types.json', 'counters.json', 'display-config.json'].forEach(f => {
+    const src = path.join(DATA_DIR, f);
+    const dst = path.join(newDir, f);
+    if (fs.existsSync(src) && !fs.existsSync(dst)) fs.copyFileSync(src, dst);
+  });
+}
+migrateIfNeeded();
+
+let systems   = loadJson(SYSTEMS_FILE, []);
+let nextSysId = Math.max(0, ...systems.map(s => s.id)) + 1;
+
+// ── Per-system state ──────────────────────────────────────────────────────
+const sysData = {};
+
+const PRINT_CFG_DEFAULTS = {
+  paperSize:'80mm', customWidth:'80', customHeight:'',
+  printerName:'',
+  showHeader:true, headerName:'', headerSubtitle:'Queue System', headerFontSize:14,
+  showDividerLine:true,
+  showPatientName:true, showHnQn:true, patientFontSize:11,
+  showQueueType:true, queueTypeFontSize:11, queueNumFontSize:60,
+  showDateTime:true, dateFontSize:9,
+  showFooter:true,
+  footerText:'กรุณานั่งรอเรียกหมายเลขของท่าน\nPlease wait for your number',
+  footerFontSize:8, autoPrint:true,
+};
+
+function loadSysData(sysId) {
+  const dir             = sysDir(sysId);
+  const typesFile       = path.join(dir, 'queue-types.json');
+  const ctrsFile        = path.join(dir, 'counters.json');
+  const displayFile     = path.join(dir, 'display-config.json');
+  const printConfigFile = path.join(dir, 'print-config.json');
+
+  const queueTypes = loadJson(typesFile, [
+    { id: 1, name: 'ทั่วไป',    prefix: 'A', color: '#42a5f5' },
+    { id: 2, name: 'นิติบุคคล', prefix: 'B', color: '#66bb6a' },
+  ]);
+  const counters = loadJson(ctrsFile, [
+    { id: 1, name: 'ช่อง 1' },
+    { id: 2, name: 'ช่อง 2' },
+  ]);
+  const displayConfig = loadJson(displayFile, {
+    tickerMessages: [
+      'ยินดีต้อนรับสู่ระบบคิว',
+      'Welcome to Queue System',
+      'กรุณานั่งรอเรียกหมายเลขของท่าน',
+      'Please wait for your number to be called',
+      'ขอบคุณที่ใช้บริการ | Thank you for your patience',
+    ],
+  });
+  const printConfig = loadJson(printConfigFile, PRINT_CFG_DEFAULTS);
+
+  const state = {};
+  queueTypes.forEach(t => { state[t.id] = { serial: 0, waiting: [], served: [], calledQueue: null }; });
+
+  sysData[sysId] = {
+    queueTypes, counters, displayConfig, printConfig,
+    typesFile, ctrsFile, displayFile, printConfigFile,
+    nextTypeId:          Math.max(0, ...queueTypes.map(t => t.id)) + 1,
+    nextCounterId:       Math.max(0, ...counters.map(c => c.id))   + 1,
+    state,
+    noShows:             [],
+    lastCalledByCounter: {},
+    recentByCounter:     {},
+  };
+}
+systems.forEach(s => loadSysData(s.id));
+
+function getSys(sysId) { return sysData[Number(sysId)] || null; }
+
+function requireSys(req, res, next) {
+  const sys = getSys(req.params.sysId);
+  if (!sys) return res.status(404).json({ success: false, message: 'ไม่พบระบบคิว' });
+  req.sys   = sys;
+  req.sysId = Number(req.params.sysId);
+  next();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function initTypeState(sys, typeId) {
+  if (!sys.state[typeId]) sys.state[typeId] = { serial: 0, waiting: [], served: [], calledQueue: null };
+}
+function allServed(sys) {
+  return Object.values(sys.state).flatMap(s => s.served).filter(t => !t.noShow)
+    .sort((a, b) => b._ts - a._ts).slice(0, 40);
+}
+function allWaiting(sys) {
+  return Object.values(sys.state).flatMap(s => s.waiting).sort((a, b) => a._ts - b._ts);
+}
+function typeWaiting(sys) {
+  const r = {};
+  for (const [id, s] of Object.entries(sys.state)) r[id] = s.waiting.length;
+  return r;
+}
+function broadcastCall(sysId, sys, called) {
+  io.to('sys-' + sysId).emit('queue_called', {
+    calledQueue:         called,
+    typeWaiting:         typeWaiting(sys),
+    allWaiting:          allWaiting(sys),
+    allServed:           allServed(sys),
+    noShows:             sys.noShows.slice(0, 40),
+    lastCalledByCounter: sys.lastCalledByCounter,
+    recentByCounter:     sys.recentByCounter,
+  });
+}
+
+// ── Socket rooms ──────────────────────────────────────────────────────────
+io.on('connection', socket => {
+  socket.on('join_sys', sysId => socket.join('sys-' + sysId));
+});
+
+// ── Systems API ───────────────────────────────────────────────────────────
+app.get('/api/systems', (req, res) => res.json(systems));
+
+app.post('/api/systems', (req, res) => {
+  const { name, description, icon, color } = req.body;
+  if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อระบบ' });
+  const sys = { id: nextSysId++, name: name.trim(), description: description || '', icon: icon || '📋', color: color || '#42a5f5' };
+  systems.push(sys);
+  saveJson(SYSTEMS_FILE, systems);
+  loadSysData(sys.id);
+  io.emit('systems_updated', systems);
+  res.json({ success: true, system: sys });
+});
+
+app.put('/api/systems/:id', (req, res) => {
+  const id  = parseInt(req.params.id);
+  const idx = systems.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบระบบ' });
+  const { name, description, icon, color } = req.body;
+  if (name)                      systems[idx].name        = name.trim();
+  if (description !== undefined) systems[idx].description = description;
+  if (icon)                      systems[idx].icon        = icon;
+  if (color)                     systems[idx].color       = color;
+  saveJson(SYSTEMS_FILE, systems);
+  io.emit('systems_updated', systems);
+  res.json({ success: true, system: systems[idx] });
+});
+
+app.delete('/api/systems/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (systems.length <= 1) return res.status(400).json({ success: false, message: 'ต้องมีอย่างน้อย 1 ระบบ' });
+  const idx = systems.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบระบบ' });
+  systems.splice(idx, 1);
+  delete sysData[id];
+  saveJson(SYSTEMS_FILE, systems);
+  io.emit('systems_updated', systems);
+  res.json({ success: true });
+});
+
+// ── System info ───────────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/info', (req, res) => {
+  const id  = parseInt(req.params.sysId);
+  const sys = systems.find(s => s.id === id);
+  if (!sys) return res.status(404).json({ success: false, message: 'ไม่พบระบบ' });
+  res.json(sys);
+});
+
+// ── Queue Types API ───────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/queue-types', requireSys, (req, res) => res.json(req.sys.queueTypes));
+
+app.post('/api/sys/:sysId/queue-types', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const { name, prefix, color } = req.body;
+  if (!name || !prefix) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อและ prefix' });
+  const p = prefix.toUpperCase().trim();
+  if (sys.queueTypes.find(t => t.prefix === p))
+    return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
+  const type = { id: sys.nextTypeId++, name: name.trim(), prefix: p, color: color || '#42a5f5' };
+  sys.queueTypes.push(type); initTypeState(sys, type.id);
+  saveJson(sys.typesFile, sys.queueTypes);
+  io.to('sys-' + sysId).emit('types_updated', sys.queueTypes);
+  res.json({ success: true, type });
+});
+
+app.put('/api/sys/:sysId/queue-types/:id', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const id  = parseInt(req.params.id);
+  const idx = sys.queueTypes.findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบประเภทคิว' });
+  const { name, prefix, color } = req.body;
+  if (prefix) {
+    const p = prefix.toUpperCase().trim();
+    if (sys.queueTypes.find(t => t.id !== id && t.prefix === p))
+      return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
+    sys.queueTypes[idx].prefix = p;
+  }
+  if (name)  sys.queueTypes[idx].name  = name.trim();
+  if (color) sys.queueTypes[idx].color = color;
+  saveJson(sys.typesFile, sys.queueTypes);
+  io.to('sys-' + sysId).emit('types_updated', sys.queueTypes);
+  res.json({ success: true, type: sys.queueTypes[idx] });
+});
+
+app.delete('/api/sys/:sysId/queue-types/:id', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const id = parseInt(req.params.id);
+  if (sys.queueTypes.length <= 1) return res.status(400).json({ success: false, message: 'ต้องมีอย่างน้อย 1 ประเภท' });
+  const idx = sys.queueTypes.findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบประเภทคิว' });
+  sys.queueTypes.splice(idx, 1); delete sys.state[id];
+  saveJson(sys.typesFile, sys.queueTypes);
+  io.to('sys-' + sysId).emit('types_updated', sys.queueTypes);
+  res.json({ success: true });
+});
+
+// ── Counters API ──────────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/counters', requireSys, (req, res) => res.json(req.sys.counters));
+
+app.post('/api/sys/:sysId/counters', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อช่อง' });
+  const counter = { id: sys.nextCounterId++, name: name.trim() };
+  sys.counters.push(counter);
+  saveJson(sys.ctrsFile, sys.counters);
+  io.to('sys-' + sysId).emit('counters_updated', sys.counters);
+  res.json({ success: true, counter });
+});
+
+app.put('/api/sys/:sysId/counters/:id', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const id  = parseInt(req.params.id);
+  const idx = sys.counters.findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบช่องบริการ' });
+  if (req.body.name) sys.counters[idx].name = req.body.name.trim();
+  saveJson(sys.ctrsFile, sys.counters);
+  io.to('sys-' + sysId).emit('counters_updated', sys.counters);
+  res.json({ success: true, counter: sys.counters[idx] });
+});
+
+app.delete('/api/sys/:sysId/counters/:id', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const id = parseInt(req.params.id);
+  if (sys.counters.length <= 1) return res.status(400).json({ success: false, message: 'ต้องมีอย่างน้อย 1 ช่อง' });
+  const idx = sys.counters.findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบช่องบริการ' });
+  sys.counters.splice(idx, 1);
+  delete sys.lastCalledByCounter[id];
+  delete sys.recentByCounter[id];
+  saveJson(sys.ctrsFile, sys.counters);
+  io.to('sys-' + sysId).emit('counters_updated', sys.counters);
+  res.json({ success: true });
+});
+
+// ── Display Config API ────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/display-config', requireSys, (req, res) => res.json(req.sys.displayConfig));
+
+app.put('/api/sys/:sysId/display-config', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  if (Array.isArray(req.body.tickerMessages)) {
+    sys.displayConfig.tickerMessages = req.body.tickerMessages;
+    saveJson(sys.displayFile, sys.displayConfig);
+    io.to('sys-' + sysId).emit('display_config_updated', sys.displayConfig);
+  }
+  res.json({ success: true, displayConfig: sys.displayConfig });
+});
+
+// ── Peek next (preview without calling) ──────────────────────────────────
+app.get('/api/sys/:sysId/peek-next', requireSys, (req, res) => {
+  const { sys } = req;
+  const typeId  = req.query.typeId ? Number(req.query.typeId) : null;
+  let ticket    = null;
+  if (typeId) {
+    const waiting = (sys.state[typeId]?.waiting || []).slice().sort((a, b) => a._ts - b._ts);
+    ticket = waiting[0] || null;
+  } else {
+    ticket = allWaiting(sys)[0] || null;
+  }
+  res.json({ ticket });
+});
+
+// ── Queue Operations ──────────────────────────────────────────────────────
+app.post('/api/sys/:sysId/get-serial', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const { typeId, hn, qn, patientName } = req.body;
+  const type = sys.queueTypes.find(t => t.id === Number(typeId));
+  if (!type) return res.status(400).json({ success: false, message: 'ระบุประเภทคิวไม่ถูกต้อง' });
+  initTypeState(sys, type.id);
+  const s = sys.state[type.id];
+  s.serial += 1;
+  const ticket = {
+    number:      s.serial,
+    display:     type.prefix + String(s.serial).padStart(3, '0'),
+    typeId:      type.id, typeName: type.name, prefix: type.prefix, color: type.color,
+    issuedAt:    new Date().toLocaleTimeString('th-TH'),
+    date:        new Date().toLocaleDateString('th-TH'),
+    _ts:         Date.now(),
+    issuedTs:    Date.now(),
+    hn:          hn          || null,
+    qn:          qn          || null,
+    patientName: patientName || null,
+  };
+  s.waiting.push(ticket);
+  io.to('sys-' + sysId).emit('queue_issued', { ticket, typeWaiting: typeWaiting(sys), allWaiting: allWaiting(sys) });
+  res.json({ success: true, ticket });
+});
+
+function doCall(sys, sysId, ticket, s, counterId) {
+  let counter = sys.counters.find(c => c.id === Number(counterId));
+  if (!counter && sys.counters.length) counter = sys.counters[0]; // fallback to first counter
+  const called  = {
+    ...ticket,
+    calledAt:    new Date().toLocaleTimeString('th-TH'),
+    counterId:   counter?.id   || null,
+    counterName: counter?.name || '',
+    _ts: Date.now(),
+  };
+  s.calledQueue = called;
+  s.served.unshift(called);
+  if (s.served.length > 40) s.served.pop();
+  if (called.counterId) {
+    sys.lastCalledByCounter[called.counterId] = called;
+    if (!sys.recentByCounter[called.counterId]) sys.recentByCounter[called.counterId] = [];
+    sys.recentByCounter[called.counterId].unshift(called);
+    if (sys.recentByCounter[called.counterId].length > 5) sys.recentByCounter[called.counterId].pop();
+  }
+  broadcastCall(sysId, sys, called);
+  return called;
+}
+
+app.post('/api/sys/:sysId/call-next', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const typeId    = req.body.typeId    ? Number(req.body.typeId)    : null;
+  const counterId = req.body.counterId ? Number(req.body.counterId) : null;
+  let ticket = null, s = null;
+  if (typeId) {
+    s = sys.state[typeId];
+    if (!s || !s.waiting.length) return res.json({ success: false, message: 'ไม่มีคิวรอในประเภทนี้' });
+    s.waiting.sort((a, b) => a._ts - b._ts);
+    ticket = s.waiting.shift();
+  } else {
+    const all = allWaiting(sys);
+    if (!all.length) return res.json({ success: false, message: 'ไม่มีคิวรอ' });
+    ticket = all[0];
+    s = sys.state[ticket.typeId];
+    const idx = s.waiting.findIndex(t => t.display === ticket.display);
+    if (idx !== -1) s.waiting.splice(idx, 1);
+  }
+  res.json({ success: true, calledQueue: doCall(sys, sysId, ticket, s, counterId) });
+});
+
+app.post('/api/sys/:sysId/call-number', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display   = (req.body.display || '').toUpperCase().trim();
+  const counterId = req.body.counterId ? Number(req.body.counterId) : null;
+  for (const s of Object.values(sys.state)) {
+    const idx = s.waiting.findIndex(t => t.display === display);
+    if (idx !== -1) {
+      const [ticket] = s.waiting.splice(idx, 1);
+      return res.json({ success: true, calledQueue: doCall(sys, sysId, ticket, s, counterId) });
+    }
+  }
+  res.json({ success: false, message: 'ไม่พบหมายเลขคิวนี้ในระบบ' });
+});
+
+// ── Uncall (return ticket to waiting) ────────────────────────────────────
+app.post('/api/sys/:sysId/uncall', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display = (req.body.display || '').toUpperCase().trim();
+  for (const s of Object.values(sys.state)) {
+    const idx = s.served.findIndex(t => t.display === display && !t.noShow);
+    if (idx !== -1) {
+      const [ticket] = s.served.splice(idx, 1);
+      if (s.calledQueue?.display === display) s.calledQueue = null;
+      for (const [cid, t] of Object.entries(sys.lastCalledByCounter)) {
+        if (t.display === display) delete sys.lastCalledByCounter[cid];
+      }
+      if (ticket.counterId) {
+        const rc = sys.recentByCounter[ticket.counterId];
+        if (rc) { const ri = rc.findIndex(t => t.display === display); if (ri !== -1) rc.splice(ri, 1); }
+      }
+      const restored = {
+        number: ticket.number, display: ticket.display, typeId: ticket.typeId,
+        typeName: ticket.typeName, prefix: ticket.prefix, color: ticket.color,
+        issuedAt: ticket.issuedAt, date: ticket.date,
+        issuedTs:    ticket.issuedTs || ticket._ts,
+        _ts:         ticket.issuedTs || ticket._ts,  // sort by original issue time
+        returned:    true,
+        returnedAt:  new Date().toLocaleTimeString('th-TH'),
+        returnCount: (ticket.returnCount || 0) + 1,
+      };
+      s.waiting.push(restored);
+      s.waiting.sort((a, b) => a._ts - b._ts);
+      io.to('sys-' + sysId).emit('queue_uncalled', {
+        display,
+        typeWaiting:         typeWaiting(sys),
+        allWaiting:          allWaiting(sys),
+        allServed:           allServed(sys),
+        lastCalledByCounter: sys.lastCalledByCounter,
+        recentByCounter:     sys.recentByCounter,
+      });
+      return res.json({ success: true });
+    }
+  }
+  res.json({ success: false, message: 'ไม่พบคิวนี้ในประวัติ' });
+});
+
+// ── Recall served (re-announce without changing queue state) ─────────────
+app.post('/api/sys/:sysId/recall-served', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display   = (req.body.display || '').toUpperCase().trim();
+  const counterId = req.body.counterId ? Number(req.body.counterId) : null;
+  let ticket = null;
+  for (const s of Object.values(sys.state)) {
+    ticket = s.served.find(t => t.display === display);
+    if (ticket) break;
+  }
+  if (!ticket) return res.json({ success: false, message: 'ไม่พบข้อมูลคิวนี้' });
+  const counter = sys.counters.find(c => c.id === Number(counterId));
+  const recalled = {
+    ...ticket,
+    calledAt:    new Date().toLocaleTimeString('th-TH'),
+    counterId:   counter?.id   || ticket.counterId   || null,
+    counterName: counter?.name || ticket.counterName || '',
+    _ts: Date.now(),
+  };
+  if (recalled.counterId) {
+    sys.lastCalledByCounter[recalled.counterId] = recalled;
+    if (!sys.recentByCounter[recalled.counterId]) sys.recentByCounter[recalled.counterId] = [];
+    sys.recentByCounter[recalled.counterId].unshift(recalled);
+    if (sys.recentByCounter[recalled.counterId].length > 5) sys.recentByCounter[recalled.counterId].pop();
+  }
+  broadcastCall(sysId, sys, recalled);
+  res.json({ success: true, calledQueue: recalled });
+});
+
+// ── No-show ───────────────────────────────────────────────────────────────
+app.post('/api/sys/:sysId/no-show', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const { display } = req.body;
+  if (!display) return res.status(400).json({ success: false, message: 'ระบุหมายเลขคิว' });
+  let record = null;
+  for (const s of Object.values(sys.state)) {
+    const found = s.served.find(t => t.display === display);
+    if (found) { found.noShow = true; record = found; break; }
+  }
+  if (!record) return res.json({ success: false, message: 'ไม่พบข้อมูลคิวนี้' });
+  const entry = { ...record, noShowAt: new Date().toLocaleTimeString('th-TH'), noShowTs: Date.now() };
+  sys.noShows.unshift(entry);
+  if (sys.noShows.length > 50) sys.noShows.pop();
+  io.to('sys-' + sysId).emit('queue_noshow', { display, entry, noShows: sys.noShows.slice(0, 40), allServed: allServed(sys) });
+  res.json({ success: true, entry });
+});
+
+app.post('/api/sys/:sysId/recall-noshow', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display   = (req.body.display || '').toUpperCase().trim();
+  const counterId = req.body.counterId ? Number(req.body.counterId) : null;
+  const idx       = sys.noShows.findIndex(t => t.display === display);
+  if (idx === -1) return res.json({ success: false, message: 'ไม่พบในรายการไม่มา' });
+  const entry   = sys.noShows[idx];
+  const counter = sys.counters.find(c => c.id === Number(counterId));
+  const recalled = {
+    ...entry,
+    calledAt:    new Date().toLocaleTimeString('th-TH'),
+    counterId:   counter?.id   || entry.counterId   || null,
+    counterName: counter?.name || entry.counterName || '',
+    noShow: false, recalled: true, _ts: Date.now(),
+  };
+  for (const s of Object.values(sys.state)) {
+    const si = s.served.findIndex(t => t.display === display);
+    if (si !== -1) { s.served[si] = recalled; s.calledQueue = recalled; break; }
+  }
+  sys.noShows.splice(idx, 1);
+  if (recalled.counterId) {
+    sys.lastCalledByCounter[recalled.counterId] = recalled;
+    if (!sys.recentByCounter[recalled.counterId]) sys.recentByCounter[recalled.counterId] = [];
+    sys.recentByCounter[recalled.counterId].unshift(recalled);
+    if (sys.recentByCounter[recalled.counterId].length > 5) sys.recentByCounter[recalled.counterId].pop();
+  }
+  broadcastCall(sysId, sys, recalled);
+  io.to('sys-' + sysId).emit('noshow_recalled', { display, noShows: sys.noShows.slice(0, 40) });
+  res.json({ success: true, calledQueue: recalled });
+});
+
+app.get('/api/sys/:sysId/no-shows', requireSys, (req, res) => res.json(req.sys.noShows));
+
+// ── Status ────────────────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/status', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  res.json({
+    sysInfo:             systems.find(s => s.id === sysId) || null,
+    queueTypes:          sys.queueTypes,
+    counters:            sys.counters,
+    typeWaiting:         typeWaiting(sys),
+    allWaiting:          allWaiting(sys),
+    allServed:           allServed(sys),
+    lastCalled:          allServed(sys)[0] || null,
+    noShows:             sys.noShows.slice(0, 40),
+    lastCalledByCounter: sys.lastCalledByCounter,
+    recentByCounter:     sys.recentByCounter,
+    displayConfig:       sys.displayConfig,
+    printConfig:         sys.printConfig,
+  });
+});
+
+// ── Print config ──────────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/print-config', requireSys, (req, res) => res.json(req.sys.printConfig));
+
+app.post('/api/sys/:sysId/print-config', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  Object.assign(sys.printConfig, req.body);
+  saveJson(sys.printConfigFile, sys.printConfig);
+  io.to('sys-' + sysId).emit('print_config_updated', sys.printConfig);
+  res.json({ success: true, printConfig: sys.printConfig });
+});
+
+// ── Printer list (Windows) ────────────────────────────────────────────────
+app.get('/api/printers', (req, res) => {
+  exec('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"',
+    { timeout: 6000, windowsHide: true }, (err, stdout) => {
+    if (err) return res.json({ printers: [] });
+    const printers = stdout.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+    res.json({ printers });
+  });
+});
+
+// ── Direct print (server-side, no browser dialog) ────────────────────────
+function buildPrintLines(cfg, ticket) {
+  const lines = [];
+  if (cfg.showHeader) {
+    lines.push({ t: 'text', text: cfg.headerName || ticket.sysName || 'ระบบคิว', fs: cfg.headerFontSize || 14, bold: true, color: 'Black' });
+    if (cfg.headerSubtitle) lines.push({ t: 'text', text: cfg.headerSubtitle, fs: Math.max(7, (cfg.headerFontSize || 14) - 3), bold: false, color: 'DimGray' });
+  }
+  if (cfg.showDividerLine) lines.push({ t: 'div' });
+  if (cfg.showPatientName && ticket.patientName) lines.push({ t: 'text', text: ticket.patientName, fs: cfg.patientFontSize || 11, bold: true, color: 'Black' });
+  if (cfg.showHnQn) {
+    const parts = [ticket.hn ? 'HN: ' + ticket.hn : '', ticket.qn ? 'QN: ' + ticket.qn : ''].filter(Boolean);
+    if (parts.length) lines.push({ t: 'text', text: parts.join('   '), fs: Math.max(7, (cfg.patientFontSize || 11) - 2), bold: false, color: 'DimGray' });
+  }
+  if (cfg.showDividerLine) lines.push({ t: 'div' });
+  if (cfg.showQueueType && ticket.typeName) lines.push({ t: 'text', text: ticket.typeName, fs: cfg.queueTypeFontSize || 11, bold: false, color: 'Black' });
+  lines.push({ t: 'num', text: ticket.display, fs: cfg.queueNumFontSize || 60, bold: true, color: 'Black' });
+  if (cfg.showDateTime) lines.push({ t: 'text', text: `${ticket.date}  ${ticket.issuedAt}`, fs: cfg.dateFontSize || 9, bold: false, color: 'DimGray' });
+  if (cfg.showDividerLine) lines.push({ t: 'div' });
+  if (cfg.showFooter && cfg.footerText) {
+    cfg.footerText.split('\n').forEach(line => {
+      if (line.trim()) lines.push({ t: 'text', text: line, fs: cfg.footerFontSize || 8, bold: false, color: 'DimGray' });
+    });
+  }
+  return lines;
+}
+
+app.post('/api/sys/:sysId/print-ticket', requireSys, (req, res) => {
+  const sys = req.sys;
+  const cfg = sys.printConfig;
+  if (!cfg.printerName) return res.json({ success: false, message: 'ไม่ได้เลือกเครื่องพิมพ์' });
+
+  const paperMm = cfg.paperSize === '58mm' ? 58
+                : cfg.paperSize === 'a4'   ? 210
+                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80)
+                : 80;
+
+  const printData = { printerName: cfg.printerName, paperMm, lines: buildPrintLines(cfg, req.body) };
+  const ts       = Date.now();
+  const dataFile = path.join(os.tmpdir(), `qdata_${ts}.json`);
+  const ps1File  = path.join(os.tmpdir(), `qprint_${ts}.ps1`);
+
+  fs.writeFileSync(dataFile, JSON.stringify(printData), 'utf8');
+
+  const psScript = `
+Add-Type -AssemblyName System.Drawing
+$script:d = Get-Content '${dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''")}' -Raw -Encoding utf8 | ConvertFrom-Json
+$pw100 = [int]($script:d.paperMm / 25.4 * 100)
+$pd = New-Object System.Drawing.Printing.PrintDocument
+$pd.PrinterSettings.PrinterName = $script:d.printerName
+$pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
+$pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
+$pd.add_PrintPage({
+  param($s,$e)
+  $g=$e.Graphics
+  $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
+  [float]$pw=$script:d.paperMm-6.0
+  [float]$m=3.0
+  [float]$y=$m
+  foreach($line in $script:d.lines){
+    if($line.t -eq 'div'){
+      $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
+      $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+      $g.DrawLine($pen,$m,$y,($m+$pw),$y)
+      $y+=[float]3.0
+    }else{
+      [float]$smm=$line.fs/72.0*25.4
+      $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
+      $font=New-Object System.Drawing.Font('Segoe UI',$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
+      $brush=[System.Drawing.Brushes]::($line.color)
+      if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
+      $fmt=New-Object System.Drawing.StringFormat
+      $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+      $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+      [float]$lh=$smm*1.5
+      if($line.t -eq 'num'){
+        $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
+        $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+      }
+      $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
+      $g.DrawString($line.text,$font,$brush,$rect,$fmt)
+      $y+=$lh+[float]1.5
+    }
+  }
+})
+$pd.Print()
+`;
+
+  fs.writeFileSync(ps1File, psScript, 'utf8');
+  exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1File}"`,
+    { timeout: 15000, windowsHide: true }, (err, stdout, stderr) => {
+      try { fs.unlinkSync(ps1File); } catch {}
+      try { fs.unlinkSync(dataFile); } catch {}
+      if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
+      res.json({ success: true });
+    });
+});
+
+// ── Daily reset ───────────────────────────────────────────────────────────
+function resetSys(sysId, sys) {
+  for (const id of Object.keys(sys.state))
+    sys.state[id] = { serial: 0, waiting: [], served: [], calledQueue: null };
+  sys.noShows = []; sys.lastCalledByCounter = {}; sys.recentByCounter = {};
+  io.to('sys-' + sysId).emit('queue_reset');
+}
+(function scheduleReset() {
+  const now = new Date();
+  const ms  = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+  setTimeout(() => { systems.forEach(s => resetSys(s.id, sysData[s.id])); scheduleReset(); }, ms);
+})();
+
+// ── Patient lookup ────────────────────────────────────────────────────────
+app.post('/api/patient-lookup', async (req, res) => {
+  const { type, value } = req.body;
+  if (!value || !value.toString().trim()) return res.json({ success: false, message: 'กรุณาระบุข้อมูล' });
+  const cfg = loadDbConfig();
+  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล' });
+  const val = value.toString().trim();
+  try {
+    let row = null;
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+      const col   = type === 'hn' ? 'o.hn' : 'o.oqueue';
+      const [rows] = await conn.execute(
+        `SELECT o.hn, o.oqueue, o.vstdate,
+           CONCAT(IFNULL(p.pname,''), IFNULL(p.fname,''), ' ', IFNULL(p.lname,'')) AS ptname
+         FROM ovst o LEFT JOIN patient p ON p.hn = o.hn
+         WHERE ${col} = ? AND o.vstdate = CURDATE()
+         ORDER BY o.vn DESC LIMIT 1`,
+        [val]
+      );
+      await conn.end();
+      row = rows[0] || null;
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      const col    = type === 'hn' ? 'o.hn' : 'o.oqueue';
+      const result = await client.query(
+        `SELECT o.hn, o.oqueue, o.vstdate,
+           COALESCE(p.pname,'') || COALESCE(p.fname,'') || ' ' || COALESCE(p.lname,'') AS ptname
+         FROM ovst o LEFT JOIN patient p ON p.hn = o.hn
+         WHERE ${col} = $1 AND o.vstdate = CURRENT_DATE
+         ORDER BY o.vn DESC LIMIT 1`,
+        [val]
+      );
+      await client.end();
+      row = result.rows[0] || null;
+    }
+    if (!row) return res.json({ success: false, message: 'ไม่พบ visit รับบริการในวันนี้' });
+    res.json({
+      success: true,
+      patient: {
+        hn:      row.hn,
+        qn:      row.oqueue || '-',
+        name:    (row.ptname || '').trim() || '(ไม่ระบุชื่อ)',
+        vstdate: row.vstdate,
+      }
+    });
+  } catch (err) {
+    res.json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+  }
+});
+
+// ── DB Config & Auth ──────────────────────────────────────────────────────
+const DB_CONFIG_FILE = path.join(DATA_DIR, 'db-config.json');
+const sessions = {};
+
+function loadDbConfig() {
+  return loadJson(DB_CONFIG_FILE, { type: 'mysql', host: '', port: 3306, database: '', username: '', password: '' });
+}
+
+app.get('/api/db-config', (req, res) => {
+  const cfg = loadDbConfig();
+  res.json({ type: cfg.type, host: cfg.host, port: cfg.port, database: cfg.database, username: cfg.username });
+});
+
+app.post('/api/db-config/save', (req, res) => {
+  const { type, host, port, database, username, password } = req.body;
+  saveJson(DB_CONFIG_FILE, {
+    type: type || 'mysql', host: (host || '').trim(), port: Number(port) || 3306,
+    database: (database || '').trim(), username: (username || '').trim(), password: password || ''
+  });
+  res.json({ success: true });
+});
+
+app.post('/api/db-config/test', async (req, res) => {
+  const { type, host, port, database, username, password } = req.body;
+  try {
+    if (type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn = await mysql.createConnection({ host, port: Number(port), database, user: username, password, connectTimeout: 5000 });
+      await conn.end();
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host, port: Number(port), database, user: username, password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      await client.end();
+    }
+    res.json({ success: true, message: 'เชื่อมต่อสำเร็จ' });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบ' });
+  const cfg = loadDbConfig();
+  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล' });
+  try {
+    let officer = null;
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+      const [rows] = await conn.execute('SELECT officer_id,officer_name,officer_login_name,officer_login_password_md5 FROM officer WHERE officer_login_name = ? LIMIT 1', [username]);
+      await conn.end();
+      officer = rows[0] || null;
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      const result = await client.query('SELECT officer_id,officer_name,officer_login_name,officer_login_password_md5 FROM officer WHERE officer_login_name = $1 LIMIT 1', [username]);
+      await client.end();
+      officer = result.rows[0] || null;
+    }
+    if (!officer) return res.json({ success: false, message: 'ไม่พบชื่อผู้ใช้งานนี้ในระบบ' });
+    const inputMd5  = crypto.createHash('md5').update(password).digest('hex').toLowerCase();
+    const storedMd5 = (officer.officer_login_password_md5 || '').trim().toLowerCase();
+    if (inputMd5 !== storedMd5) return res.json({ success: false, message: 'รหัสผ่านไม่ถูกต้อง' });
+    const token = crypto.randomBytes(32).toString('hex');
+    sessions[token] = { username: officer.officer_login_name, officerId: officer.officer_id, loginAt: Date.now() };
+    res.json({ success: true, token, officer: { name: officer.officer_name || officer.officer_login_name } });
+  } catch (err) {
+    res.json({ success: false, message: 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' + err.message });
+  }
+});
+
+// ── DEBUG (ลบออกหลังแก้ไขเสร็จ) ────────────────────────────────────────────
+app.post('/api/debug/hash-check', async (req, res) => {
+  const { username, password } = req.body;
+  const cfg = loadDbConfig();
+  try {
+    let officer = null;
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+      const [rows] = await conn.execute('SELECT officer_login_name, officer_login_password_md5 FROM officer WHERE officer_login_name = ? LIMIT 1', [username]);
+      await conn.end();
+      officer = rows[0] || null;
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      const result = await client.query('SELECT officer_login_name, officer_login_password_md5 FROM officer WHERE officer_login_name = $1 LIMIT 1', [username]);
+      await client.end();
+      officer = result.rows[0] || null;
+    }
+    if (!officer) return res.json({ found: false, message: 'ไม่พบ username นี้' });
+    const stored  = officer.officer_login_password_md5 || '';
+    const computed = crypto.createHash('md5').update(password).digest('hex');
+    res.json({
+      found:          true,
+      stored_hash:    stored,
+      stored_length:  stored.length,
+      computed_md5:   computed,
+      match:          computed.toLowerCase() === stored.trim().toLowerCase(),
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/verify', (req, res) => {
+  const token = (req.body || {}).token || req.headers['x-auth-token'];
+  if (token && sessions[token]) return res.json({ success: true, officer: sessions[token] });
+  res.json({ success: false });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const token = (req.body || {}).token;
+  if (token) delete sessions[token];
+  res.json({ success: true });
+});
+
+const PORT = 3000;
+server.listen(PORT, () => console.log(`ระบบคิว  http://localhost:${PORT}`));

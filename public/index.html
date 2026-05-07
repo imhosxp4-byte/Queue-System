@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>ระบบจัดการคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Kanit','Segoe UI',sans-serif;min-height:100vh;background:#060e1a;color:#fff;overflow-x:hidden}
+
+    .bg-anim{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .bg-anim::before{content:'';position:absolute;width:700px;height:700px;
+      background:radial-gradient(circle,rgba(21,101,192,.2) 0%,transparent 70%);
+      top:-150px;left:-150px;animation:bm1 14s ease-in-out infinite}
+    .bg-anim::after{content:'';position:absolute;width:500px;height:500px;
+      background:radial-gradient(circle,rgba(255,213,79,.07) 0%,transparent 70%);
+      bottom:-80px;right:-80px;animation:bm2 18s ease-in-out infinite}
+    @keyframes bm1{0%,100%{transform:translate(0,0)}50%{transform:translate(100px,80px)}}
+    @keyframes bm2{0%,100%{transform:translate(0,0)}50%{transform:translate(-70px,-50px)}}
+
+    /* NAV */
+    nav{position:relative;z-index:10;background:rgba(6,14,26,.85);backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,.08);padding:0 28px;
+      display:flex;align-items:center;height:54px;gap:6px}
+    .nav-logo{font-size:1rem;font-weight:900;color:#ffd54f;margin-right:auto;letter-spacing:1px}
+
+    /* HERO */
+    .hero{position:relative;z-index:1;text-align:center;padding:60px 20px 40px}
+    .hero h1{font-size:2.8rem;font-weight:900;letter-spacing:2px;
+      background:linear-gradient(135deg,#fff 30%,#ffd54f);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+    .hero p{color:rgba(255,255,255,.45);font-size:.95rem;letter-spacing:1px;margin-bottom:36px}
+
+    /* GRID */
+    .systems-grid{position:relative;z-index:1;
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+      gap:20px;max-width:1100px;margin:0 auto;padding:0 24px 60px}
+
+    /* SYSTEM CARD */
+    .sys-card{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:22px;padding:28px 26px 22px;
+      display:flex;flex-direction:column;gap:0;
+      backdrop-filter:blur(8px);position:relative;overflow:hidden;
+      transition:all .25s;cursor:default;
+    }
+    .sys-card::before{content:'';position:absolute;inset:0;border-radius:22px;opacity:0;
+      background:radial-gradient(circle at 50% 0%,var(--c,#42a5f522) 0%,transparent 65%);
+      transition:opacity .3s;pointer-events:none}
+    .sys-card:hover{transform:translateY(-5px);border-color:rgba(255,255,255,.18);
+      background:rgba(255,255,255,.07)}
+    .sys-card:hover::before{opacity:1}
+
+    .sc-icon{font-size:2.8rem;margin-bottom:14px;line-height:1}
+    .sc-name{font-size:1.25rem;font-weight:700;margin-bottom:6px}
+    .sc-desc{font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:18px;min-height:20px}
+    .sc-stats{display:flex;gap:10px;margin-bottom:20px}
+    .sc-stat{background:rgba(255,255,255,.06);border-radius:10px;padding:5px 12px;
+      font-size:.74rem;color:rgba(255,255,255,.5)}
+    .sc-stat strong{color:rgba(255,255,255,.85);font-size:.85rem}
+
+    /* Main action links */
+    .sc-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .sc-link{display:flex;align-items:center;justify-content:center;gap:5px;
+      border-radius:11px;padding:10px 8px;font-size:.82rem;font-weight:700;
+      text-decoration:none;transition:all .2s;cursor:pointer;border:none}
+    .sc-link-primary{background:linear-gradient(135deg,var(--c,#1976d2),#0d47a1);color:#fff;grid-column:span 2}
+    .sc-link-primary:hover{opacity:.88;transform:scale(1.02)}
+    .sc-link-sec{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#90caf9}
+    .sc-link-sec:hover{background:rgba(255,255,255,.13)}
+
+    /* Edit/delete strip */
+    .sc-footer{display:flex;gap:8px;border-top:1px solid rgba(255,255,255,.07);padding-top:12px;margin-top:4px}
+    .btn-sc-edit{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      color:rgba(255,255,255,.55);border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;
+      font-family:inherit;transition:all .2s}
+    .btn-sc-edit:hover{background:rgba(255,255,255,.12);color:#fff}
+    .btn-sc-del{background:rgba(239,83,80,.07);border:1px solid rgba(239,83,80,.2);
+      color:#ef9a9a;border-radius:8px;padding:6px 12px;font-size:.75rem;cursor:pointer;
+      font-family:inherit;transition:all .2s}
+    .btn-sc-del:hover{background:rgba(239,83,80,.2);color:#ef5350}
+
+    /* ADD CARD */
+    .add-card{
+      background:rgba(255,255,255,.02);
+      border:2px dashed rgba(255,255,255,.1);
+      border-radius:22px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:12px;cursor:pointer;min-height:200px;
+      transition:all .25s;color:rgba(255,255,255,.25)
+    }
+    .add-card:hover{border-color:rgba(255,213,79,.3);color:#ffd54f;background:rgba(255,213,79,.03)}
+    .add-card-icon{font-size:2.5rem}
+    .add-card-text{font-size:.9rem;font-weight:600;letter-spacing:1px}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#0d1f33;border:1px solid #42a5f5;color:#fff;padding:11px 28px;
+      border-radius:30px;font-size:.88rem;transition:transform .3s;z-index:500;
+      white-space:nowrap;pointer-events:none}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.ok{border-color:#4caf50}
+    .toast.err{border-color:#ef5350}
+
+    /* DELETE CONFIRM MODAL */
+    .del-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;
+      align-items:center;justify-content:center;padding:20px}
+    .del-modal-bg.open{display:flex}
+    .del-modal{background:#0d1f33;border:1px solid #3a1010;border-radius:20px;
+      padding:30px 32px;width:100%;max-width:400px;text-align:center}
+    .del-icon{font-size:2.8rem;margin-bottom:12px}
+    .del-title{font-size:1.05rem;font-weight:700;color:#ef9a9a;margin-bottom:6px}
+    .del-desc{font-size:.82rem;color:rgba(255,255,255,.4);margin-bottom:8px;line-height:1.6}
+    .del-sys-name{font-size:1rem;font-weight:700;color:#fff;background:rgba(239,83,80,.08);
+      border:1px solid rgba(239,83,80,.2);border-radius:10px;padding:8px 16px;
+      margin:12px 0 20px;display:inline-block}
+    .del-btns{display:flex;gap:10px}
+    .btn-del-cancel{flex:1;background:#12253a;color:#90caf9;border:1px solid #1e3a5f;
+      border-radius:11px;padding:11px;font-size:.9rem;cursor:pointer;font-family:inherit}
+    .btn-del-cancel:hover{background:#1a3050}
+    .btn-del-confirm{flex:1;background:linear-gradient(135deg,#c62828,#b71c1c);color:#fff;
+      border:none;border-radius:11px;padding:11px;font-size:.9rem;font-weight:700;
+      cursor:pointer;font-family:inherit}
+    .btn-del-confirm:hover{opacity:.88}
+
+    /* MODAL */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+      align-items:center;justify-content:center;padding:20px}
+    .modal-bg.open{display:flex}
+    .modal{background:#0d1f33;border:1px solid #1e3a5f;border-radius:22px;
+      padding:32px;width:100%;max-width:460px}
+    .modal h2{font-size:1.1rem;color:#64b5f6;margin-bottom:22px;font-weight:700}
+    .mf-row{margin-bottom:16px}
+    .mf-label{font-size:.78rem;color:#90caf9;display:block;margin-bottom:5px;font-weight:600}
+    .mf-input{width:100%;background:#091524;border:1px solid #1e3a5f;border-radius:9px;
+      padding:10px 14px;color:#fff;font-size:.95rem;font-family:inherit}
+    .mf-input:focus{outline:none;border-color:#42a5f5}
+    .icon-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+    .icon-opt{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+      justify-content:center;font-size:1.4rem;cursor:pointer;
+      background:rgba(255,255,255,.05);border:2px solid transparent;transition:all .15s}
+    .icon-opt:hover{background:rgba(255,255,255,.1)}
+    .icon-opt.sel{border-color:#ffd54f;background:rgba(255,213,79,.1)}
+    .color-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+    .color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;
+      border:3px solid transparent;transition:transform .15s}
+    .color-swatch.sel{border-color:#fff;transform:scale(1.2)}
+    .modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+    .btn-save{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;border:none;
+      border-radius:10px;padding:10px 26px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-cancel{background:#1e3a5f;color:#aaa;border:none;border-radius:10px;
+      padding:10px 20px;font-size:.92rem;cursor:pointer;font-family:inherit}
+    .btn-save:hover{opacity:.88}
+    .btn-cancel:hover{background:#243e5c}
+
+    .nav-officer{font-size:.78rem;color:rgba(255,255,255,.45);white-space:nowrap;letter-spacing:.3px}
+    .btn-logout{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.25);color:#ef9a9a;
+      border-radius:20px;padding:5px 14px;font-size:.78rem;cursor:pointer;font-family:inherit;
+      transition:all .2s;white-space:nowrap}
+    .btn-logout:hover{background:rgba(239,83,80,.25);color:#fff;border-color:#ef5350}
+  </style>
+</head>
+<body>
+<div class="bg-anim"></div>
+
+<nav>
+  <span class="nav-logo">⬡ ระบบจัดการคิว</span>
+  <span class="nav-officer" id="navOfficer"></span>
+  <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
+</nav>
+
+<div class="hero">
+  <h1>Queue Management</h1>
+  <p>เลือกระบบคิวที่ต้องการใช้งาน หรือสร้างระบบใหม่</p>
+</div>
+
+<div class="systems-grid" id="systemsGrid">
+  <div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,.2);padding:40px">กำลังโหลด...</div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="del-modal-bg" id="delModal">
+  <div class="del-modal">
+    <div class="del-icon">🗑️</div>
+    <div class="del-title">ยืนยันการลบระบบคิว</div>
+    <div class="del-desc">การลบจะทำให้ไม่สามารถเข้าถึงระบบนี้ได้อีก<br/>คิวที่รอในวันนี้จะหายไปทั้งหมด</div>
+    <div class="del-sys-name" id="delSysName"></div>
+    <div class="del-btns">
+      <button class="btn-del-cancel"  onclick="closeDelModal()">✕ ยกเลิก</button>
+      <button class="btn-del-confirm" onclick="confirmDelete()">🗑 ยืนยัน ลบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit modal -->
+<div class="modal-bg" id="modalSys">
+  <div class="modal">
+    <h2 id="modalTitle">สร้างระบบคิวใหม่</h2>
+    <div class="mf-row">
+      <label class="mf-label">ชื่อระบบ</label>
+      <input class="mf-input" id="mName" placeholder="เช่น ระบบคิวการเงิน, ระบบคิวห้องยา" maxlength="40"/>
+    </div>
+    <div class="mf-row">
+      <label class="mf-label">คำอธิบาย (ไม่บังคับ)</label>
+      <input class="mf-input" id="mDesc" placeholder="เช่น Finance Queue System" maxlength="60"/>
+    </div>
+    <div class="mf-row">
+      <label class="mf-label">ไอคอน</label>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+    <div class="mf-row">
+      <label class="mf-label">สีธีม</label>
+      <div class="color-row" id="colorRow"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save"   onclick="saveSys()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const socket = io();
+
+const _navOfficer = sessionStorage.getItem('officerName');
+if (_navOfficer) document.getElementById('navOfficer').textContent = '👤 ' + _navOfficer;
+
+function doLogout() {
+  const token = sessionStorage.getItem('authToken');
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('officerName');
+  if (token) fetch('/api/auth/logout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token }) });
+  location.href = '/login.html';
+}
+
+const ICONS  = ['💰','💊','🏥','📋','🎫','🔵','⭐','🏛️','📞','🛎️','🪟','✅','📄','🏦','💳','🎯','🔑','📝'];
+const COLORS = ['#42a5f5','#ffd54f','#66bb6a','#ef5350','#ab47bc','#ff7043','#26c6da','#ec407a','#26a69a','#8d6e63'];
+
+let systems     = [];
+let editSysId   = null;
+let deleteSysId = null;
+let selIcon     = ICONS[0];
+let selColor    = COLORS[0];
+
+socket.on('systems_updated', s => { systems = s; renderSystems(); });
+fetch('/api/systems').then(r=>r.json()).then(d => { systems = d; renderSystems(); });
+
+// ── Render ────────────────────────────────────────────────────────────────
+function renderSystems() {
+  const grid  = document.getElementById('systemsGrid');
+  const cards = systems.map(s => `
+    <div class="sys-card" style="--c:${s.color}33" data-sysid="${s.id}">
+      <div class="sc-icon">${s.icon || '📋'}</div>
+      <div class="sc-name">${esc(s.name)}</div>
+      <div class="sc-desc">${esc(s.description || '')}</div>
+      <div class="sc-actions">
+        <a class="sc-link sc-link-primary" href="/queue.html?sys=${s.id}"
+           style="background:linear-gradient(135deg,${s.color},${darken(s.color)})">
+          🎫 ออกบัตรคิว
+        </a>
+        <a class="sc-link sc-link-sec" href="/cashier.html?sys=${s.id}">📞 เรียกคิว</a>
+        <a class="sc-link sc-link-sec" href="/display.html?sys=${s.id}" target="_blank">🖥️ แสดงคิว</a>
+        <a class="sc-link sc-link-sec" href="/settings.html?sys=${s.id}">⚙️ ตั้งค่า</a>
+      </div>
+      <div class="sc-footer">
+        <button class="btn-sc-edit" data-action="edit" data-sysid="${s.id}">✏️ แก้ไขระบบ</button>
+        <button class="btn-sc-del"  data-action="del"  data-sysid="${s.id}">🗑</button>
+      </div>
+    </div>`).join('');
+
+  grid.innerHTML = cards + `
+    <div class="add-card" id="addCard">
+      <div class="add-card-icon">+</div>
+      <div class="add-card-text">สร้างระบบคิวใหม่</div>
+    </div>`;
+
+  // Event delegation — one listener handles all cards
+  grid.onclick = e => {
+    const btn = e.target.closest('[data-action]');
+    if (btn) { e.stopPropagation(); const id = Number(btn.dataset.sysid); btn.dataset.action === 'edit' ? openEdit(id) : openDelModal(id); return; }
+    if (e.target.closest('#addCard')) openCreate();
+  };
+}
+
+// ── Icon & Color pickers ──────────────────────────────────────────────────
+function buildIconGrid() {
+  const el = document.getElementById('iconGrid');
+  el.innerHTML = '';
+  ICONS.forEach(i => {
+    const d = document.createElement('div');
+    d.className = 'icon-opt' + (i === selIcon ? ' sel' : '');
+    d.textContent = i;
+    d.onclick = () => { selIcon = i; buildIconGrid(); };
+    el.appendChild(d);
+  });
+}
+function buildColorRow() {
+  const el = document.getElementById('colorRow');
+  el.innerHTML = '';
+  COLORS.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-swatch' + (c === selColor ? ' sel' : '');
+    d.style.background = c;
+    d.onclick = () => { selColor = c; buildColorRow(); };
+    el.appendChild(d);
+  });
+}
+
+// ── Create/Edit modal ─────────────────────────────────────────────────────
+function openCreate() {
+  editSysId = null;
+  selIcon   = ICONS[0];
+  selColor  = COLORS[0];
+  document.getElementById('modalTitle').textContent = 'สร้างระบบคิวใหม่';
+  document.getElementById('mName').value = '';
+  document.getElementById('mDesc').value = '';
+  buildIconGrid(); buildColorRow();
+  document.getElementById('modalSys').classList.add('open');
+  setTimeout(() => document.getElementById('mName').focus(), 100);
+}
+function openEdit(id) {
+  const s = systems.find(x => x.id === id);
+  if (!s) return;
+  editSysId = id;
+  selIcon   = s.icon  || ICONS[0];
+  selColor  = s.color || COLORS[0];
+  document.getElementById('modalTitle').textContent = 'แก้ไขระบบคิว';
+  document.getElementById('mName').value = s.name;
+  document.getElementById('mDesc').value = s.description || '';
+  buildIconGrid(); buildColorRow();
+  document.getElementById('modalSys').classList.add('open');
+  setTimeout(() => document.getElementById('mName').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('modalSys').classList.remove('open');
+  editSysId = null;
+}
+function saveSys() {
+  const name = document.getElementById('mName').value.trim();
+  const desc = document.getElementById('mDesc').value.trim();
+  if (!name) { document.getElementById('mName').focus(); return; }
+  const body   = { name, description: desc, icon: selIcon, color: selColor };
+  const url    = editSysId ? `/api/systems/${editSysId}` : '/api/systems';
+  const method = editSysId ? 'PUT' : 'POST';
+  const isEdit = !!editSysId;
+  fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    .then(r=>r.json()).then(d => {
+      if (d.success) { closeModal(); toast(isEdit ? `แก้ไข "${name}" สำเร็จ` : `สร้าง "${name}" สำเร็จ`, 'ok'); }
+      else toast(d.message, 'err');
+    });
+}
+
+// ── Delete confirm modal ──────────────────────────────────────────────────
+function openDelModal(id) {
+  const s = systems.find(x => x.id === id);
+  if (!s) return;
+  deleteSysId = id;
+  document.getElementById('delSysName').textContent = (s.icon || '📋') + '  ' + s.name;
+  document.getElementById('delModal').classList.add('open');
+}
+function closeDelModal() {
+  document.getElementById('delModal').classList.remove('open');
+  deleteSysId = null;
+}
+function confirmDelete() {
+  if (!deleteSysId) return;
+  const id   = deleteSysId;
+  const name = systems.find(x => x.id === id)?.name || '';
+  closeDelModal();
+  fetch(`/api/systems/${id}`, { method: 'DELETE' })
+    .then(r=>r.json()).then(d => {
+      if (d.success) toast(`ลบ "${name}" เรียบร้อยแล้ว`, 'ok');
+      else toast(d.message, 'err');
+    });
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast' + (type ? ' '+type : '');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function darken(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, (n>>16)   - 40);
+  const g = Math.max(0, ((n>>8)&0xff) - 40);
+  const b = Math.max(0, (n&0xff)  - 40);
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Keyboard / overlay close ──────────────────────────────────────────────
+document.getElementById('modalSys').addEventListener('click', e => { if (e.target.id === 'modalSys') closeModal(); });
+document.getElementById('delModal').addEventListener('click',  e => { if (e.target.id === 'delModal')  closeDelModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeDelModal(); }
+  if (e.key === 'Enter') {
+    if (document.getElementById('modalSys').classList.contains('open')) saveSys();
+    if (document.getElementById('delModal').classList.contains('open'))  confirmDelete();
+  }
+});
+</script>
+</body>
+</html>

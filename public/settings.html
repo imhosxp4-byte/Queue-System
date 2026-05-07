@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>ตั้งค่า</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0f1923;min-height:100vh;color:#fff}
+
+    nav{background:#0d1f33;border-bottom:2px solid #1e3a5f;padding:0 28px;
+      display:flex;align-items:center;gap:4px;height:54px}
+    nav .logo{font-size:1rem;font-weight:700;color:#ffd54f;margin-right:20px;
+      text-decoration:none;white-space:nowrap}
+    nav a{color:#90caf9;text-decoration:none;padding:6px 14px;border-radius:20px;
+      font-size:.88rem;transition:background .2s;white-space:nowrap}
+    nav a:hover{background:#1e3a5f}
+    nav a.active{background:#1565c0;color:#fff}
+
+    .page{max-width:920px;margin:0 auto;padding:28px 20px}
+    .page-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+    .page-header h1{font-size:1.3rem;font-weight:700;color:#64b5f6}
+    .sys-badge{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;padding:4px 14px;font-size:.82rem;color:rgba(255,255,255,.55);
+      display:flex;align-items:center;gap:6px}
+
+    .page-tabs{display:flex;gap:0;border-bottom:2px solid #1e3a5f;margin-bottom:24px}
+    .page-tab{padding:10px 24px;font-size:.95rem;font-weight:600;cursor:pointer;
+      color:#555;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s}
+    .page-tab:hover{color:#90caf9}
+    .page-tab.active{color:#fff;border-bottom-color:#42a5f5}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    .form-card{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:16px;padding:22px;margin-bottom:22px}
+    .form-card h2{font-size:.9rem;color:#90caf9;margin-bottom:14px;font-weight:600}
+    .form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .field{display:flex;flex-direction:column;gap:5px}
+    .field label{font-size:.78rem;color:#90caf9}
+    .field input[type=text]{background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;
+      padding:9px 13px;color:#fff;font-size:.95rem;font-family:inherit}
+    .field input:focus{outline:none;border-color:#42a5f5}
+    .field.name-f{flex:1;min-width:160px}
+    .field.prefix-f{width:88px}
+
+    .color-row{display:flex;gap:7px;flex-wrap:wrap}
+    .swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;
+      border:3px solid transparent;transition:transform .15s}
+    .swatch.sel{border-color:#fff;transform:scale(1.2)}
+
+    .btn-add{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;border:none;
+      border-radius:10px;padding:10px 22px;font-size:.9rem;font-weight:700;cursor:pointer;
+      white-space:nowrap;font-family:inherit}
+    .btn-add:hover{opacity:.85}
+
+    .item-list{display:flex;flex-direction:column;gap:8px}
+    .item-row{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:12px;
+      padding:14px 18px;display:flex;align-items:center;gap:14px}
+    .item-badge{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;
+      justify-content:center;font-size:1rem;font-weight:900;color:#000;flex-shrink:0}
+    .item-icon{width:40px;height:40px;border-radius:9px;background:#1565c0;display:flex;
+      align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .item-info{flex:1}
+    .item-info .i-name{font-size:1rem;font-weight:700}
+    .item-info .i-meta{font-size:.78rem;color:#90caf9;margin-top:2px}
+    .item-actions{display:flex;gap:7px}
+    .btn-edit,.btn-del{border:none;border-radius:8px;padding:6px 14px;
+      font-size:.82rem;font-weight:600;cursor:pointer;transition:opacity .2s;font-family:inherit}
+    .btn-edit{background:#1565c0;color:#fff}
+    .btn-del{background:#b71c1c;color:#fff}
+    .btn-edit:hover,.btn-del:hover{opacity:.8}
+    .empty-msg{text-align:center;color:#2a3a4a;padding:28px;font-size:.9rem}
+
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+      z-index:100;align-items:center;justify-content:center;padding:20px}
+    .modal-bg.open{display:flex}
+    .modal{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:16px;
+      padding:26px;width:100%;max-width:400px}
+    .modal h3{font-size:1.05rem;color:#64b5f6;margin-bottom:18px}
+    .modal .form-row{flex-direction:column}
+    .modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+    .btn-save{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;border:none;
+      border-radius:8px;padding:9px 22px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-cancel{background:#1e3a5f;color:#ccc;border:none;border-radius:8px;
+      padding:9px 18px;font-size:.9rem;cursor:pointer;font-family:inherit}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#1a2a3a;border:1px solid #42a5f5;color:#fff;padding:10px 26px;
+      border-radius:30px;font-size:.9rem;transition:transform .3s;z-index:200}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    .tk-row{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:10px;
+      padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:grab;
+      margin-bottom:7px;transition:background .2s}
+    .tk-row:hover{background:#1e3050}
+    .tk-drag{color:#2a4060;font-size:1rem;flex-shrink:0}
+    .tk-input{flex:1;background:transparent;border:none;color:#ccc;
+      font-size:.88rem;font-family:inherit;outline:none}
+    .tk-input:focus{color:#fff}
+    .btn-del-tk{background:none;border:1px solid #b71c1c;color:#ef5350;
+      border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:.85rem;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .btn-del-tk:hover{background:#b71c1c;color:#fff}
+
+    /* ── Print designer ── */
+    .print-designer-wrap{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
+    .pd-left{display:flex;flex-direction:column;gap:14px}
+    .pd-section{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:14px;padding:18px}
+    .pd-sec-title{font-size:.82rem;font-weight:700;color:#90caf9;margin-bottom:14px;
+      display:flex;align-items:center;gap:7px}
+    .pd-sec-title::before{content:'';display:block;width:3px;height:14px;
+      background:#42a5f5;border-radius:2px}
+    .pd-field{margin-bottom:11px}
+    .pd-field:last-child{margin-bottom:0}
+    .pd-field label{display:block;font-size:.76rem;color:#64b5f6;margin-bottom:5px}
+    .pd-field input[type=text],.pd-field input[type=number],.pd-field textarea,.pd-field select{
+      width:100%;background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;
+      padding:9px 12px;color:#fff;font-size:.9rem;font-family:inherit;transition:border-color .2s}
+    .pd-field input:focus,.pd-field textarea:focus,.pd-field select:focus{
+      outline:none;border-color:#42a5f5}
+    .pd-field textarea{resize:vertical;min-height:64px;line-height:1.5}
+    .pd-field select option{background:#0d1f33}
+    .pd-range-row{display:flex;align-items:center;gap:8px}
+    .pd-range-row input[type=range]{flex:1;accent-color:#42a5f5;cursor:pointer}
+    .pd-range-val{font-size:.75rem;color:#90caf9;min-width:32px;text-align:right;
+      font-variant-numeric:tabular-nums;flex-shrink:0}
+    .pd-ck{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+      margin-bottom:9px;padding:2px 0}
+    .pd-ck input{width:15px;height:15px;accent-color:#42a5f5;cursor:pointer;flex-shrink:0}
+    .pd-ck span{font-size:.84rem;color:#90caf9}
+    .pd-paper-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+    .pd-paper-btn{flex:1;min-width:64px;background:#0f1923;border:1.5px solid #1e3a5f;
+      color:#64b5f6;border-radius:9px;padding:9px 4px;font-size:.78rem;font-weight:600;
+      cursor:pointer;text-align:center;font-family:inherit;transition:all .18s;line-height:1.4}
+    .pd-paper-btn:hover{border-color:#42a5f5;color:#fff}
+    .pd-paper-btn.active{background:#1565c0;border-color:#42a5f5;color:#fff}
+    .pd-paper-btn small{display:block;font-size:.65rem;font-weight:400;opacity:.7;margin-top:1px}
+    .pd-printer-row{display:flex;gap:8px;align-items:stretch}
+    .pd-printer-row select{flex:1}
+    .pd-ref-btn{background:#1565c0;border:none;color:#fff;border-radius:8px;
+      padding:8px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;
+      white-space:nowrap;transition:opacity .2s}
+    .pd-ref-btn:hover{opacity:.82}
+    .pd-hint{font-size:.7rem;color:#3a5a78;margin-top:6px;line-height:1.5}
+    .pd-custom-size{display:none;margin-top:10px}
+    .pd-custom-size.show{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+    /* Right preview */
+    .pd-right{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+    .pd-preview-lbl{font-size:.72rem;color:#3a5a78;letter-spacing:2px;text-transform:uppercase}
+    .pd-preview-wrap{background:#e8e8e8;border-radius:12px;padding:14px;
+      display:flex;justify-content:center;align-items:flex-start;min-height:280px;overflow:auto}
+    #slipPreview{background:#fff;color:#000;font-family:'Segoe UI',Tahoma,sans-serif;
+      border-radius:3px;box-shadow:0 2px 10px rgba(0,0,0,.2);
+      padding:6mm 5mm;max-width:100%;transition:width .2s}
+    .pd-test-btn{background:linear-gradient(135deg,#00695c,#004d40);color:#fff;
+      border:none;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;
+      cursor:pointer;font-family:inherit;width:100%;transition:opacity .2s}
+    .pd-test-btn:hover{opacity:.85}
+    .pd-save-btn{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;
+      border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;
+      cursor:pointer;font-family:inherit;width:100%;transition:opacity .2s}
+    .pd-save-btn:hover{opacity:.85}
+
+    /* ── Color picker ── */
+    .cpk{width:100%}
+    .cpk-top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+    .cpk-prev{width:36px;height:36px;border-radius:9px;
+      border:2px solid rgba(255,255,255,.18);flex-shrink:0;transition:background .15s}
+    .cpk-hex{flex:1;background:#0a1520;border:1px solid #1e3a5f;border-radius:7px;
+      color:#e0e0e0;font-size:.86rem;padding:7px 10px;
+      font-family:'Courier New',monospace;outline:none;letter-spacing:.5px}
+    .cpk-hex:focus{border-color:#42a5f5}
+    .cpk-sw{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+    .cpk-dot{width:26px;height:26px;border-radius:5px;cursor:pointer;flex-shrink:0;
+      border:2px solid transparent;transition:transform .12s,border-color .12s,box-shadow .12s}
+    .cpk-dot:hover{transform:scale(1.12)}
+    .cpk-dot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.25);transform:scale(1.1)}
+    .cpk-rgb{display:flex;flex-direction:column;gap:6px}
+    .cpk-row{display:flex;align-items:center;gap:8px}
+    .cpk-lbl{font-size:.78rem;font-weight:800;width:14px;flex-shrink:0}
+    .cpk-lbl.r{color:#ef5350}.cpk-lbl.g{color:#66bb6a}.cpk-lbl.b{color:#42a5f5}
+    .cpk-sl{flex:1;cursor:pointer;border-radius:2px}
+    .cpk-sl.sl-r{accent-color:#ef5350}
+    .cpk-sl.sl-g{accent-color:#66bb6a}
+    .cpk-sl.sl-b{accent-color:#42a5f5}
+    .cpk-num{font-size:.72rem;color:#90caf9;width:26px;text-align:right;
+      flex-shrink:0;font-variant-numeric:tabular-nums;font-family:'Courier New',monospace}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">⬡ ระบบคิว</a>
+  <a href="#" id="navQueue">ออกคิว</a>
+  <a href="#" id="navCashier">เรียกคิว</a>
+  <a href="#" id="navDisplay" target="_blank">แสดงคิว</a>
+  <a href="#" id="navSettings" class="active">ตั้งค่า</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>ตั้งค่าระบบ</h1>
+    <div class="sys-badge"><span id="sysBadgeIcon">📋</span><span id="sysBadgeName">กำลังโหลด...</span></div>
+  </div>
+
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="switchTab('types',this)">ประเภทคิว</div>
+    <div class="page-tab"        onclick="switchTab('counters',this)">ช่องบริการ</div>
+    <div class="page-tab"        onclick="switchTab('ticker',this)">ข้อความวิ่ง</div>
+    <div class="page-tab"        onclick="switchTab('print',this)">🖨 แบบฟอร์มปริ้น</div>
+  </div>
+
+  <!-- Queue Types -->
+  <div class="tab-pane active" id="pane-types">
+    <div class="form-card">
+      <h2>เพิ่มประเภทคิวใหม่</h2>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="field name-f">
+          <label>ชื่อประเภทคิว</label>
+          <input type="text" id="tName" placeholder="เช่น ทั่วไป, พิเศษ, นิติบุคคล" maxlength="30"/>
+        </div>
+        <div class="field prefix-f">
+          <label>Prefix</label>
+          <input type="text" id="tPrefix" placeholder="A" maxlength="3"
+            style="text-transform:uppercase;text-align:center;font-size:1.2rem;font-weight:700"/>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>สี</label>
+        <div id="tColorRow" style="margin-top:6px"></div>
+      </div>
+      <button class="btn-add" onclick="addType()">+ เพิ่ม</button>
+    </div>
+    <div class="item-list" id="typeList"><div class="empty-msg">กำลังโหลด...</div></div>
+  </div>
+
+  <!-- Ticker Messages -->
+  <div class="tab-pane" id="pane-ticker">
+    <div class="form-card">
+      <h2>เพิ่มข้อความใหม่</h2>
+      <div class="form-row">
+        <div class="field name-f">
+          <label>ข้อความ</label>
+          <input type="text" id="tkNew" placeholder="เช่น ยินดีต้อนรับ หรือ Welcome to..." maxlength="120"/>
+        </div>
+        <button class="btn-add" onclick="addTicker()">+ เพิ่ม</button>
+      </div>
+    </div>
+    <div style="font-size:.8rem;color:#555;margin-bottom:10px">💡 ลากแถวเพื่อเรียงลำดับ · แก้ไขโดยตรงในช่องข้อความ</div>
+    <div class="item-list" id="tickerList"><div class="empty-msg">กำลังโหลด...</div></div>
+    <button class="btn-add" style="width:100%;margin-top:16px;padding:13px;border-radius:12px;font-size:.95rem"
+      onclick="saveTicker()">✓ บันทึกทั้งหมด</button>
+  </div>
+
+  <!-- Print designer -->
+  <div class="tab-pane" id="pane-print">
+    <div class="print-designer-wrap">
+
+      <!-- LEFT: controls -->
+      <div class="pd-left">
+
+        <!-- Paper size -->
+        <div class="pd-section">
+          <div class="pd-sec-title">📄 ขนาดกระดาษ</div>
+          <div class="pd-paper-btns">
+            <button class="pd-paper-btn active" data-ps="80mm"  onclick="setPaperSize('80mm',this)">80mm<small>Thermal</small></button>
+            <button class="pd-paper-btn"         data-ps="58mm"  onclick="setPaperSize('58mm',this)">58mm<small>Thermal</small></button>
+            <button class="pd-paper-btn"         data-ps="a4"    onclick="setPaperSize('a4',this)">A4<small>210×297</small></button>
+            <button class="pd-paper-btn"         data-ps="custom" onclick="setPaperSize('custom',this)">กำหนดเอง<small>&nbsp;</small></button>
+          </div>
+          <div class="pd-custom-size" id="pdCustomSize">
+            <div class="pd-field"><label>ความกว้าง (mm)</label>
+              <input type="number" id="pdCustomW" value="80" min="40" max="300" oninput="updatePreview()"/></div>
+            <div class="pd-field"><label>ความสูง (mm) — เว้นว่างสำหรับอัตโนมัติ</label>
+              <input type="number" id="pdCustomH" placeholder="auto" min="50" max="1000" oninput="updatePreview()"/></div>
+          </div>
+        </div>
+
+        <!-- Printer -->
+        <div class="pd-section">
+          <div class="pd-sec-title">🖨 เครื่องพิมพ์</div>
+          <div class="pd-printer-row">
+            <select id="pdPrinter" onchange="updatePreview()">
+              <option value="">— กำลังโหลด... —</option>
+            </select>
+            <button class="pd-ref-btn" onclick="loadPrinters()">↺ รีเฟรช</button>
+          </div>
+          <div class="pd-hint">💡 เลือกเครื่องพิมพ์ที่ต้องการ ระบบจะจำไว้เพื่อแนะนำเมื่อเปิดหน้าต่างพิมพ์<br/>
+          หากต้องการพิมพ์แบบไม่ผ่าน dialog ให้ตั้ง Windows Default Printer เป็นเครื่องนี้</div>
+        </div>
+
+        <!-- Header -->
+        <div class="pd-section">
+          <div class="pd-sec-title">📋 ส่วนหัว</div>
+          <label class="pd-ck"><input type="checkbox" id="pdShowHeader" onchange="togglePdSection('pdHeaderFields',this);updatePreview()"><span>แสดงส่วนหัว</span></label>
+          <div id="pdHeaderFields">
+            <div class="pd-field"><label>ชื่อสถานพยาบาล / หัวข้อหลัก</label>
+              <input type="text" id="pdHeaderName" placeholder="ค่าเริ่มต้น: ชื่อระบบคิว" oninput="updatePreview()"/></div>
+            <div class="pd-field"><label>ข้อความรอง</label>
+              <input type="text" id="pdHeaderSub" oninput="updatePreview()"/></div>
+            <div class="pd-field"><label>ขนาดตัวอักษร</label>
+              <div class="pd-range-row">
+                <input type="range" id="pdHeaderFs" min="8" max="22" value="14"
+                  oninput="document.getElementById('pdHeaderFsV').textContent=this.value+'pt';updatePreview()"/>
+                <span class="pd-range-val" id="pdHeaderFsV">14pt</span>
+              </div></div>
+          </div>
+        </div>
+
+        <!-- Patient -->
+        <div class="pd-section">
+          <div class="pd-sec-title">👤 ข้อมูลผู้ป่วย</div>
+          <label class="pd-ck"><input type="checkbox" id="pdShowPt" onchange="updatePreview()"><span>แสดงชื่อผู้ป่วย</span></label>
+          <label class="pd-ck"><input type="checkbox" id="pdShowHn" onchange="updatePreview()"><span>แสดง HN / QN</span></label>
+          <div class="pd-field"><label>ขนาดตัวอักษร</label>
+            <div class="pd-range-row">
+              <input type="range" id="pdPtFs" min="7" max="18" value="11"
+                oninput="document.getElementById('pdPtFsV').textContent=this.value+'pt';updatePreview()"/>
+              <span class="pd-range-val" id="pdPtFsV">11pt</span>
+            </div></div>
+        </div>
+
+        <!-- Queue number -->
+        <div class="pd-section">
+          <div class="pd-sec-title">🔢 หมายเลขคิว</div>
+          <label class="pd-ck"><input type="checkbox" id="pdShowType" onchange="updatePreview()"><span>แสดงประเภทคิว</span></label>
+          <div class="pd-field"><label>ขนาดตัวอักษรประเภท</label>
+            <div class="pd-range-row">
+              <input type="range" id="pdTypeFs" min="7" max="18" value="11"
+                oninput="document.getElementById('pdTypeFsV').textContent=this.value+'pt';updatePreview()"/>
+              <span class="pd-range-val" id="pdTypeFsV">11pt</span>
+            </div></div>
+          <div class="pd-field"><label>ขนาดหมายเลขคิว</label>
+            <div class="pd-range-row">
+              <input type="range" id="pdNumFs" min="20" max="80" value="60"
+                oninput="document.getElementById('pdNumFsV').textContent=this.value+'pt';updatePreview()"/>
+              <span class="pd-range-val" id="pdNumFsV">60pt</span>
+            </div></div>
+          <label class="pd-ck"><input type="checkbox" id="pdShowDt" onchange="updatePreview()"><span>แสดงวันที่ / เวลา</span></label>
+        </div>
+
+        <!-- Footer -->
+        <div class="pd-section">
+          <div class="pd-sec-title">📝 ข้อความท้าย</div>
+          <label class="pd-ck"><input type="checkbox" id="pdShowFooter" onchange="togglePdSection('pdFooterFields',this);updatePreview()"><span>แสดงข้อความท้าย</span></label>
+          <div id="pdFooterFields">
+            <div class="pd-field"><label>ข้อความ (Enter = ขึ้นบรรทัดใหม่)</label>
+              <textarea id="pdFooterText" rows="3" oninput="updatePreview()"></textarea></div>
+            <div class="pd-field"><label>ขนาดตัวอักษร</label>
+              <div class="pd-range-row">
+                <input type="range" id="pdFooterFs" min="6" max="14" value="8"
+                  oninput="document.getElementById('pdFooterFsV').textContent=this.value+'pt';updatePreview()"/>
+                <span class="pd-range-val" id="pdFooterFsV">8pt</span>
+              </div></div>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="pd-section">
+          <div class="pd-sec-title">⚙ ตัวเลือกการพิมพ์</div>
+          <label class="pd-ck"><input type="checkbox" id="pdAutoPrint" onchange="updatePreview()"><span>พิมพ์อัตโนมัติหลังออกคิว</span></label>
+          <label class="pd-ck"><input type="checkbox" id="pdShowDivider" onchange="updatePreview()"><span>แสดงเส้นคั่น</span></label>
+        </div>
+
+        <button class="pd-save-btn" onclick="savePrintCfg()">💾 บันทึกการตั้งค่า</button>
+      </div>
+
+      <!-- RIGHT: live preview -->
+      <div class="pd-right">
+        <div class="pd-preview-lbl">ตัวอย่างสลิป</div>
+        <div class="pd-preview-wrap" id="pdPreviewWrap">
+          <div id="slipPreview"></div>
+        </div>
+        <button class="pd-test-btn" onclick="testPrint()">🖨 ทดสอบพิมพ์</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Counters -->
+  <div class="tab-pane" id="pane-counters">
+    <div class="form-card">
+      <h2>เพิ่มช่องบริการใหม่</h2>
+      <div class="form-row">
+        <div class="field name-f">
+          <label>ชื่อช่องบริการ</label>
+          <input type="text" id="cName" placeholder="เช่น ช่อง 1, ช่อง A, เคาน์เตอร์ VIP" maxlength="30"/>
+        </div>
+        <button class="btn-add" onclick="addCounter()">+ เพิ่ม</button>
+      </div>
+    </div>
+    <div class="item-list" id="counterList"><div class="empty-msg">กำลังโหลด...</div></div>
+  </div>
+</div>
+
+<!-- Edit queue type modal -->
+<div class="modal-bg" id="modalType">
+  <div class="modal">
+    <h3>แก้ไขประเภทคิว</h3>
+    <div class="form-row">
+      <div class="field" style="width:100%"><label>ชื่อ</label><input type="text" id="etName" maxlength="30"/></div>
+      <div class="field" style="width:100%"><label>Prefix</label>
+        <input type="text" id="etPrefix" maxlength="3" style="text-transform:uppercase;font-size:1.2rem;font-weight:700"/></div>
+      <div class="field" style="width:100%"><label>สี</label><div class="color-row" id="etColorRow"></div></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalType')">ยกเลิก</button>
+      <button class="btn-save"   onclick="saveType()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit counter modal -->
+<div class="modal-bg" id="modalCounter">
+  <div class="modal">
+    <h3>แก้ไขช่องบริการ</h3>
+    <div class="form-row">
+      <div class="field" style="width:100%"><label>ชื่อช่องบริการ</label>
+        <input type="text" id="ecName" maxlength="30"/></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalCounter')">ยกเลิก</button>
+      <button class="btn-save"   onclick="saveCounter()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const sysId  = new URLSearchParams(location.search).get('sys') || 1;
+const socket = io();
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+const PRESETS = [
+  '#42a5f5','#1e88e5','#0d47a1','#29b6f6','#4fc3f7','#90caf9',
+  '#66bb6a','#43a047','#26a69a','#26c6da','#00acc1','#80cbc4',
+  '#ffd54f','#ffca28','#ffa726','#ff7043','#ef5350','#e53935',
+  '#ec407a','#ab47bc','#7e57c2','#ff8a65','#78909c','#8d6e63',
+];
+
+// Update nav links
+['navQueue','navCashier','navDisplay','navSettings'].forEach((id, i) => {
+  const pages = ['queue.html','cashier.html','display.html','settings.html'];
+  document.getElementById(id).href = `/${pages[i]}?sys=${sysId}`;
+});
+
+let queueTypes = [], counters = [];
+let addTypeColor = PRESETS[0], editTypeColor = PRESETS[0];
+let editTypeId = null, editCounterId = null;
+let tickerMsgs = [], dragFrom = null;
+let printTabLoaded = false;
+
+// ── Color picker ──────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace('#',''), 16);
+  return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+}
+
+function buildColorPicker(cid, initHex, onChange) {
+  const container = document.getElementById(cid);
+  let hex = (initHex || PRESETS[0]).toLowerCase();
+  let {r,g,b} = hexToRgb(hex);
+
+  container.innerHTML = `
+    <div class="cpk">
+      <div class="cpk-top">
+        <div class="cpk-prev" id="${cid}_prev" style="background:${hex}"></div>
+        <input class="cpk-hex" id="${cid}_hex" type="text" value="${hex}" maxlength="7" spellcheck="false"/>
+      </div>
+      <div class="cpk-sw">${PRESETS.map(c=>`<div class="cpk-dot${c===hex?' on':''}" style="background:${c}" data-c="${c}"></div>`).join('')}</div>
+      <div class="cpk-rgb">
+        <div class="cpk-row">
+          <span class="cpk-lbl r">R</span>
+          <input type="range" class="cpk-sl sl-r" id="${cid}_r" min="0" max="255" value="${r}">
+          <span class="cpk-num" id="${cid}_rv">${r}</span>
+        </div>
+        <div class="cpk-row">
+          <span class="cpk-lbl g">G</span>
+          <input type="range" class="cpk-sl sl-g" id="${cid}_g" min="0" max="255" value="${g}">
+          <span class="cpk-num" id="${cid}_gv">${g}</span>
+        </div>
+        <div class="cpk-row">
+          <span class="cpk-lbl b">B</span>
+          <input type="range" class="cpk-sl sl-b" id="${cid}_b" min="0" max="255" value="${b}">
+          <span class="cpk-num" id="${cid}_bv">${b}</span>
+        </div>
+      </div>
+    </div>`;
+
+  function sync(newHex, moveSliders) {
+    hex = newHex.toLowerCase();
+    ({r,g,b} = hexToRgb(hex));
+    document.getElementById(`${cid}_prev`).style.background = hex;
+    document.getElementById(`${cid}_hex`).value = hex;
+    if (moveSliders) {
+      document.getElementById(`${cid}_r`).value = r;
+      document.getElementById(`${cid}_g`).value = g;
+      document.getElementById(`${cid}_b`).value = b;
+    }
+    document.getElementById(`${cid}_rv`).textContent = r;
+    document.getElementById(`${cid}_gv`).textContent = g;
+    document.getElementById(`${cid}_bv`).textContent = b;
+    container.querySelectorAll('.cpk-dot').forEach(d => d.classList.toggle('on', d.dataset.c === hex));
+    onChange(hex);
+  }
+
+  container.querySelectorAll('.cpk-dot').forEach(d => { d.onclick = () => sync(d.dataset.c, true); });
+
+  ['r','g','b'].forEach(ch => {
+    document.getElementById(`${cid}_${ch}`).oninput = () => {
+      sync(rgbToHex(
+        +document.getElementById(`${cid}_r`).value,
+        +document.getElementById(`${cid}_g`).value,
+        +document.getElementById(`${cid}_b`).value
+      ), false);
+    };
+  });
+
+  document.getElementById(`${cid}_hex`).addEventListener('input', function() {
+    if (/^#[0-9a-fA-F]{6}$/.test(this.value)) sync(this.value, true);
+  });
+}
+
+buildColorPicker('tColorRow', addTypeColor, c => { addTypeColor = c; });
+
+socket.on('types_updated',          t  => { queueTypes = t; renderTypes(); });
+socket.on('counters_updated',       c  => { counters   = c; renderCounters(); });
+socket.on('display_config_updated', dc => { tickerMsgs = dc.tickerMessages||[]; renderTicker(); });
+
+function switchTab(name, el) {
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-' + name).classList.add('active');
+  if (name === 'print' && !printTabLoaded) {
+    printTabLoaded = true;
+    loadPrinters().then(() => loadPrintCfg());
+  }
+}
+
+// ── Queue Types ───────────────────────────────────────────────────────────
+function renderTypes() {
+  const el = document.getElementById('typeList');
+  if (!queueTypes.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีประเภทคิว</div>'; return; }
+  el.innerHTML = queueTypes.map(t => `
+    <div class="item-row">
+      <div class="item-badge" style="background:${t.color}">${t.prefix}</div>
+      <div class="item-info">
+        <div class="i-name">${t.name}</div>
+        <div class="i-meta">Prefix: <b>${t.prefix}</b> &nbsp;|&nbsp; ${t.color}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-edit" onclick="openEditType(${t.id})">แก้ไข</button>
+        <button class="btn-del"  onclick="deleteType(${t.id},'${t.name}')">ลบ</button>
+      </div>
+    </div>`).join('');
+}
+function addType() {
+  const name   = document.getElementById('tName').value.trim();
+  const prefix = document.getElementById('tPrefix').value.trim().toUpperCase();
+  if (!name)   { toast('กรุณากรอกชื่อประเภทคิว'); return; }
+  if (!prefix) { toast('กรุณากรอก Prefix'); return; }
+  fetch(`/api/sys/${sysId}/queue-types`, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, prefix, color: addTypeColor }) })
+  .then(r=>r.json()).then(d => {
+    if (d.success) { document.getElementById('tName').value=''; document.getElementById('tPrefix').value=''; toast(`เพิ่ม "${d.type.name}" สำเร็จ`); }
+    else toast(d.message);
+  });
+}
+function openEditType(id) {
+  const t = queueTypes.find(x => x.id === id); if (!t) return;
+  editTypeId = id; editTypeColor = t.color;
+  document.getElementById('etName').value   = t.name;
+  document.getElementById('etPrefix').value = t.prefix;
+  buildColorPicker('etColorRow', editTypeColor, c => { editTypeColor = c; });
+  document.getElementById('modalType').classList.add('open');
+}
+function saveType() {
+  const name   = document.getElementById('etName').value.trim();
+  const prefix = document.getElementById('etPrefix').value.trim().toUpperCase();
+  if (!name || !prefix) { toast('กรุณากรอกข้อมูลให้ครบ'); return; }
+  fetch(`/api/sys/${sysId}/queue-types/${editTypeId}`, { method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, prefix, color: editTypeColor }) })
+  .then(r=>r.json()).then(d => { if (d.success) { closeModal('modalType'); toast('บันทึกสำเร็จ'); } else toast(d.message); });
+}
+function deleteType(id, name) {
+  if (!confirm(`ลบประเภทคิว "${name}" ?`)) return;
+  fetch(`/api/sys/${sysId}/queue-types/${id}`, { method:'DELETE' }).then(r=>r.json()).then(d => {
+    if (d.success) toast(`ลบ "${name}" แล้ว`); else toast(d.message);
+  });
+}
+
+// ── Counters ──────────────────────────────────────────────────────────────
+function renderCounters() {
+  const el = document.getElementById('counterList');
+  if (!counters.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีช่องบริการ</div>'; return; }
+  el.innerHTML = counters.map(c => `
+    <div class="item-row">
+      <div class="item-icon">🪟</div>
+      <div class="item-info">
+        <div class="i-name">${c.name}</div>
+        <div class="i-meta">ID: ${c.id}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-edit" onclick="openEditCounter(${c.id})">แก้ไข</button>
+        <button class="btn-del"  onclick="deleteCounter(${c.id},'${c.name}')">ลบ</button>
+      </div>
+    </div>`).join('');
+}
+function addCounter() {
+  const name = document.getElementById('cName').value.trim();
+  if (!name) { toast('กรุณากรอกชื่อช่องบริการ'); return; }
+  fetch(`/api/sys/${sysId}/counters`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) })
+  .then(r=>r.json()).then(d => {
+    if (d.success) { document.getElementById('cName').value = ''; toast(`เพิ่ม "${d.counter.name}" สำเร็จ`); }
+    else toast(d.message);
+  });
+}
+function openEditCounter(id) {
+  const c = counters.find(x => x.id === id); if (!c) return;
+  editCounterId = id;
+  document.getElementById('ecName').value = c.name;
+  document.getElementById('modalCounter').classList.add('open');
+}
+function saveCounter() {
+  const name = document.getElementById('ecName').value.trim();
+  if (!name) { toast('กรุณากรอกชื่อ'); return; }
+  fetch(`/api/sys/${sysId}/counters/${editCounterId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) })
+  .then(r=>r.json()).then(d => { if (d.success) { closeModal('modalCounter'); toast('บันทึกสำเร็จ'); } else toast(d.message); });
+}
+function deleteCounter(id, name) {
+  if (!confirm(`ลบช่อง "${name}" ?`)) return;
+  fetch(`/api/sys/${sysId}/counters/${id}`, { method:'DELETE' }).then(r=>r.json()).then(d => {
+    if (d.success) toast(`ลบ "${name}" แล้ว`); else toast(d.message);
+  });
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── Ticker Messages ───────────────────────────────────────────────────────
+function renderTicker() {
+  const el = document.getElementById('tickerList');
+  if (!tickerMsgs.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีข้อความ</div>'; return; }
+  el.innerHTML = tickerMsgs.map((m, i) => `
+    <div class="tk-row" draggable="true"
+         ondragstart="tkDragStart(event,${i})" ondragover="tkDragOver(event)" ondrop="tkDrop(event,${i})">
+      <span class="tk-drag">☰</span>
+      <input class="tk-input" type="text" value="${escHtml(m)}" oninput="tickerMsgs[${i}]=this.value"/>
+      <button class="btn-del-tk" onclick="deleteTicker(${i})">✕</button>
+    </div>`).join('');
+}
+function addTicker() {
+  const val = document.getElementById('tkNew').value.trim();
+  if (!val) { toast('กรุณากรอกข้อความ'); return; }
+  tickerMsgs.push(val); document.getElementById('tkNew').value = ''; renderTicker();
+}
+function deleteTicker(i) { tickerMsgs.splice(i, 1); renderTicker(); }
+function saveTicker() {
+  fetch(`/api/sys/${sysId}/display-config`, { method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ tickerMessages: tickerMsgs }) })
+  .then(r=>r.json()).then(d => { if (d.success) toast('บันทึกข้อความวิ่งสำเร็จ'); });
+}
+function tkDragStart(e, i) { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; }
+function tkDragOver(e) { e.preventDefault(); }
+function tkDrop(e, i) {
+  e.preventDefault();
+  if (dragFrom === null || dragFrom === i) return;
+  const [item] = tickerMsgs.splice(dragFrom, 1); tickerMsgs.splice(i, 0, item);
+  dragFrom = null; renderTicker();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('tPrefix').addEventListener('input',  e => e.target.value = e.target.value.toUpperCase());
+document.getElementById('etPrefix').addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+
+// ── Load ──────────────────────────────────────────────────────────────────
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  queueTypes = d.queueTypes;
+  counters   = d.counters;
+  tickerMsgs = (d.displayConfig||{}).tickerMessages || [];
+  if (d.sysInfo) {
+    document.getElementById('sysBadgeIcon').textContent = d.sysInfo.icon || '📋';
+    document.getElementById('sysBadgeName').textContent = d.sysInfo.name;
+    document.title = `ตั้งค่า — ${d.sysInfo.name}`;
+  }
+  renderTypes(); renderCounters(); renderTicker();
+});
+
+// ── Print Designer ────────────────────────────────────────────────────────
+const PD_SAMPLE = {
+  sysName:'โรงพยาบาลตัวอย่าง', patientName:'นาย สมชาย ใจดี',
+  hn:'12345', qn:'001', typeName:'ทั่วไป', prefix:'A',
+  display:'A001', issuedAt:'09:30:00', date:'7/5/2568',
+};
+let pdCurrentSize = '80mm';
+let pdSysName = '';
+
+function loadPrintCfg() {
+  fetch(`/api/sys/${sysId}/print-config`).then(r=>r.json()).then(cfg => {
+    applyPrintCfgToForm(cfg);
+    updatePreview();
+  });
+}
+
+function applyPrintCfgToForm(cfg) {
+  // Paper
+  setPaperSize(cfg.paperSize || '80mm', null, false);
+  if (cfg.customWidth)  document.getElementById('pdCustomW').value = cfg.customWidth;
+  if (cfg.customHeight) document.getElementById('pdCustomH').value = cfg.customHeight;
+  // Printer
+  const pSel = document.getElementById('pdPrinter');
+  if (cfg.printerName) {
+    let opt = [...pSel.options].find(o => o.value === cfg.printerName);
+    if (!opt) { opt = new Option(cfg.printerName, cfg.printerName); pSel.add(opt); }
+    pSel.value = cfg.printerName;
+  }
+  // Header
+  const sh = !!cfg.showHeader;
+  document.getElementById('pdShowHeader').checked = sh;
+  document.getElementById('pdHeaderName').value   = cfg.headerName    || '';
+  document.getElementById('pdHeaderSub').value    = cfg.headerSubtitle || 'Queue System';
+  const hfs = cfg.headerFontSize || 14;
+  document.getElementById('pdHeaderFs').value = hfs;
+  document.getElementById('pdHeaderFsV').textContent = hfs + 'pt';
+  togglePdSection('pdHeaderFields', { checked: sh });
+  // Patient
+  document.getElementById('pdShowPt').checked = cfg.showPatientName !== false;
+  document.getElementById('pdShowHn').checked = cfg.showHnQn        !== false;
+  const pfs = cfg.patientFontSize || 11;
+  document.getElementById('pdPtFs').value = pfs;
+  document.getElementById('pdPtFsV').textContent = pfs + 'pt';
+  // Queue number
+  document.getElementById('pdShowType').checked = cfg.showQueueType !== false;
+  const tfs = cfg.queueTypeFontSize || 11;
+  document.getElementById('pdTypeFs').value = tfs;
+  document.getElementById('pdTypeFsV').textContent = tfs + 'pt';
+  const nfs = cfg.queueNumFontSize || 60;
+  document.getElementById('pdNumFs').value = nfs;
+  document.getElementById('pdNumFsV').textContent = nfs + 'pt';
+  document.getElementById('pdShowDt').checked = cfg.showDateTime !== false;
+  // Footer
+  const sf = !!cfg.showFooter;
+  document.getElementById('pdShowFooter').checked = sf;
+  document.getElementById('pdFooterText').value   = cfg.footerText || '';
+  const ffs = cfg.footerFontSize || 8;
+  document.getElementById('pdFooterFs').value = ffs;
+  document.getElementById('pdFooterFsV').textContent = ffs + 'pt';
+  togglePdSection('pdFooterFields', { checked: sf });
+  // Options
+  document.getElementById('pdAutoPrint').checked   = cfg.autoPrint   !== false;
+  document.getElementById('pdShowDivider').checked = cfg.showDividerLine !== false;
+}
+
+function collectPrintCfg() {
+  return {
+    paperSize:        pdCurrentSize,
+    customWidth:      document.getElementById('pdCustomW').value,
+    customHeight:     document.getElementById('pdCustomH').value,
+    printerName:      document.getElementById('pdPrinter').value,
+    showHeader:       document.getElementById('pdShowHeader').checked,
+    headerName:       document.getElementById('pdHeaderName').value.trim(),
+    headerSubtitle:   document.getElementById('pdHeaderSub').value.trim(),
+    headerFontSize:   Number(document.getElementById('pdHeaderFs').value),
+    showDividerLine:  document.getElementById('pdShowDivider').checked,
+    showPatientName:  document.getElementById('pdShowPt').checked,
+    showHnQn:         document.getElementById('pdShowHn').checked,
+    patientFontSize:  Number(document.getElementById('pdPtFs').value),
+    showQueueType:    document.getElementById('pdShowType').checked,
+    queueTypeFontSize:Number(document.getElementById('pdTypeFs').value),
+    queueNumFontSize: Number(document.getElementById('pdNumFs').value),
+    showDateTime:     document.getElementById('pdShowDt').checked,
+    showFooter:       document.getElementById('pdShowFooter').checked,
+    footerText:       document.getElementById('pdFooterText').value,
+    footerFontSize:   Number(document.getElementById('pdFooterFs').value),
+    autoPrint:        document.getElementById('pdAutoPrint').checked,
+  };
+}
+
+function setPaperSize(size, btn, doUpdate = true) {
+  pdCurrentSize = size;
+  document.querySelectorAll('.pd-paper-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.ps === size);
+  });
+  const customDiv = document.getElementById('pdCustomSize');
+  customDiv.classList.toggle('show', size === 'custom');
+  if (doUpdate) updatePreview();
+}
+
+function togglePdSection(id, cb) {
+  document.getElementById(id).style.opacity  = cb.checked ? '1' : '.35';
+  document.getElementById(id).style.pointerEvents = cb.checked ? '' : 'none';
+}
+
+function updatePreview() {
+  const cfg = collectPrintCfg();
+  const el  = document.getElementById('slipPreview');
+  const sysName = pdSysName || PD_SAMPLE.sysName;
+
+  // Paper width for preview
+  const widthMap = { '80mm':'72mm', '58mm':'50mm', 'a4':'190mm', 'custom': (cfg.customWidth||80)+'mm' };
+  el.style.width = widthMap[pdCurrentSize] || '72mm';
+
+  el.innerHTML = renderSlipHtml(cfg, { ...PD_SAMPLE, sysName });
+}
+
+function renderSlipHtml(cfg, d) {
+  const div = s => `<div style="${s}">`;
+  const endDiv = '</div>';
+  const divider = cfg.showDividerLine
+    ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
+  let h = '';
+
+  if (cfg.showHeader) {
+    const name = cfg.headerName || d.sysName;
+    h += `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize}pt;margin-bottom:2px">${name}</div>`;
+    if (cfg.headerSubtitle)
+      h += `<div style="text-align:center;font-size:${cfg.headerFontSize-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+  }
+
+  h += divider;
+
+  if (cfg.showPatientName && d.patientName)
+    h += `<div style="font-size:${cfg.patientFontSize}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
+  if (cfg.showHnQn && (d.hn || d.qn)) {
+    const parts = [d.hn ? 'HN: '+d.hn : '', d.qn ? 'QN: '+d.qn : ''].filter(Boolean).join('   ');
+    h += `<div style="font-size:${cfg.patientFontSize-2}pt;color:#555;text-align:center;margin-bottom:3px">${parts}</div>`;
+  }
+
+  h += divider;
+
+  if (cfg.showQueueType && d.typeName)
+    h += `<div style="font-size:${cfg.queueTypeFontSize}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
+
+  h += `<div style="font-size:${cfg.queueNumFontSize}pt;font-weight:900;text-align:center;
+    letter-spacing:4px;border:3px solid #000;padding:1px 10px;
+    display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
+
+  if (cfg.showDateTime)
+    h += `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
+
+  h += divider;
+
+  if (cfg.showFooter && cfg.footerText)
+    h += `<div style="font-size:${cfg.footerFontSize}pt;color:#555;text-align:center;margin-top:3px;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
+
+  return h;
+}
+
+async function loadPrinters() {
+  const sel = document.getElementById('pdPrinter');
+  const savedVal = sel.value;
+  sel.innerHTML = '<option value="">— กำลังโหลด... —</option>';
+  try {
+    const { printers } = await fetch('/api/printers').then(r => r.json());
+    sel.innerHTML = '<option value="">— ไม่ระบุ / ใช้ค่า Windows —</option>';
+    printers.forEach(p => {
+      const opt = new Option(p, p);
+      if (p === savedVal) opt.selected = true;
+      sel.add(opt);
+    });
+    if (!printers.length)
+      sel.innerHTML = '<option value="">ไม่พบเครื่องพิมพ์ — ตรวจสอบ Windows</option>';
+  } catch {
+    sel.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดรายการ</option>';
+  }
+}
+
+function savePrintCfg() {
+  const cfg = collectPrintCfg();
+  fetch(`/api/sys/${sysId}/print-config`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(cfg)
+  }).then(r=>r.json()).then(d => {
+    if (d.success) toast('✓ บันทึกแบบฟอร์มปริ้นสำเร็จ');
+  }).catch(() => toast('เกิดข้อผิดพลาด'));
+}
+
+// Print area for test print (hidden, used only by testPrint)
+const _testPrintArea = document.createElement('div');
+_testPrintArea.id = 'testPrintArea';
+_testPrintArea.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:#fff;padding:8mm';
+document.body.appendChild(_testPrintArea);
+
+function testPrint() {
+  const cfg = collectPrintCfg();
+  const sysName = pdSysName || PD_SAMPLE.sysName;
+  _testPrintArea.innerHTML = renderSlipHtml(cfg, { ...PD_SAMPLE, sysName });
+  _testPrintArea.style.display = 'block';
+
+  // Inject @page size
+  let ps = document.getElementById('_testPageStyle');
+  if (!ps) { ps = document.createElement('style'); ps.id='_testPageStyle'; document.head.appendChild(ps); }
+  const szMap = {'80mm':'80mm auto','58mm':'58mm auto','a4':'A4','custom':`${cfg.customWidth||80}mm ${cfg.customHeight?cfg.customHeight+'mm':'auto'}`};
+  ps.textContent = `@media print{@page{size:${szMap[pdCurrentSize]};margin:4mm}body>*:not(#testPrintArea){display:none!important}#testPrintArea{display:block!important;position:static;padding:0}}`;
+
+  const printerName = document.getElementById('pdPrinter').value;
+  if (printerName) toast(`🖨 เลือก "${printerName}" ในหน้าต่างพิมพ์`);
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { _testPrintArea.style.display='none'; ps.textContent=''; }, 1000);
+  }, 150);
+}
+
+socket.on('print_config_updated', cfg => { /* live update if needed */ });
+</script>
+</body>
+</html>

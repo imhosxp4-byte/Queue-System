@@ -1,0 +1,15 @@
+{
+  "name": "queue-finance",
+  "version": "1.0.0",
+  "description": "ระบบคิวการเงิน",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.22.3",
+    "pg": "^8.20.0",
+    "socket.io": "^4.7.2"
+  }
+}

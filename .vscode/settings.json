@@ -1,0 +1,8 @@
+{
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "claudeCode.disableLoginPrompt": true,
+    "claudeCode.enableNewConversationShortcut": true,
+    "claudeCode.hideOnboarding": true,
+    "claudeCode.useCtrlEnterToSend": true,
+    "claudeCode.useTerminal": true
+}

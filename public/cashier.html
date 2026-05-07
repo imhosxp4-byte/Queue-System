@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>เรียกคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root{
+      --cs-body-bg:#0b141f;
+      --cs-nav-bg:#0d1f33;
+      --cs-cbar-bg:#08111c;
+      --cs-tabs-bg:#0d1a28;
+      --cs-called-top:#0d1f33;--cs-called-bot:#091524;
+      --cs-wq-hdr-bg:#0d1a28;
+      --cs-hist-bg:#080f18;
+      --cs-left-w:420px;
+      --cs-btn-next1:#1976d2;--cs-btn-next2:#0d47a1;
+      --cs-btn-recall-bg:#12253a;--cs-btn-recall-clr:#64b5f6;
+      --cs-btn-noshow1:#c62828;--cs-btn-noshow2:#b71c1c;
+      --cs-btn-ci1:#1976d2;--cs-btn-ci2:#0d47a1;
+      --cs-wq-next:#1565c0;
+      --cs-stat-w:#ffd54f;--cs-stat-s:#4caf50;--cs-stat-n:#ef5350;
+      --cs-nav-txt:#90caf9;--cs-logo-clr:#ffd54f;
+      --cs-call-type-clr:#64b5f6;--cs-call-ctr-clr:#ffd54f;
+      --cs-call-fs:3.4rem;
+      --cs-call-meta-fs:.78rem;
+      --cs-btn-next-fs:.95rem;
+      --cs-stat-fs:1.7rem;
+      --cs-wq-fs:1.15rem;
+      --cs-wq-meta-fs:.72rem;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--cs-body-bg,#0b141f);
+      height:100vh;overflow:hidden;color:#fff;display:flex;flex-direction:column}
+
+    /* ── NAV ── */
+    nav{background:var(--cs-nav-bg,#0d1f33);border-bottom:2px solid #1e3a5f;padding:0 22px;
+      display:flex;align-items:center;gap:4px;height:50px;flex-shrink:0}
+    .nav-logo{font-size:.9rem;font-weight:700;color:var(--cs-logo-clr,#ffd54f);margin-right:16px;
+      text-decoration:none;white-space:nowrap}
+    nav a{color:var(--cs-nav-txt,#90caf9);text-decoration:none;padding:5px 12px;border-radius:18px;
+      font-size:.82rem;transition:background .2s;white-space:nowrap}
+    nav a:hover{background:#1e3a5f}
+    nav a.active{background:#1565c0;color:#fff}
+
+    /* ── COUNTER BAR ── */
+    .cbar{background:var(--cs-cbar-bg,#08111c);border-bottom:1px solid #1a2e45;padding:6px 22px;
+      display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .cbar-lbl{font-size:.72rem;color:#3a5a78}
+    .cbadge{background:#1565c0;color:#fff;border-radius:14px;padding:3px 12px;
+      font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:5px}
+    .cbadge .dot{width:7px;height:7px;background:#4caf50;border-radius:50%}
+    .no-ctr{font-size:.78rem;color:#ff9800;background:rgba(255,152,0,.08);
+      border:1px solid rgba(255,152,0,.25);border-radius:8px;padding:3px 10px}
+    .cbar-sel{background:#091524;border:1px solid #1e3a5f;color:#64b5f6;
+      border-radius:14px;padding:4px 10px;font-size:.82rem;font-weight:600;
+      cursor:pointer;outline:none;font-family:inherit;min-width:150px}
+    .cbar-sel:focus{border-color:#42a5f5;box-shadow:0 0 0 2px rgba(66,165,245,.15)}
+    .cbar-sel option{background:#0d1f33;color:#fff}
+    .cbar-dot{width:8px;height:8px;background:#4caf50;border-radius:50%;
+      flex-shrink:0;display:none}
+    .cbar-dot.on{display:block}
+
+    /* ── TYPE TABS ── */
+    .type-tabs{background:var(--cs-tabs-bg,#0d1a28);border-bottom:1px solid #1a2e45;
+      padding:0 22px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto}
+    .ttab{padding:9px 16px;font-size:.82rem;font-weight:600;color:#3a5a78;
+      cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;
+      transition:color .2s;display:flex;align-items:center;gap:5px}
+    .ttab:hover{color:#90caf9}
+    .ttab.active{color:#fff;border-bottom-color:#42a5f5}
+    .ttab .tpfx{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;
+      justify-content:center;font-size:.7rem;font-weight:900;color:#000}
+    .ttab .tbcnt{background:#1a2e45;border-radius:8px;padding:1px 6px;font-size:.7rem}
+
+    /* ── MAIN LAYOUT ── */
+    .layout{flex:1;display:grid;grid-template-columns:var(--cs-left-w,420px) 1fr;
+      grid-template-rows:1fr auto;gap:0;overflow:hidden;min-height:0}
+
+    /* ── LEFT PANEL ── */
+    .left-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #1a2e45}
+
+    .called-box{background:linear-gradient(160deg,var(--cs-called-top,#0d1f33),var(--cs-called-bot,#091524));padding:20px 18px;flex-shrink:0}
+    .called-top{font-size:.68rem;color:#3a5a78;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+    .called-main{display:flex;align-items:center;gap:12px}
+    .call-badge{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;
+      justify-content:center;font-size:1.2rem;font-weight:900;color:#000;flex-shrink:0}
+    .call-num{font-size:var(--cs-call-fs,3.4rem);font-weight:900;letter-spacing:3px;line-height:1}
+    .call-meta{flex:1}
+    .call-type{font-size:var(--cs-call-meta-fs,.78rem);color:var(--cs-call-type-clr,#64b5f6);margin-bottom:2px}
+    .call-time{font-size:var(--cs-call-meta-fs,.78rem);color:#3a5a78}
+    .call-ctr{font-size:var(--cs-call-meta-fs,.78rem);color:var(--cs-call-ctr-clr,#ffd54f);margin-top:3px;font-weight:600}
+    .idle-txt{font-size:.85rem;color:#1e3a5f;padding:4px 0}
+
+    .action-area{padding:14px 16px;display:flex;flex-direction:column;gap:7px;flex-shrink:0;
+      border-bottom:1px solid #1a2e45}
+    .skip-row{display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;
+      user-select:none;width:fit-content}
+    .skip-row input[type=checkbox]{width:16px;height:16px;accent-color:#42a5f5;cursor:pointer;flex-shrink:0}
+    .skip-row span{font-size:.8rem;color:#64b5f6}
+    .btn{width:100%;padding:11px;border-radius:10px;border:none;font-size:.88rem;
+      font-weight:700;cursor:pointer;transition:transform .12s,opacity .15s;
+      letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:6px;
+      font-family:inherit}
+    .btn:hover{transform:translateY(-2px)}
+    .btn:active{transform:translateY(0)}
+    .btn:disabled{opacity:.28;cursor:not-allowed;transform:none}
+    .btn-next{background:linear-gradient(135deg,var(--cs-btn-next1,#1976d2),var(--cs-btn-next2,#0d47a1));color:#fff;font-size:var(--cs-btn-next-fs,.95rem);padding:13px}
+    .btn-recall{background:var(--cs-btn-recall-bg,#12253a);color:var(--cs-btn-recall-clr,#64b5f6);border:1px solid #1e3a5f}
+    .btn-recall:hover{opacity:.85}
+    .btn-noshow{background:linear-gradient(135deg,var(--cs-btn-noshow1,#c62828),var(--cs-btn-noshow2,#b71c1c));color:#fff}
+    .sp-row{display:flex;gap:6px}
+    .sp-row input{flex:1;background:#091524;border:1px solid #1e3a5f;border-radius:8px;
+      padding:9px 10px;color:#fff;font-size:.85rem;text-align:center;text-transform:uppercase;
+      font-family:inherit}
+    .sp-row input:focus{outline:none;border-color:#42a5f5}
+    .btn-sp{padding:9px 14px;border-radius:8px;border:none;
+      background:linear-gradient(135deg,#00695c,#004d40);color:#fff;
+      font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-sp:hover{opacity:.85}
+
+    .stats-area{padding:12px 16px;display:grid;grid-template-columns:repeat(3,1fr);
+      gap:7px;flex-shrink:0}
+    .stat{background:#091524;border-radius:9px;padding:9px 6px;text-align:center;
+      border:1px solid #1a2e45}
+    .stat .sv{font-size:var(--cs-stat-fs,1.7rem);font-weight:800}
+    .stat .sl{font-size:.68rem;color:#3a5a78;margin-top:1px}
+    .sv-w{color:var(--cs-stat-w,#ffd54f)}.sv-s{color:var(--cs-stat-s,#4caf50)}.sv-n{color:var(--cs-stat-n,#ef5350)}
+
+    /* ── RIGHT PANEL ── */
+    .right-panel{display:flex;flex-direction:column;overflow:hidden}
+    .rp-header{background:var(--cs-wq-hdr-bg,#0d1a28);border-bottom:1px solid #1a2e45;padding:10px 16px;
+      display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .rp-title{font-size:.82rem;color:#90caf9;font-weight:600;letter-spacing:1px;
+      display:flex;align-items:center;gap:8px}
+    .rp-cnt{background:#1565c0;color:#fff;border-radius:10px;padding:2px 9px;
+      font-size:.78rem;font-weight:700}
+    .rp-type-filter{font-size:.72rem;color:#3a5a78}
+
+    .waiting-list{flex:1;overflow-y:auto;padding:10px 12px}
+    .waiting-list::-webkit-scrollbar{width:4px}
+    .waiting-list::-webkit-scrollbar-track{background:#091524}
+    .waiting-list::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+
+    .wq-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
+      background:#0d1a28;border:1px solid #1a2e45;border-radius:11px;
+      margin-bottom:7px;transition:all .2s}
+    .wq-item:hover{background:#12243a;border-color:#2a4a6a}
+    .wq-item.wq-next{border-color:var(--cs-wq-next,#1565c0);background:#0b1e38}
+    .wq-item.wq-ret{border-left:3px solid rgba(255,152,0,.5);background:#0d1b26}
+    .wq-item.wq-next.wq-ret{border-left:3px solid #ff9800}
+    .wq-pos{font-size:.65rem;font-weight:700;color:#2a4060;min-width:22px;
+      text-align:center;flex-shrink:0;line-height:1.2}
+    .wq-next .wq-pos{color:#ffd54f;font-size:.72rem}
+    .wq-badge{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+      justify-content:center;font-size:.82rem;font-weight:900;color:#000;flex-shrink:0}
+    .wq-num{font-size:var(--cs-wq-fs,1.15rem);font-weight:800;letter-spacing:1px}
+    .wq-info{flex:1;min-width:0}
+    .wq-type{font-size:var(--cs-wq-meta-fs,.72rem);color:#3a5a78;margin-top:1px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+    .wq-ret-badge{background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.4);
+      color:#ff9800;border-radius:5px;padding:1px 6px;font-size:.6rem;font-weight:700;white-space:nowrap}
+    .wq-time{font-size:var(--cs-wq-meta-fs,.72rem);color:#2a4060;margin-top:1px}
+    .btn-call-item{padding:5px 13px;border-radius:7px;border:none;
+      background:linear-gradient(135deg,var(--cs-btn-ci1,#1976d2),var(--cs-btn-ci2,#0d47a1));color:#fff;
+      font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;
+      font-family:inherit;transition:opacity .2s,transform .12s}
+    .btn-call-item:hover{opacity:.85;transform:scale(1.04)}
+    .wq-empty{text-align:center;color:#1a2e45;padding:40px 16px;font-size:.88rem}
+    .wq-empty-icon{font-size:2.5rem;margin-bottom:8px;opacity:.5}
+    .wq-patient{font-size:1rem;color:#90caf9;font-weight:700;margin-top:3px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .wq-hn{font-size:.78rem;color:#3a5a78;margin-top:2px;letter-spacing:.3px}
+
+    /* ── BOTTOM HISTORY ── */
+    .history-strip{grid-column:1/-1;border-top:1px solid #1a2e45;
+      background:var(--cs-hist-bg,#080f18);display:flex;flex-direction:column;max-height:260px}
+    .hist-tabs{display:flex;border-bottom:1px solid #1a2e45;flex-shrink:0;padding:0 16px}
+    .ht{padding:7px 16px;font-size:.78rem;font-weight:600;color:#2a4060;
+      cursor:pointer;border-bottom:2px solid transparent;transition:color .2s}
+    .ht:hover{color:#64b5f6}
+    .ht.active{color:#fff;border-bottom-color:#42a5f5}
+    .ht.ns.active{color:#ef5350;border-bottom-color:#ef5350}
+    .ht .hc{background:#1a2e45;border-radius:7px;padding:1px 6px;margin-left:4px;font-size:.68rem}
+    .ht.ns .hc{background:rgba(239,83,80,.15);color:#ef5350}
+
+    .hist-pane{display:none;overflow-y:auto;flex:1;padding:6px 10px}
+    .hist-pane.active{display:block}
+    .hist-pane::-webkit-scrollbar{width:3px}
+    .hist-pane::-webkit-scrollbar-track{background:#060d15}
+    .hist-pane::-webkit-scrollbar-thumb{background:#1a2e45;border-radius:2px}
+
+    /* Table-style history */
+    .h-thead{display:grid;padding:5px 10px;font-size:.66rem;color:#2a4060;
+      letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #0d1a28;
+      margin-bottom:3px;flex-shrink:0}
+    .h-row{display:grid;align-items:center;padding:7px 10px;
+      background:#0d1a28;border-radius:8px;margin-bottom:4px;
+      border:1px solid transparent;gap:4px;transition:border-color .2s}
+    .h-row:hover{border-color:#1a2e45}
+    .h-row.lat{border-color:#1565c0}
+    .h-row.ns-item{background:rgba(239,83,80,.04);border-color:rgba(239,83,80,.15)}
+
+    /* History (called) columns: badge+num | type | time | action */
+    .thead-called{grid-template-columns:130px 1fr 80px 156px}
+    .row-called  {grid-template-columns:130px 1fr 80px 156px}
+    /* No-show columns: badge+num | type | called | noshow | action */
+    .thead-ns    {grid-template-columns:130px 1fr 74px 74px 80px}
+    .row-ns      {grid-template-columns:130px 1fr 74px 74px 80px}
+
+    .h-cell{display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0}
+    .h-badge{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;
+      justify-content:center;font-size:.7rem;font-weight:900;color:#000;flex-shrink:0}
+    .h-num{font-size:1.05rem;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+    .h-ns-num{color:#ef5350}
+    .h-meta{font-size:.68rem;color:#3a5a78;overflow:hidden;text-overflow:ellipsis}
+    .h-meta-type{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .h-meta-pt{font-size:.84rem;color:#64b5f6;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .h-meta-hn{font-size:.72rem;color:#2a4060;margin-top:1px;white-space:nowrap}
+    .h-time{font-size:.7rem;color:#2a4060;white-space:nowrap}
+    .h-time-ns{font-size:.7rem;color:#ef5350;white-space:nowrap}
+
+    .btn-uncall{border:none;background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.25);
+      color:#ff9800;border-radius:6px;padding:3px 9px;font-size:.68rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit}
+    .btn-uncall:hover{background:rgba(255,152,0,.25)}
+    .btn-recall-hist{border:none;background:rgba(66,165,245,.12);border:1px solid rgba(66,165,245,.3);
+      color:#64b5f6;border-radius:6px;padding:3px 9px;font-size:.68rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit}
+    .btn-recall-hist:hover{background:rgba(66,165,245,.28)}
+    .action-btns{display:flex;gap:4px;align-items:center}
+    .btn-recall-ns{border:none;background:linear-gradient(135deg,#1976d2,#0d47a1);
+      color:#fff;border-radius:6px;padding:3px 9px;font-size:.68rem;
+      font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+    .btn-recall-ns:hover{opacity:.85}
+
+    /* ── COUNTER PICKER ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);
+      z-index:200;align-items:center;justify-content:center}
+    .overlay.open{display:flex}
+    .pick-box{background:#0d1f33;border:1px solid #1e3a5f;border-radius:18px;
+      padding:28px 32px;width:100%;max-width:400px;text-align:center}
+    .pick-box h2{font-size:1.1rem;color:#64b5f6;margin-bottom:6px}
+    .pick-box p{font-size:.82rem;color:#3a5a78;margin-bottom:18px}
+    .ctr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
+    .ctr-btn{background:#091524;border:2px solid #1e3a5f;border-radius:11px;
+      padding:13px 8px;cursor:pointer;font-size:.88rem;font-weight:700;color:#64b5f6;
+      transition:all .2s;text-align:center;font-family:inherit}
+    .ctr-btn:hover{background:#1e3a5f;color:#fff}
+    .ctr-btn.sel{background:#1565c0;border-color:#42a5f5;color:#fff}
+
+    /* ── CONFIRM MODAL ── */
+    .confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
+      z-index:300;align-items:center;justify-content:center}
+    .confirm-overlay.open{display:flex}
+    .confirm-box{background:#0d1f33;border:1px solid #1e3a5f;border-radius:20px;
+      padding:30px 36px;width:100%;max-width:380px;text-align:center}
+    .confirm-box h3{font-size:1rem;color:#90caf9;margin-bottom:6px;font-weight:600}
+    .confirm-box p{font-size:.8rem;color:#3a5a78;margin-bottom:22px}
+    .confirm-ticket{display:flex;align-items:center;justify-content:center;gap:14px;
+      background:#091524;border-radius:14px;padding:16px 20px;margin-bottom:22px}
+    .ct-badge{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;
+      justify-content:center;font-size:1.2rem;font-weight:900;color:#000;flex-shrink:0}
+    .ct-num{font-size:2.8rem;font-weight:900;letter-spacing:3px;line-height:1}
+    .ct-info{text-align:left}
+    .ct-type{font-size:.8rem;color:#64b5f6}
+    .ct-issued{font-size:.72rem;color:#2a4060;margin-top:2px}
+    .confirm-btns{display:flex;gap:10px}
+    .btn-confirm{flex:1;background:linear-gradient(135deg,#1976d2,#0d47a1);color:#fff;
+      border:none;border-radius:11px;padding:12px;font-size:.92rem;font-weight:700;
+      cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+    .btn-confirm:hover{opacity:.88}
+    .btn-cancel-call{flex:1;background:#12253a;color:#64b5f6;border:1px solid #1e3a5f;
+      border-radius:11px;padding:12px;font-size:.88rem;cursor:pointer;font-family:inherit}
+    .btn-cancel-call:hover{background:#1a3050}
+
+    /* ── TOAST ── */
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#0d1f33;border:1px solid #42a5f5;color:#fff;padding:10px 24px;
+      border-radius:28px;font-size:.85rem;transition:transform .3s;z-index:999;white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.err{border-color:#ef5350}.toast.ok{border-color:#4caf50}
+
+    @media(max-width:760px){
+      .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+      .left-panel{border-right:none;border-bottom:1px solid #1a2e45}
+      .history-strip{max-height:200px}
+      .thead-called,.row-called{grid-template-columns:110px 1fr 70px 144px}
+      .thead-ns,.row-ns{grid-template-columns:110px 1fr 60px 60px 70px}
+    }
+
+    /* ── SETTINGS PANEL ── */
+    .btn-gear{margin-left:auto;background:none;border:1px solid #1e3a5f;color:#64b5f6;
+      border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:.9rem;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+      transition:background .2s}
+    .btn-gear:hover{background:#1e3a5f;color:#fff}
+    .sp-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400}
+    .sp-backdrop.open{display:block}
+    .style-panel{position:fixed;top:0;right:0;height:100%;width:290px;
+      background:#0c1b2e;border-left:1px solid #1e3a5f;z-index:401;
+      display:flex;flex-direction:column;
+      transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+    .style-panel.open{transform:translateX(0)}
+    .sp-head{padding:13px 16px;border-bottom:1px solid #1a2e45;
+      display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .sp-head-title{font-size:.86rem;font-weight:700;color:#90caf9}
+    .sp-close{background:none;border:none;color:#3a5a78;cursor:pointer;font-size:1rem;
+      padding:2px 7px;border-radius:6px;transition:background .15s}
+    .sp-close:hover{color:#fff;background:#1e3a5f}
+    .sp-tabs{display:flex;border-bottom:1px solid #1a2e45;flex-shrink:0}
+    .sptab{flex:1;background:none;border:none;color:#3a5a78;padding:9px 6px;
+      font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;
+      border-bottom:2px solid transparent;transition:color .2s}
+    .sptab:hover{color:#90caf9}
+    .sptab.active{color:#fff;border-bottom-color:#42a5f5}
+    .sp-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:thin;
+      scrollbar-color:#1e3a5f transparent}
+    .sp-body::-webkit-scrollbar{width:3px}
+    .sp-body::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+    .sptab-pane{display:none}
+    .sptab-pane.active{display:block}
+    .sp-sec{margin-bottom:18px}
+    .sp-sec-lbl{font-size:.63rem;color:#3a5a78;letter-spacing:1.5px;
+      text-transform:uppercase;margin-bottom:9px;padding-bottom:4px;
+      border-bottom:1px solid #1a2e45}
+    .sp-field{margin-bottom:11px}
+    .sp-field>label{display:block;font-size:.74rem;color:#64b5f6;margin-bottom:4px}
+    .sp-rrow{display:flex;align-items:center;gap:8px}
+    .sp-rrow input[type=range]{flex:1;accent-color:#42a5f5;cursor:pointer;height:4px}
+    .sp-rval{font-size:.7rem;color:#90caf9;min-width:44px;text-align:right;flex-shrink:0}
+    .sp-ck{display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;
+      user-select:none}
+    .sp-ck input[type=checkbox]{width:15px;height:15px;accent-color:#42a5f5;
+      cursor:pointer;flex-shrink:0}
+    .sp-ck span{font-size:.8rem;color:#90caf9}
+    .sp-crow{display:flex;align-items:center;justify-content:space-between;
+      padding:5px 0;border-bottom:1px solid rgba(26,46,69,.6)}
+    .sp-crow label{font-size:.76rem;color:#90caf9}
+    .sp-crow input[type=color]{width:36px;height:26px;border-radius:6px;cursor:pointer;
+      padding:2px;background:#091524;border:1px solid #1e3a5f}
+    .sp-reset{width:100%;margin-top:4px;padding:8px;border-radius:9px;
+      border:1px solid #1e3a5f;background:none;color:#64b5f6;
+      font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+    .sp-reset:hover{background:#1e3a5f}
+
+    .nav-officer{font-size:.78rem;color:rgba(255,255,255,.45);white-space:nowrap;margin-left:auto}
+    .btn-logout{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.25);color:#ef9a9a;
+      border-radius:18px;padding:4px 13px;font-size:.78rem;cursor:pointer;font-family:inherit;
+      transition:all .2s;white-space:nowrap;margin-left:8px}
+    .btn-logout:hover{background:rgba(239,83,80,.25);color:#fff;border-color:#ef5350}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">⬡ ระบบคิว</a>
+  <a href="#" id="navQueue">ออกคิว</a>
+  <a href="#" id="navCashier" class="active">เรียกคิว</a>
+  <a href="#" id="navDisplay" target="_blank">แสดงคิว</a>
+  <a href="#" id="navSettings">ตั้งค่า</a>
+  <span class="nav-officer" id="navOfficer"></span>
+  <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
+  <button class="btn-gear" onclick="openStylePanel()" title="ตั้งค่าการแสดงผล">⚙</button>
+</nav>
+
+<div class="cbar">
+  <span class="cbar-lbl">ช่องบริการ:</span>
+  <select id="cbarSelect" class="cbar-sel" onchange="pickCtrSelect(this.value)">
+    <option value="">— เลือกช่องบริการ —</option>
+  </select>
+  <div class="cbar-dot" id="cbarDot"></div>
+</div>
+
+<div class="type-tabs" id="typeTabs">
+  <div class="ttab active" data-id="all" onclick="selectTab('all',this)">
+    ทั้งหมด <span class="tbcnt" id="cnt-all">0</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="called-box">
+      <div class="called-top">กำลังให้บริการ</div>
+      <div class="called-main" id="calledMain">
+        <div class="idle-txt">ยังไม่มีการเรียกคิว</div>
+      </div>
+    </div>
+
+    <div class="action-area">
+      <button class="btn btn-next"   id="btnNext"   onclick="callNext()">▶ เรียกคิวถัดไป</button>
+      <label class="skip-row">
+        <input type="checkbox" id="cbSkip" onchange="toggleSkip(this.checked)"/>
+        <span>✓ เรียกทันที ไม่ต้องยืนยัน</span>
+      </label>
+      <button class="btn btn-recall" id="btnRecall" onclick="recallCurrent()" disabled>↺ เรียกซ้ำ</button>
+      <button class="btn btn-noshow" id="btnNoShow" onclick="markNoShow()"    disabled>✕ ไม่มา</button>
+      <div class="sp-row">
+        <input type="text" id="spNum" placeholder="เรียกเฉพาะ เช่น A001" maxlength="6"/>
+        <button class="btn-sp" onclick="callSpecific()">เรียก</button>
+      </div>
+    </div>
+
+    <div class="stats-area">
+      <div class="stat"><div class="sv sv-w" id="stW">0</div><div class="sl">คิวรอ</div></div>
+      <div class="stat"><div class="sv sv-s" id="stS">0</div><div class="sl">ให้บริการแล้ว</div></div>
+      <div class="stat"><div class="sv sv-n" id="stN">0</div><div class="sl">ไม่มา</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: waiting list -->
+  <div class="right-panel">
+    <div class="rp-header">
+      <div class="rp-title">📋 คิวรอเรียก <span class="rp-cnt" id="rpCnt">0</span></div>
+      <div class="rp-type-filter" id="rpFilter">ทั้งหมด</div>
+    </div>
+    <div class="waiting-list" id="waitingList"></div>
+  </div>
+
+  <!-- BOTTOM: history -->
+  <div class="history-strip">
+    <div class="hist-tabs">
+      <div class="ht active" onclick="swHist('called',this)">
+        ประวัติเรียกคิว <span class="hc" id="hcC">0</span>
+      </div>
+      <div class="ht ns" onclick="swHist('noshow',this)">
+        เรียกแล้วไม่มา <span class="hc" id="hcN">0</span>
+      </div>
+    </div>
+    <div class="hist-pane active" id="paneCalled"></div>
+    <div class="hist-pane"        id="paneNoShow"></div>
+  </div>
+
+</div>
+
+<!-- Counter picker -->
+<div class="overlay" id="pickerOverlay">
+  <div class="pick-box">
+    <h2>เลือกช่องบริการ</h2>
+    <p>เลือกช่องที่คุณกำลังใช้งาน</p>
+    <div class="ctr-grid" id="ctrGrid"></div>
+  </div>
+</div>
+
+<!-- Confirm call modal -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>ยืนยันการเรียกคิว</h3>
+    <p>คุณต้องการเรียกหมายเลขนี้ใช่ไหม?</p>
+    <div class="confirm-ticket">
+      <div class="ct-badge" id="ctBadge"></div>
+      <div>
+        <div class="ct-num" id="ctNum"></div>
+        <div class="ct-info">
+          <div class="ct-type"   id="ctType"></div>
+          <div class="ct-issued" id="ctIssued"></div>
+        </div>
+      </div>
+    </div>
+    <div class="confirm-btns">
+      <button class="btn-cancel-call" onclick="closeConfirm()">✕ ยกเลิก</button>
+      <button class="btn-confirm"     onclick="confirmCall()">▶ ยืนยัน เรียก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Settings panel -->
+<div class="sp-backdrop" id="spBackdrop" onclick="closeStylePanel()"></div>
+<div class="style-panel" id="stylePanel">
+  <div class="sp-head">
+    <span class="sp-head-title">⚙ ตั้งค่าการแสดงผล</span>
+    <button class="sp-close" onclick="closeStylePanel()">✕</button>
+  </div>
+  <div class="sp-tabs">
+    <button class="sptab active" onclick="swSpTab('general',this)">ทั่วไป</button>
+    <button class="sptab" onclick="swSpTab('colors',this)">สี</button>
+  </div>
+  <div class="sp-body">
+
+    <!-- ── General tab ── -->
+    <div class="sptab-pane active" id="spGeneral">
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔢 ขนาดตัวอักษร — กล่องเรียกคิว</div>
+        <div class="sp-field">
+          <label>หมายเลขที่กำลังเรียก</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_callFs" min="2" max="5.5" step="0.1"
+              oninput="onSC('callFs',this.value,true)">
+            <span class="sp-rval" id="lbl_callFs">3.4rem</span>
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ข้อมูล (ประเภท / เวลา / ช่อง)</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_callMetaFs" min="0.55" max="1.2" step="0.02"
+              oninput="onSC('callMetaFs',this.value,true)">
+            <span class="sp-rval" id="lbl_callMetaFs">.78rem</span>
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔢 ขนาดตัวอักษร — รายการรอ</div>
+        <div class="sp-field">
+          <label>หมายเลขในรายการรอ</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_wqFs" min="0.85" max="1.8" step="0.05"
+              oninput="onSC('wqFs',this.value,true)">
+            <span class="sp-rval" id="lbl_wqFs">1.15rem</span>
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ประเภท / เวลา</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_wqMetaFs" min="0.55" max="1.1" step="0.02"
+              oninput="onSC('wqMetaFs',this.value,true)">
+            <span class="sp-rval" id="lbl_wqMetaFs">.72rem</span>
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔢 ขนาดตัวอักษร — อื่นๆ</div>
+        <div class="sp-field">
+          <label>ปุ่มเรียกถัดไป</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_btnNextFs" min="0.7" max="1.4" step="0.02"
+              oninput="onSC('btnNextFs',this.value,true)">
+            <span class="sp-rval" id="lbl_btnNextFs">.95rem</span>
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ตัวเลขสถิติ</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_statFs" min="1.2" max="3.0" step="0.1"
+              oninput="onSC('statFs',this.value,true)">
+            <span class="sp-rval" id="lbl_statFs">1.7rem</span>
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📐 เลย์เอาต์</div>
+        <div class="sp-field">
+          <label>ความกว้างแผงซ้าย</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_leftW" min="280" max="540" step="10"
+              oninput="onSC('leftW',this.value,true)">
+            <span class="sp-rval" id="lbl_leftW">420px</span>
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">👁 แสดง / ซ่อน</div>
+        <label class="sp-ck">
+          <input type="checkbox" id="cs_showStats"
+            onchange="onST('showStats',this.checked)">
+          <span>แสดงส่วนสถิติ</span>
+        </label>
+        <label class="sp-ck">
+          <input type="checkbox" id="cs_showHistory"
+            onchange="onST('showHistory',this.checked)">
+          <span>แสดงแถบประวัติ</span>
+        </label>
+        <label class="sp-ck">
+          <input type="checkbox" id="cs_showSkip"
+            onchange="onST('showSkip',this.checked)">
+          <span>แสดงตัวเลือก "เรียกทันที"</span>
+        </label>
+      </div>
+      <button class="sp-reset" onclick="resetStyle()">↺ คืนค่าเริ่มต้น</button>
+    </div>
+
+    <!-- ── Colors tab ── -->
+    <div class="sptab-pane" id="spColors">
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🖼 พื้นหลัง</div>
+        <div class="sp-crow"><label>หน้าหลัก</label><input type="color" id="cs_bodyBg" oninput="onSC('bodyBg',this.value)"></div>
+        <div class="sp-crow"><label>แถบ nav</label><input type="color" id="cs_navBg" oninput="onSC('navBg',this.value)"></div>
+        <div class="sp-crow"><label>แถบช่องบริการ</label><input type="color" id="cs_cbarBg" oninput="onSC('cbarBg',this.value)"></div>
+        <div class="sp-crow"><label>แถบประเภทคิว</label><input type="color" id="cs_tabsBg" oninput="onSC('tabsBg',this.value)"></div>
+        <div class="sp-crow"><label>กล่องคิวปัจจุบัน (บน)</label><input type="color" id="cs_calledTop" oninput="onSC('calledTop',this.value)"></div>
+        <div class="sp-crow"><label>กล่องคิวปัจจุบัน (ล่าง)</label><input type="color" id="cs_calledBot" oninput="onSC('calledBot',this.value)"></div>
+        <div class="sp-crow"><label>หัวรายการรอ</label><input type="color" id="cs_wqHdrBg" oninput="onSC('wqHdrBg',this.value)"></div>
+        <div class="sp-crow"><label>แถบประวัติ</label><input type="color" id="cs_histBg" oninput="onSC('histBg',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔵 ปุ่มเรียกถัดไป</div>
+        <div class="sp-crow"><label>สี 1</label><input type="color" id="cs_btnNext1" oninput="onSC('btnNext1',this.value)"></div>
+        <div class="sp-crow"><label>สี 2</label><input type="color" id="cs_btnNext2" oninput="onSC('btnNext2',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔁 ปุ่มเรียกซ้ำ</div>
+        <div class="sp-crow"><label>พื้นหลัง</label><input type="color" id="cs_btnRecallBg" oninput="onSC('btnRecallBg',this.value)"></div>
+        <div class="sp-crow"><label>ข้อความ</label><input type="color" id="cs_btnRecallClr" oninput="onSC('btnRecallClr',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">✕ ปุ่มไม่มา</div>
+        <div class="sp-crow"><label>สี 1</label><input type="color" id="cs_btnNoshow1" oninput="onSC('btnNoshow1',this.value)"></div>
+        <div class="sp-crow"><label>สี 2</label><input type="color" id="cs_btnNoshow2" oninput="onSC('btnNoshow2',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📋 ปุ่มเรียก (รายการรอ)</div>
+        <div class="sp-crow"><label>สี 1</label><input type="color" id="cs_btnCi1" oninput="onSC('btnCi1',this.value)"></div>
+        <div class="sp-crow"><label>สี 2</label><input type="color" id="cs_btnCi2" oninput="onSC('btnCi2',this.value)"></div>
+        <div class="sp-crow"><label>ขอบคิวถัดไป</label><input type="color" id="cs_wqNext" oninput="onSC('wqNext',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📊 สีตัวเลขสถิติ</div>
+        <div class="sp-crow"><label>คิวรอ</label><input type="color" id="cs_statW" oninput="onSC('statW',this.value)"></div>
+        <div class="sp-crow"><label>ให้บริการแล้ว</label><input type="color" id="cs_statS" oninput="onSC('statS',this.value)"></div>
+        <div class="sp-crow"><label>ไม่มา</label><input type="color" id="cs_statN" oninput="onSC('statN',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔤 สีข้อความ</div>
+        <div class="sp-crow"><label>nav link</label><input type="color" id="cs_navTxt" oninput="onSC('navTxt',this.value)"></div>
+        <div class="sp-crow"><label>โลโก้</label><input type="color" id="cs_logoClr" oninput="onSC('logoClr',this.value)"></div>
+        <div class="sp-crow"><label>ประเภทคิว (กล่องเรียก)</label><input type="color" id="cs_callTypeClr" oninput="onSC('callTypeClr',this.value)"></div>
+        <div class="sp-crow"><label>ช่องบริการ (กล่องเรียก)</label><input type="color" id="cs_callCtrClr" oninput="onSC('callCtrClr',this.value)"></div>
+      </div>
+      <button class="sp-reset" onclick="resetStyle()">↺ คืนค่าเริ่มต้น</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const sysId      = new URLSearchParams(location.search).get('sys') || 1;
+const socket     = io();
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+const _navOfficer = sessionStorage.getItem('officerName');
+if (_navOfficer) document.getElementById('navOfficer').textContent = '👤 ' + _navOfficer;
+
+function doLogout() {
+  const token = sessionStorage.getItem('authToken');
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('officerName');
+  if (token) fetch('/api/auth/logout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token }) });
+  location.href = '/login.html';
+}
+
+// Update nav links
+['navQueue','navCashier','navDisplay','navSettings'].forEach((id,i) => {
+  const pages = ['queue.html','cashier.html','display.html','settings.html'];
+  document.getElementById(id).href = `/${pages[i]}?sys=${sysId}`;
+});
+
+let queueTypes   = [];
+let counters     = [];
+let typeWaiting  = {};
+let allWaiting   = [];
+let allServed    = [];
+let noShows      = [];
+let lastCalled   = null;
+let activeTab    = 'all';
+let myCounterId  = Number(localStorage.getItem('qf_counter_id_' + sysId)) || null;
+let pendingCall  = null; // { type: 'next'|'display', display, typeId }
+let skipConfirm  = localStorage.getItem('qf_skip_confirm_' + sysId) === 'true';
+
+function toggleSkip(checked) {
+  skipConfirm = checked;
+  localStorage.setItem('qf_skip_confirm_' + sysId, checked);
+}
+
+// ── Socket ────────────────────────────────────────────────────────────────
+socket.on('types_updated',    t => { queueTypes = t; renderTabs(); });
+socket.on('counters_updated', c => { counters = c; renderCbar(); });
+
+socket.on('queue_issued', ({ typeWaiting: tw, allWaiting: aw }) => {
+  typeWaiting = tw; allWaiting = aw;
+  renderTabs(); renderWaiting(); updateStats();
+});
+socket.on('queue_called', ({ calledQueue, typeWaiting: tw, allWaiting: aw, allServed: as, noShows: ns }) => {
+  typeWaiting = tw; allWaiting = aw; allServed = as; noShows = ns || noShows;
+  lastCalled  = calledQueue;
+  showCalled(calledQueue);
+  renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats();
+});
+socket.on('queue_uncalled', ({ typeWaiting: tw, allWaiting: aw, allServed: as }) => {
+  typeWaiting = tw; allWaiting = aw; allServed = as;
+  if (lastCalled && !as.find(t => t.display === lastCalled.display)) {
+    lastCalled = as[0] || null;
+    if (lastCalled) showCalled(lastCalled); else resetCalled();
+  }
+  renderTabs(); renderWaiting(); renderCalledHist(); updateStats();
+});
+socket.on('queue_noshow', ({ allServed: as, noShows: ns }) => {
+  allServed = as; noShows = ns;
+  renderCalledHist(); renderNoShowHist(); updateStats();
+});
+socket.on('noshow_recalled', ({ noShows: ns }) => { noShows = ns; renderNoShowHist(); updateStats(); });
+socket.on('queue_reset', () => {
+  typeWaiting={}; allWaiting=[]; allServed=[]; noShows=[]; lastCalled=null;
+  resetCalled(); renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats();
+});
+
+// ── Load ──────────────────────────────────────────────────────────────────
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  queueTypes  = d.queueTypes;
+  counters    = d.counters;
+  typeWaiting = d.typeWaiting;
+  allWaiting  = d.allWaiting  || [];
+  allServed   = d.allServed   || [];
+  noShows     = d.noShows     || [];
+  lastCalled  = d.lastCalled;
+  if (lastCalled) showCalled(lastCalled);
+  if (d.sysInfo) document.title = `เรียกคิว — ${d.sysInfo.name}`;
+  // validate stored counter ID against current counter list
+  if (myCounterId && !counters.find(c => c.id === myCounterId)) {
+    myCounterId = null;
+    localStorage.removeItem('qf_counter_id_' + sysId);
+  }
+  renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist();
+  updateStats(); renderCbar();
+  document.getElementById('cbSkip').checked = skipConfirm;
+});
+
+// ── Counter ───────────────────────────────────────────────────────────────
+function renderCbar() {
+  const sel = document.getElementById('cbarSelect');
+  const dot = document.getElementById('cbarDot');
+  sel.innerHTML = '<option value="">— เลือกช่องบริการ —</option>' +
+    counters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value = myCounterId != null ? String(myCounterId) : '';
+  dot.classList.toggle('on', !!myCounterId);
+}
+function pickCtrSelect(val) {
+  const id = val ? Number(val) : null;
+  myCounterId = id;
+  if (id) localStorage.setItem('qf_counter_id_' + sysId, id);
+  else localStorage.removeItem('qf_counter_id_' + sysId);
+  document.getElementById('cbarDot').classList.toggle('on', !!id);
+}
+function buildCtrGrid() {
+  document.getElementById('ctrGrid').innerHTML = counters.map(c => `
+    <div class="ctr-btn ${c.id===myCounterId?'sel':''}" onclick="pickCtr(${c.id})">
+      🪟<br/>${c.name}
+    </div>`).join('');
+}
+function openPicker()  { buildCtrGrid(); document.getElementById('pickerOverlay').classList.add('open'); }
+function pickCtr(id)   {
+  myCounterId = id;
+  localStorage.setItem('qf_counter_id_' + sysId, id);
+  document.getElementById('pickerOverlay').classList.remove('open');
+  renderCbar(); buildCtrGrid();
+}
+
+// ── Type tabs ─────────────────────────────────────────────────────────────
+function renderTabs() {
+  const bar   = document.getElementById('typeTabs');
+  const total = Object.values(typeWaiting).reduce((s, v) => s + v, 0);
+  document.getElementById('cnt-all').textContent = total;
+  bar.querySelectorAll('[data-type]').forEach(e => e.remove());
+  queueTypes.forEach(t => {
+    let tab = bar.querySelector(`[data-id="${t.id}"]`);
+    if (!tab) {
+      tab = document.createElement('div');
+      tab.className = 'ttab'; tab.dataset.id = t.id; tab.dataset.type = '1';
+      tab.onclick = () => selectTab(t.id, tab);
+      bar.appendChild(tab);
+    }
+    const isA = String(activeTab) === String(t.id);
+    tab.classList.toggle('active', isA);
+    tab.style.borderBottomColor = isA ? t.color : 'transparent';
+    tab.innerHTML = `<div class="tpfx" style="background:${t.color}">${t.prefix}</div>
+      ${t.name} <span class="tbcnt">${typeWaiting[t.id]||0}</span>`;
+  });
+  bar.querySelector('[data-id="all"]').classList.toggle('active', activeTab === 'all');
+}
+function selectTab(id, el) {
+  activeTab = id;
+  document.querySelectorAll('.ttab').forEach(t => { t.classList.remove('active'); t.style.borderBottomColor = 'transparent'; });
+  el.classList.add('active');
+  if (id !== 'all') { const t = queueTypes.find(x => x.id == id); if (t) el.style.borderBottomColor = t.color; }
+  renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats();
+  document.getElementById('rpFilter').textContent = id === 'all' ? 'ทั้งหมด' : (queueTypes.find(x => x.id == id)?.name || '');
+}
+
+// ── Waiting list ──────────────────────────────────────────────────────────
+function getFilteredWaiting() {
+  return activeTab === 'all' ? allWaiting : allWaiting.filter(t => t.typeId == activeTab);
+}
+function renderWaiting() {
+  const list = getFilteredWaiting();
+  document.getElementById('rpCnt').textContent = list.length;
+  const el = document.getElementById('waitingList');
+  if (!list.length) {
+    el.innerHTML = `<div class="wq-empty"><div class="wq-empty-icon">📭</div>ไม่มีคิวรอ</div>`;
+    return;
+  }
+  el.innerHTML = list.map((t, i) => `
+    <div class="wq-item ${i===0?'wq-next':''} ${t.returned?'wq-ret':''}">
+      <div class="wq-pos">${i===0?'▶':('#'+(i+1))}</div>
+      <div class="wq-badge" style="background:${t.color}">${t.prefix}</div>
+      <div class="wq-info">
+        <div class="wq-num" style="color:${t.color}">${t.display}</div>
+        ${t.patientName ? `<div class="wq-patient">👤 ${t.patientName}</div>` : ''}
+        ${(t.hn||t.qn) ? `<div class="wq-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>` : ''}
+        <div class="wq-type">
+          <span>${t.typeName}</span>
+          ${t.returned ? `<span class="wq-ret-badge">↩ ถูกเรียกไปแล้ว${t.returnCount>1?' ×'+t.returnCount:''}</span>` : ''}
+        </div>
+        <div class="wq-time">ออกคิว ${t.issuedAt}${t.returnedAt?` · คืนเวลา ${t.returnedAt}`:''}</div>
+      </div>
+      <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
+    </div>`).join('');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+function updateStats() {
+  const waiting = activeTab === 'all' ? Object.values(typeWaiting).reduce((s,v)=>s+v,0) : (typeWaiting[activeTab]||0);
+  const served  = (activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab)).length;
+  const ns      = (activeTab === 'all' ? noShows   : noShows.filter(t => t.typeId == activeTab)).length;
+  document.getElementById('stW').textContent = waiting;
+  document.getElementById('stS').textContent = served;
+  document.getElementById('stN').textContent = ns;
+  document.getElementById('hcC').textContent = allServed.length;
+  document.getElementById('hcN').textContent = noShows.length;
+}
+
+// ── Called display ────────────────────────────────────────────────────────
+function showCalled(ticket) {
+  document.getElementById('calledMain').innerHTML = `
+    <div class="call-badge" style="background:${ticket.color}">${ticket.prefix}</div>
+    <div style="min-width:0;flex:1">
+      <div class="call-num" style="color:${ticket.color}">${ticket.display}</div>
+      <div class="call-meta">
+        ${ticket.patientName ? `<div class="call-type" style="color:#90caf9;font-weight:600">👤 ${ticket.patientName}</div>` : ''}
+        ${(ticket.hn||ticket.qn) ? `<div class="call-time">${ticket.hn?'HN:'+ticket.hn:''}${ticket.hn&&ticket.qn?' · ':''}${ticket.qn?'QN:'+ticket.qn:''}</div>` : ''}
+        <div class="call-type">${ticket.typeName}</div>
+        <div class="call-time">เรียกเวลา ${ticket.calledAt}</div>
+        ${ticket.counterName ? `<div class="call-ctr">🪟 ${ticket.counterName}</div>` : ''}
+      </div>
+    </div>`;
+  document.getElementById('btnRecall').disabled = false;
+  document.getElementById('btnNoShow').disabled = !!ticket.noShow;
+}
+function resetCalled() {
+  document.getElementById('calledMain').innerHTML = '<div class="idle-txt">ยังไม่มีการเรียกคิว</div>';
+  document.getElementById('btnRecall').disabled = true;
+  document.getElementById('btnNoShow').disabled = true;
+}
+
+// ── History ───────────────────────────────────────────────────────────────
+function swHist(pane, el) {
+  document.querySelectorAll('.ht').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.hist-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(pane === 'called' ? 'paneCalled' : 'paneNoShow').classList.add('active');
+}
+
+function renderCalledHist() {
+  const list = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
+  const el   = document.getElementById('paneCalled');
+  if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ยังไม่มีประวัติ</div>'; return; }
+  el.innerHTML = `
+    <div class="h-thead thead-called">
+      <span>หมายเลขคิว</span><span>ประเภท</span><span>เวลาเรียก</span><span>จัดการ</span>
+    </div>` +
+    list.map((t, i) => `
+      <div class="h-row row-called ${i===0?'lat':''}">
+        <div class="h-cell">
+          <div class="h-badge" style="background:${t.color}">${t.prefix}</div>
+          <span class="h-num" style="color:${t.color}">${t.display}</span>
+        </div>
+        <div class="h-meta">
+          <div class="h-meta-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+          ${t.patientName?`<div class="h-meta-pt">👤 ${t.patientName}</div>`:''}
+          ${(t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:''}
+        </div>
+        <div class="h-time">${t.calledAt}</div>
+        <div class="action-btns">
+          <button class="btn-recall-hist" onclick="recallServed('${t.display}')">↺ เรียกซ้ำ</button>
+          <button class="btn-uncall"      onclick="uncallTicket('${t.display}')">↩ คืน</button>
+        </div>
+      </div>`).join('');
+}
+
+function renderNoShowHist() {
+  const list = activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab);
+  const el   = document.getElementById('paneNoShow');
+  if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ไม่มีรายการ</div>'; return; }
+  el.innerHTML = `
+    <div class="h-thead thead-ns">
+      <span>หมายเลขคิว</span><span>ประเภท</span><span>เวลาเรียก</span><span>เวลาไม่มา</span><span>จัดการ</span>
+    </div>` +
+    list.map(t => `
+      <div class="h-row row-ns ns-item">
+        <div class="h-cell">
+          <div class="h-badge" style="background:${t.color}">${t.prefix}</div>
+          <span class="h-num h-ns-num">${t.display}</span>
+        </div>
+        <div class="h-meta">
+          <div class="h-meta-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+          ${t.patientName?`<div class="h-meta-pt">👤 ${t.patientName}</div>`:''}
+          ${(t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:''}
+        </div>
+        <div class="h-time">${t.calledAt}</div>
+        <div class="h-time-ns">${t.noShowAt}</div>
+        <div>
+          <button class="btn-recall-ns" onclick="recallNoShow('${t.display}')">↺ เรียกซ้ำ</button>
+        </div>
+      </div>`).join('');
+}
+
+// ── Call with confirm ─────────────────────────────────────────────────────
+async function callNext() {
+  const typeParam = activeTab !== 'all' ? `?typeId=${activeTab}` : '';
+  const d = await fetch(`/api/sys/${sysId}/peek-next${typeParam}`).then(r => r.json());
+  if (!d.ticket) { toast('ไม่มีคิวรอ', 'err'); return; }
+  pendingCall = { type: 'next', typeId: activeTab !== 'all' ? activeTab : null };
+  if (skipConfirm) { confirmCall(); } else { showConfirm(d.ticket); }
+}
+
+function callByDisplay(display, ticketJson) {
+  let ticket;
+  try { ticket = typeof ticketJson === 'object' ? ticketJson : JSON.parse(ticketJson); } catch { ticket = { display, color:'#42a5f5', prefix:'?', typeName:'', issuedAt:'' }; }
+  pendingCall = { type: 'display', display };
+  if (skipConfirm) { confirmCall(); } else { showConfirm(ticket); }
+}
+
+function showConfirm(ticket) {
+  document.getElementById('ctBadge').style.background = ticket.color;
+  document.getElementById('ctBadge').textContent      = ticket.prefix;
+  document.getElementById('ctNum').textContent         = ticket.display;
+  document.getElementById('ctNum').style.color         = ticket.color;
+  document.getElementById('ctType').textContent        = ticket.typeName;
+  document.getElementById('ctIssued').textContent      = ticket.issuedAt ? `ออกคิวเวลา ${ticket.issuedAt}` : '';
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  pendingCall = null;
+}
+function confirmCall() {
+  if (!pendingCall) return;
+  const call = pendingCall;
+  closeConfirm();
+  if (call.type === 'next') {
+    const body = { counterId: myCounterId };
+    if (call.typeId) body.typeId = call.typeId;
+    fetch(`/api/sys/${sysId}/call-next`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      .then(r=>r.json()).then(d => { if (!d.success) toast(d.message, 'err'); });
+  } else {
+    fetch(`/api/sys/${sysId}/call-number`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ display: call.display, counterId: myCounterId }) })
+      .then(r=>r.json()).then(d => { if (!d.success) toast(d.message, 'err'); });
+  }
+}
+
+// ── Other actions ─────────────────────────────────────────────────────────
+function recallCurrent() {
+  if (!lastCalled) return;
+  fetch(`/api/sys/${sysId}/recall-served`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display: lastCalled.display, counterId: myCounterId })
+  }).then(r=>r.json()).then(d => {
+    if (d.success) toast(`เรียกซ้ำ ${lastCalled.display}`, 'ok');
+    else toast(d.message, 'err');
+  });
+}
+function markNoShow() {
+  if (!lastCalled) return;
+  fetch(`/api/sys/${sysId}/no-show`, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display: lastCalled.display }) })
+  .then(r=>r.json()).then(d => {
+    if (d.success) { toast(`"${d.entry.display}" ไม่มา ${d.entry.noShowAt}`, 'ok'); document.getElementById('btnNoShow').disabled = true; }
+    else toast(d.message, 'err');
+  });
+}
+function recallNoShow(display) {
+  fetch(`/api/sys/${sysId}/recall-noshow`, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId }) })
+  .then(r=>r.json()).then(d => { if (!d.success) toast(d.message, 'err'); else toast(`เรียกคิว ${display} อีกครั้ง`, 'ok'); });
+}
+function recallServed(display) {
+  fetch(`/api/sys/${sysId}/recall-served`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId })
+  }).then(r=>r.json()).then(d => {
+    if (d.success) toast(`เรียกซ้ำ ${display}`, 'ok');
+    else toast(d.message, 'err');
+  });
+}
+
+function uncallTicket(display) {
+  fetch(`/api/sys/${sysId}/uncall`, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display }) })
+  .then(r=>r.json()).then(d => {
+    if (d.success) toast(`คืนคิว ${display} กลับรายการรอแล้ว`, 'ok');
+    else toast(d.message, 'err');
+  });
+}
+function callSpecific() {
+  const val = document.getElementById('spNum').value.trim().toUpperCase();
+  if (!val) return;
+  pendingCall = { type: 'display', display: val };
+  // Check if this ticket is in the waiting list
+  const t = allWaiting.find(x => x.display === val);
+  if (t) { showConfirm(t); }
+  else   { confirmCall(); } // call without preview if not found in local list
+}
+document.getElementById('spNum').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (type ? ' '+type : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target.id === 'confirmOverlay') closeConfirm(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closeStylePanel(); } });
+
+// ── Style settings ────────────────────────────────────────────────────────
+const SKEY = 'qf_cashier_style_' + sysId;
+const DEF_STYLE = {
+  bodyBg:'#0b141f', navBg:'#0d1f33', cbarBg:'#08111c',
+  tabsBg:'#0d1a28', calledTop:'#0d1f33', calledBot:'#091524',
+  wqHdrBg:'#0d1a28', histBg:'#080f18',
+  leftW:420,
+  btnNext1:'#1976d2', btnNext2:'#0d47a1',
+  btnRecallBg:'#12253a', btnRecallClr:'#64b5f6',
+  btnNoshow1:'#c62828', btnNoshow2:'#b71c1c',
+  btnCi1:'#1976d2', btnCi2:'#0d47a1',
+  wqNext:'#1565c0',
+  statW:'#ffd54f', statS:'#4caf50', statN:'#ef5350',
+  navTxt:'#90caf9', logoClr:'#ffd54f',
+  callTypeClr:'#64b5f6', callCtrClr:'#ffd54f',
+  callFs:3.4, callMetaFs:0.78,
+  btnNextFs:0.95, statFs:1.7,
+  wqFs:1.15, wqMetaFs:0.72,
+  showStats:true, showHistory:true, showSkip:true,
+};
+let cStyle = Object.assign({}, DEF_STYLE, JSON.parse(localStorage.getItem(SKEY) || '{}'));
+
+function applyStyle() {
+  const r = document.documentElement.style;
+  r.setProperty('--cs-body-bg',        cStyle.bodyBg);
+  r.setProperty('--cs-nav-bg',         cStyle.navBg);
+  r.setProperty('--cs-cbar-bg',        cStyle.cbarBg);
+  r.setProperty('--cs-tabs-bg',        cStyle.tabsBg);
+  r.setProperty('--cs-called-top',     cStyle.calledTop);
+  r.setProperty('--cs-called-bot',     cStyle.calledBot);
+  r.setProperty('--cs-wq-hdr-bg',      cStyle.wqHdrBg);
+  r.setProperty('--cs-hist-bg',        cStyle.histBg);
+  r.setProperty('--cs-left-w',         cStyle.leftW + 'px');
+  r.setProperty('--cs-btn-next1',      cStyle.btnNext1);
+  r.setProperty('--cs-btn-next2',      cStyle.btnNext2);
+  r.setProperty('--cs-btn-recall-bg',  cStyle.btnRecallBg);
+  r.setProperty('--cs-btn-recall-clr', cStyle.btnRecallClr);
+  r.setProperty('--cs-btn-noshow1',    cStyle.btnNoshow1);
+  r.setProperty('--cs-btn-noshow2',    cStyle.btnNoshow2);
+  r.setProperty('--cs-btn-ci1',        cStyle.btnCi1);
+  r.setProperty('--cs-btn-ci2',        cStyle.btnCi2);
+  r.setProperty('--cs-wq-next',        cStyle.wqNext);
+  r.setProperty('--cs-stat-w',         cStyle.statW);
+  r.setProperty('--cs-stat-s',         cStyle.statS);
+  r.setProperty('--cs-stat-n',         cStyle.statN);
+  r.setProperty('--cs-nav-txt',        cStyle.navTxt);
+  r.setProperty('--cs-logo-clr',       cStyle.logoClr);
+  r.setProperty('--cs-call-type-clr',  cStyle.callTypeClr);
+  r.setProperty('--cs-call-ctr-clr',   cStyle.callCtrClr);
+  r.setProperty('--cs-call-fs',       cStyle.callFs + 'rem');
+  r.setProperty('--cs-call-meta-fs',  cStyle.callMetaFs + 'rem');
+  r.setProperty('--cs-btn-next-fs',   cStyle.btnNextFs + 'rem');
+  r.setProperty('--cs-stat-fs',       cStyle.statFs + 'rem');
+  r.setProperty('--cs-wq-fs',         cStyle.wqFs + 'rem');
+  r.setProperty('--cs-wq-meta-fs',    cStyle.wqMetaFs + 'rem');
+  const statsEl   = document.querySelector('.stats-area');
+  const histEl    = document.querySelector('.history-strip');
+  const skipEl    = document.querySelector('.skip-row');
+  if (statsEl)  statsEl.style.display  = cStyle.showStats   ? '' : 'none';
+  if (histEl)   histEl.style.display   = cStyle.showHistory ? '' : 'none';
+  if (skipEl)   skipEl.style.display   = cStyle.showSkip    ? '' : 'none';
+}
+function saveStyle() { localStorage.setItem(SKEY, JSON.stringify(cStyle)); applyStyle(); }
+
+function onSC(key, val, isNum) {
+  cStyle[key] = isNum ? Number(val) : val;
+  saveStyle();
+  const remFmt = (v, d=2) => Number(v).toFixed(d) + 'rem';
+  if (key === 'callFs')     document.getElementById('lbl_callFs').textContent     = Number(val).toFixed(1) + 'rem';
+  if (key === 'callMetaFs') document.getElementById('lbl_callMetaFs').textContent = remFmt(val);
+  if (key === 'btnNextFs')  document.getElementById('lbl_btnNextFs').textContent  = remFmt(val);
+  if (key === 'statFs')     document.getElementById('lbl_statFs').textContent     = Number(val).toFixed(1) + 'rem';
+  if (key === 'wqFs')       document.getElementById('lbl_wqFs').textContent       = remFmt(val);
+  if (key === 'wqMetaFs')   document.getElementById('lbl_wqMetaFs').textContent   = remFmt(val);
+  if (key === 'leftW')      document.getElementById('lbl_leftW').textContent      = val + 'px';
+}
+function onST(key, checked) { cStyle[key] = checked; saveStyle(); }
+
+function restoreStyleInputs() {
+  ['bodyBg','navBg','cbarBg','tabsBg','calledTop','calledBot','wqHdrBg','histBg',
+   'btnNext1','btnNext2','btnRecallBg','btnRecallClr','btnNoshow1','btnNoshow2',
+   'btnCi1','btnCi2','wqNext','statW','statS','statN',
+   'navTxt','logoClr','callTypeClr','callCtrClr'].forEach(k => {
+    const el = document.getElementById('cs_' + k);
+    if (el) el.value = cStyle[k];
+  });
+  document.getElementById('cs_callFs').value      = cStyle.callFs;
+  document.getElementById('cs_callMetaFs').value  = cStyle.callMetaFs;
+  document.getElementById('cs_btnNextFs').value   = cStyle.btnNextFs;
+  document.getElementById('cs_statFs').value      = cStyle.statFs;
+  document.getElementById('cs_wqFs').value        = cStyle.wqFs;
+  document.getElementById('cs_wqMetaFs').value    = cStyle.wqMetaFs;
+  document.getElementById('cs_leftW').value       = cStyle.leftW;
+  document.getElementById('cs_showStats').checked   = cStyle.showStats;
+  document.getElementById('cs_showHistory').checked = cStyle.showHistory;
+  document.getElementById('cs_showSkip').checked    = cStyle.showSkip;
+  document.getElementById('lbl_callFs').textContent      = Number(cStyle.callFs).toFixed(1) + 'rem';
+  document.getElementById('lbl_callMetaFs').textContent  = Number(cStyle.callMetaFs).toFixed(2) + 'rem';
+  document.getElementById('lbl_btnNextFs').textContent   = Number(cStyle.btnNextFs).toFixed(2) + 'rem';
+  document.getElementById('lbl_statFs').textContent      = Number(cStyle.statFs).toFixed(1) + 'rem';
+  document.getElementById('lbl_wqFs').textContent        = Number(cStyle.wqFs).toFixed(2) + 'rem';
+  document.getElementById('lbl_wqMetaFs').textContent    = Number(cStyle.wqMetaFs).toFixed(2) + 'rem';
+  document.getElementById('lbl_leftW').textContent       = cStyle.leftW + 'px';
+}
+
+function openStylePanel()  {
+  restoreStyleInputs();
+  document.getElementById('spBackdrop').classList.add('open');
+  document.getElementById('stylePanel').classList.add('open');
+}
+function closeStylePanel() {
+  document.getElementById('spBackdrop').classList.remove('open');
+  document.getElementById('stylePanel').classList.remove('open');
+}
+function swSpTab(tab, el) {
+  document.querySelectorAll('.sptab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sptab-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tab === 'general' ? 'spGeneral' : 'spColors').classList.add('active');
+}
+function resetStyle() {
+  cStyle = Object.assign({}, DEF_STYLE);
+  saveStyle();
+  restoreStyleInputs();
+}
+
+applyStyle();
+</script>
+</body>
+</html>

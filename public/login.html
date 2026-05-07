@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>เข้าสู่ระบบ — ระบบคิว</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0f1923;min-height:100vh;
+      display:flex;align-items:center;justify-content:center;color:#fff}
+    .wrap{width:100%;max-width:420px;padding:20px}
+    .card{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:20px;padding:42px 38px}
+
+    .logo{text-align:center;margin-bottom:32px}
+    .logo-hex{font-size:2.8rem;line-height:1;display:block;margin-bottom:10px}
+    .logo-title{font-size:1.4rem;font-weight:700;color:#ffd54f}
+    .logo-sub{font-size:.82rem;color:#455a64;margin-top:5px;letter-spacing:.5px}
+
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:.78rem;color:#90caf9;font-weight:600;margin-bottom:7px;letter-spacing:.3px}
+    .field input{width:100%;background:#0f1923;border:1.5px solid #1e3a5f;border-radius:10px;
+      padding:13px 16px;color:#fff;font-size:.95rem;font-family:inherit;transition:border-color .2s}
+    .field input:focus{outline:none;border-color:#42a5f5}
+    .field input::placeholder{color:#2e4a60}
+
+    .btn-login{width:100%;background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;
+      border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;
+      cursor:pointer;margin-top:6px;font-family:inherit;transition:opacity .2s;letter-spacing:.3px}
+    .btn-login:hover{opacity:.88}
+    .btn-login:disabled{opacity:.5;cursor:not-allowed}
+
+    .err{background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.35);
+      color:#ef9a9a;border-radius:10px;padding:11px 15px;font-size:.85rem;
+      margin-top:14px;display:none;line-height:1.5}
+    .err.show{display:block}
+
+    .divider{border:none;border-top:1px solid #1e3a5f;margin:26px 0}
+
+    .btn-cfg{width:100%;background:transparent;border:1px solid #1e3a5f;color:#546e7a;
+      border-radius:12px;padding:12px;font-size:.85rem;cursor:pointer;font-family:inherit;
+      transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+    .btn-cfg:hover{border-color:#42a5f5;color:#90caf9;background:rgba(66,165,245,.05)}
+    .cfg-icon{font-size:1rem}
+
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+      border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
+      vertical-align:middle;margin-right:7px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo">
+      <span class="logo-hex">⬡</span>
+      <div class="logo-title">ระบบคิว</div>
+      <div class="logo-sub">Queue Management System</div>
+    </div>
+
+    <div class="field">
+      <label>ชื่อผู้ใช้งาน</label>
+      <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password"/>
+    </div>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="err" id="errMsg"></div>
+
+    <hr class="divider"/>
+
+    <button class="btn-cfg" onclick="location.href='/db-config.html'">
+      <span class="cfg-icon">⚙</span> ตั้งค่าการเชื่อมต่อฐานข้อมูล
+    </button>
+  </div>
+</div>
+
+<script>
+  // Auto-redirect if already logged in
+  const _tok = sessionStorage.getItem('authToken');
+  if (_tok) {
+    fetch('/api/auth/verify', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ token: _tok })
+    }).then(r => r.json()).then(d => { if (d.success) location.href = '/'; });
+  }
+
+  document.getElementById('username').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('password').focus();
+  });
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  function doLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+    const errEl    = document.getElementById('errMsg');
+    errEl.classList.remove('show');
+
+    if (!username || !password) {
+      errEl.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
+      errEl.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>กำลังเข้าสู่ระบบ...';
+
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        sessionStorage.setItem('authToken', d.token);
+        sessionStorage.setItem('officerName', d.officer.name);
+        location.href = '/';
+      } else {
+        errEl.textContent = d.message;
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'เข้าสู่ระบบ';
+      }
+    })
+    .catch(() => {
+      errEl.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'เข้าสู่ระบบ';
+    });
+  }
+</script>
+</body>
+</html>

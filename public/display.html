@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>แสดงคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#000c1a;--bg2:#020a14;
+      --ha:#0a1828;--hb:#0d47a1;--hborder:#ffd54f;
+      --accent:#ffd54f;--accentDim:rgba(255,213,79,.15);
+      --cell:#0d1f33;--cborder:#1e3a5f;--dim:#90caf9;
+      --tkbg:#0d47a1;--tkborder:#ffd54f;--text:#fff;
+      --htxt:#ffffff;--tktxt:#ffffff;
+      --hdr-fs:1.15rem;--num-fs:clamp(2.5rem,8vw,7rem);--ticker-fs:.95rem;
+      --blink-color:#ffd54f;
+      --cc-name-fs:.78rem;--cc-name-clr:var(--dim);
+      --cc-type-fs:.82rem;--cc-type-clr:#90caf9;--cc-time-clr:#aaa;
+      --ns-num-fs:1.1rem;--ns-meta-fs:.68rem;--ns-times-fs:.65rem;
+    }
+    body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);
+      color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;
+      transition:background .4s}
+
+    /* ── HEADER ── */
+    .hdr{background:linear-gradient(90deg,var(--ha),var(--hb));
+      border-bottom:3px solid var(--hborder);padding:0 20px;
+      display:flex;align-items:center;justify-content:space-between;
+      height:56px;flex-shrink:0;gap:12px;transition:background .4s,border-color .4s}
+    .hdr-title{font-size:var(--hdr-fs);font-weight:700;letter-spacing:2px;
+      white-space:nowrap;color:var(--htxt)}
+    .hdr-right{display:flex;align-items:center;gap:10px}
+    .hdr-clock{font-size:1.4rem;font-weight:700;color:var(--accent);
+      font-variant-numeric:tabular-nums;min-width:90px;text-align:right}
+    .btn-settings{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+      color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.9rem;
+      display:flex;align-items:center;gap:6px;transition:background .2s;white-space:nowrap}
+    .btn-settings:hover{background:rgba(255,255,255,.2)}
+    .btn-sound{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+      color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.88rem;
+      display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap}
+    .btn-sound:hover{background:rgba(255,255,255,.18)}
+    .btn-sound.on{background:rgba(76,175,80,.2);border-color:rgba(76,175,80,.5);color:#a5d6a7}
+
+    /* ── MAIN ── */
+    .display-wrap{flex:1;display:flex;overflow:hidden;min-height:0}
+    .counter-area{flex:1;display:grid;overflow:hidden;gap:2px;min-width:0}
+
+    /* ── COUNTER CELL ── */
+    .counter-cell{background:var(--cell);border:1px solid var(--cborder);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:16px 10px 10px;position:relative;overflow:hidden;
+      transition:border-color .3s,background .4s}
+    .counter-cell.has-call{border-color:rgba(66,165,245,.35)}
+    .cc-name{position:absolute;top:0;left:0;right:0;text-align:center;
+      font-size:var(--cc-name-fs,.78rem);color:var(--cc-name-clr,var(--dim));
+      letter-spacing:2px;font-weight:600;background:rgba(0,0,0,.45);padding:4px 0}
+    .cc-idle{color:#1e3a5f;font-size:1rem;letter-spacing:3px;animation:pulse 2.5s infinite}
+    @keyframes pulse{0%,100%{opacity:.3}50%{opacity:.8}}
+
+    /* Multi-ticket inside cell */
+    .cc-tickets{display:flex;flex-direction:column;align-items:center;width:100%;gap:0}
+    .cc-ticket{display:flex;flex-direction:column;align-items:center;width:100%;padding:4px 0}
+    .cc-ticket.cc-prev{opacity:.55}
+    .cc-divider{width:70%;height:1px;background:rgba(255,255,255,.1);margin:6px 0}
+    .cc-badge-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+    .cc-prefix{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+      justify-content:center;font-weight:900;font-size:.9rem;color:#000;flex-shrink:0}
+    .cc-typename{font-size:var(--cc-type-fs,.82rem);color:var(--cc-type-clr,#90caf9)}
+    .cc-num{font-weight:900;line-height:1;letter-spacing:4px;
+      color:var(--num-color,inherit);text-shadow:0 0 30px var(--num-color,currentColor)}
+    .cc-num.blink{animation-name:numBlink;animation-duration:.5s;animation-iteration-count:3;animation-fill-mode:forwards}
+    @keyframes numBlink{0%,45%{opacity:1}50%,95%{opacity:.12;color:var(--blink-color,#ffd54f)}100%{opacity:1}}
+    .cc-time{font-size:.75rem;color:var(--cc-time-clr,#aaa);margin-top:4px}
+
+    /* ── NO-SHOW PANEL ── */
+    .noshow-panel{background:var(--bg2);border-left:2px solid #2a1010;
+      display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+    .ns-hdr{background:#1a0a0a;padding:10px 14px;font-size:.82rem;
+      color:#ef9a9a;font-weight:700;letter-spacing:2px;border-bottom:1px solid #2a1010;flex-shrink:0}
+    .ns-list{overflow-y:auto;padding:8px}
+    .ns-item{background:#1a0808;border:1px solid rgba(239,83,80,.2);border-radius:9px;
+      padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+    .ns-badge{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+      justify-content:center;font-size:.75rem;font-weight:900;color:#000;flex-shrink:0}
+    .ns-num{font-size:var(--ns-num-fs,1.1rem);font-weight:800;color:#ef5350;flex:1}
+    .ns-meta{font-size:var(--ns-meta-fs,.68rem);color:#555;margin-top:1px}
+    .ns-times{text-align:right;font-size:var(--ns-times-fs,.65rem);flex-shrink:0}
+    .ns-called{color:#555}.ns-at{color:#ef5350;margin-top:1px}
+    .ns-empty{color:#2a1010;text-align:center;padding:30px 10px;font-size:.85rem}
+
+    /* ── TICKER ── */
+    .ticker-bar{background:var(--tkbg);padding:10px 0;overflow:hidden;
+      border-top:2px solid var(--tkborder);flex-shrink:0;
+      transition:background .4s,border-color .4s}
+    .ticker-track{white-space:nowrap;display:inline-block;
+      font-size:var(--ticker-fs);letter-spacing:.5px;color:var(--tktxt);
+      animation:ticker 40s linear infinite}
+    @keyframes ticker{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+    /* ── SETTINGS DRAWER ── */
+    .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100}
+    .drawer-overlay.open{display:block}
+    .drawer{position:fixed;top:0;right:0;bottom:0;width:380px;background:#0d1f33;
+      border-left:2px solid #1e3a5f;z-index:101;display:flex;flex-direction:column;
+      transform:translateX(100%);transition:transform .3s ease}
+    .drawer.open{transform:translateX(0)}
+    .drawer-hdr{display:flex;align-items:center;justify-content:space-between;
+      padding:16px 18px;border-bottom:1px solid #1e3a5f;flex-shrink:0}
+    .drawer-hdr h3{font-size:1rem;color:#64b5f6;font-weight:700}
+    .btn-close{background:none;border:1px solid #1e3a5f;color:#aaa;border-radius:6px;
+      width:28px;height:28px;cursor:pointer;font-size:1rem;
+      display:flex;align-items:center;justify-content:center}
+    .drawer-tabs{display:flex;border-bottom:1px solid #1e3a5f;flex-shrink:0;overflow-x:auto}
+    .dtab{flex:1;padding:9px 4px;text-align:center;font-size:.75rem;font-weight:600;
+      color:#555;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s;
+      white-space:nowrap}
+    .dtab:hover{color:#90caf9}
+    .dtab.active{color:#fff;border-bottom-color:#42a5f5}
+    .drawer-body{flex:1;overflow-y:auto;padding:16px}
+    .drawer-body::-webkit-scrollbar{width:4px}
+    .drawer-body::-webkit-scrollbar-track{background:#091524}
+    .drawer-body::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+    .dpane{display:none}
+    .dpane.active{display:block}
+
+    /* Form elements */
+    .sf-row{margin-bottom:14px}
+    .sf-label{font-size:.78rem;color:#90caf9;margin-bottom:5px;display:block;font-weight:600}
+    .sf-input{width:100%;background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;
+      padding:8px 12px;color:#fff;font-size:.92rem;font-family:inherit}
+    .sf-input:focus{outline:none;border-color:#42a5f5}
+    .sf-row-inline{display:flex;gap:10px;align-items:center}
+    .sf-toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+    .sf-toggle input{opacity:0;width:0;height:0}
+    .sf-toggle-slider{position:absolute;inset:0;background:#1e3a5f;border-radius:12px;
+      cursor:pointer;transition:background .2s}
+    .sf-toggle-slider:before{content:'';position:absolute;width:18px;height:18px;
+      left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+    .sf-toggle input:checked + .sf-toggle-slider{background:#1565c0}
+    .sf-toggle input:checked + .sf-toggle-slider:before{transform:translateX(20px)}
+    .sf-toggle-label{font-size:.85rem;color:#ccc}
+    .counter-check-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+    .cc-chk-item{display:flex;align-items:center;gap:8px;background:#0f1923;
+      border-radius:8px;padding:8px 10px;cursor:pointer;border:1px solid transparent;transition:border-color .2s}
+    .cc-chk-item:hover{border-color:#1e3a5f}
+    .cc-chk-item input{accent-color:#42a5f5;width:16px;height:16px;cursor:pointer}
+    .cc-chk-label{font-size:.88rem;color:#ccc}
+    .btn-apply{width:100%;background:linear-gradient(135deg,#42a5f5,#1565c0);
+      color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;
+      font-weight:700;cursor:pointer;margin-top:4px;transition:opacity .2s;font-family:inherit}
+    .btn-apply:hover{opacity:.85}
+
+    /* Ticker list */
+    .ticker-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .ticker-item{display:flex;align-items:center;gap:8px;background:#0f1923;
+      border-radius:8px;padding:8px 10px;border:1px solid #1e3a5f}
+    .ticker-item .ti-text{flex:1;font-size:.83rem;color:#ccc;word-break:break-all}
+    .btn-del-ticker{background:none;border:1px solid #b71c1c;color:#ef5350;
+      border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:.9rem;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .btn-del-ticker:hover{background:#b71c1c}
+    .ticker-add-row{display:flex;gap:7px;margin-top:4px}
+    .ticker-add-row input{flex:1;background:#0f1923;border:1px solid #1e3a5f;
+      border-radius:8px;padding:8px 10px;color:#fff;font-size:.85rem;font-family:inherit}
+    .ticker-add-row input:focus{outline:none;border-color:#42a5f5}
+    .btn-add-ticker{background:linear-gradient(135deg,#26a69a,#00796b);color:#fff;
+      border:none;border-radius:8px;padding:8px 14px;font-size:.82rem;
+      font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+    .drag-handle{cursor:grab;color:#333;margin-right:4px;font-size:.9rem}
+
+    /* Theme cards */
+    .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .theme-card{border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;
+      border:2px solid transparent;transition:all .2s;overflow:hidden;position:relative}
+    .theme-card:hover{transform:scale(1.04)}
+    .theme-card.sel{border-color:#fff}
+    .theme-preview{height:36px;border-radius:6px;margin-bottom:6px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.1rem;font-weight:900;letter-spacing:2px}
+    .theme-name{font-size:.72rem;font-weight:600;color:#fff}
+    .theme-card .sel-check{position:absolute;top:4px;right:4px;width:16px;height:16px;
+      background:#fff;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:.6rem;color:#000}
+    .theme-card.sel .sel-check{display:flex}
+
+    /* Custom color tab */
+    .color-section{background:#0a1421;border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid #1a2e45}
+    .color-section-title{font-size:.78rem;color:#ffd54f;font-weight:700;margin-bottom:10px;letter-spacing:1px}
+    .color-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .color-field{display:flex;flex-direction:column;gap:4px}
+    .color-field label{font-size:.7rem;color:#3a5a78}
+    .color-field input[type=color]{width:100%;height:32px;border:1px solid #1e3a5f;
+      border-radius:7px;background:#0f1923;cursor:pointer;padding:2px}
+    .color-field input[type=number]{width:100%;background:#0f1923;border:1px solid #1e3a5f;
+      border-radius:7px;padding:6px 8px;color:#fff;font-size:.82rem;font-family:inherit}
+    .color-field input[type=number]:focus{outline:none;border-color:#42a5f5}
+    .btn-reset-custom{background:rgba(255,255,255,.06);border:1px solid #1e3a5f;
+      color:#aaa;border-radius:8px;padding:7px;font-size:.78rem;cursor:pointer;
+      width:100%;margin-top:6px;font-family:inherit}
+    .btn-reset-custom:hover{background:rgba(255,255,255,.12)}
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title" id="hdrTitle">ระบบแสดงคิว</div>
+  <div class="hdr-right">
+    <div class="hdr-clock" id="clock">--:--:--</div>
+    <button class="btn-sound" id="btnSound" onclick="toggleSound()">🔇 เสียง</button>
+    <button class="btn-settings" onclick="openDrawer()">⚙ ตั้งค่าหน้าจอ</button>
+  </div>
+</div>
+
+<div class="display-wrap">
+  <div class="counter-area" id="counterArea"></div>
+  <div class="noshow-panel" id="noShowPanel" style="display:none">
+    <div class="ns-hdr">🚫 เรียกแล้วไม่มา</div>
+    <div class="ns-list" id="nsList"></div>
+  </div>
+</div>
+
+<div class="ticker-bar">
+  <div class="ticker-track" id="tickerTrack">กำลังโหลด...</div>
+</div>
+
+<!-- Settings drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">
+    <h3>⚙ ตั้งค่าหน้าจอแสดงคิว</h3>
+    <button class="btn-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-tabs">
+    <div class="dtab active" onclick="switchDTab('counters',this)">ช่องบริการ</div>
+    <div class="dtab"        onclick="switchDTab('noshow',this)">ไม่มา</div>
+    <div class="dtab"        onclick="switchDTab('ticker',this)">ข้อความวิ่ง</div>
+    <div class="dtab"        onclick="switchDTab('theme',this)">🎨 ธีมสี</div>
+    <div class="dtab"        onclick="switchDTab('custom',this)">✏️ ปรับเอง</div>
+  </div>
+  <div class="drawer-body">
+
+    <!-- Counter settings -->
+    <div class="dpane active" id="dpane-counters">
+      <div class="sf-row">
+        <label class="sf-label">จำนวนคอลัมน์</label>
+        <input class="sf-input" type="number" id="cfgColumns" min="1" max="8" value="2"/>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">จำนวนคิวต่อช่อง (แสดงย้อนหลัง)</label>
+        <input class="sf-input" type="number" id="cfgMaxPerCtr" min="1" max="5" value="1"/>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">แสดงช่องบริการ</label>
+        <div class="counter-check-list" id="cfgCounterList"></div>
+      </div>
+      <div class="sf-row" style="border-top:1px solid #1e3a5f;margin-top:10px;padding-top:12px">
+        <label class="sf-label">🔊 ความเร็วเสียงพูด</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="range" id="cfgSpeechRate" min="0.5" max="1.2" step="0.05" value="0.72"
+            style="flex:1;accent-color:#42a5f5;cursor:pointer"
+            oninput="document.getElementById('cfgSpeechRateVal').textContent=parseFloat(this.value).toFixed(2)"/>
+          <span id="cfgSpeechRateVal" style="font-size:.85rem;color:#ffd54f;min-width:32px;text-align:right">0.72</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#3a5a78;margin-top:3px">
+          <span>ช้า</span><span>ปกติ</span><span>เร็ว</span>
+        </div>
+      </div>
+      <div class="sf-row" style="border-top:1px solid #1e3a5f;margin-top:10px;padding-top:12px">
+        <label class="sf-label">🎙 เพศเสียง</label>
+        <div style="display:flex;gap:18px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="voiceGender" id="cfgVoiceFemale" value="female" style="accent-color:#f48fb1;width:15px;height:15px" onchange="onGenderChange('female')"/>
+            <span style="font-size:.88rem;color:#f48fb1">♀ ผู้หญิง</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="radio" name="voiceGender" id="cfgVoiceMale" value="male" style="accent-color:#90caf9;width:15px;height:15px" onchange="onGenderChange('male')"/>
+            <span style="font-size:.88rem;color:#90caf9">♂ ผู้ชาย</span>
+          </label>
+        </div>
+        <label class="sf-label">เสียงที่ใช้ <span style="font-weight:400;color:#556;font-size:.7rem">(เลือกเสียงเฉพาะ)</span></label>
+        <select class="sf-input" id="cfgVoiceName" onchange="applyCounterSettings()" style="margin-bottom:8px">
+          <option value="">อัตโนมัติ (ตามเพศที่เลือก)</option>
+        </select>
+        <button onclick="testVoice()" style="width:100%;background:rgba(255,213,79,.1);border:1px solid rgba(255,213,79,.3);color:#ffd54f;border-radius:8px;padding:8px;font-size:.82rem;cursor:pointer;font-family:inherit">▶ ทดสอบเสียง</button>
+        <div id="voiceActiveInfo" style="font-size:.7rem;color:#64b5f6;margin-top:6px;text-align:center;min-height:16px;word-break:break-all"></div>
+      </div>
+      <button class="btn-apply" onclick="applyCounterSettings()">✓ นำไปใช้</button>
+    </div>
+
+    <!-- No-show settings -->
+    <div class="dpane" id="dpane-noshow">
+      <div class="sf-row">
+        <div class="sf-row-inline">
+          <label class="sf-toggle">
+            <input type="checkbox" id="cfgShowNs" onchange="applyNoShowSettings()"/>
+            <span class="sf-toggle-slider"></span>
+          </label>
+          <span class="sf-toggle-label">แสดงรายการเรียกแล้วไม่มา</span>
+        </div>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">จำนวนแถวที่แสดง</label>
+        <input class="sf-input" type="number" id="cfgNsRows"  min="1" max="20" value="5"/>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">ความกว้างแผง (px)</label>
+        <input class="sf-input" type="number" id="cfgNsWidth" min="180" max="500" value="280"/>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">ความสูงต่อแถว (px)</label>
+        <input class="sf-input" type="number" id="cfgNsRowH"  min="40" max="120" value="70"/>
+      </div>
+      <div class="sf-row" style="border-top:1px solid #1e3a5f;margin-top:10px;padding-top:12px">
+        <label class="sf-label">ขนาดหมายเลขคิว (rem)
+          <span id="cfgNsNumFsVal" style="color:#ffd54f;font-weight:700;margin-left:6px">1.10</span>
+        </label>
+        <input type="range" id="cfgNsNumFs" min="0.6" max="3.0" step="0.05" value="1.1"
+          style="width:100%;accent-color:#ef5350;cursor:pointer;margin-top:5px"
+          oninput="document.getElementById('cfgNsNumFsVal').textContent=parseFloat(this.value).toFixed(2);applyNoShowSettings()"/>
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#3a5a78;margin-top:3px">
+          <span>เล็ก</span><span>ปกติ</span><span>ใหญ่</span>
+        </div>
+      </div>
+      <div class="sf-row">
+        <label class="sf-label">ขนาดข้อมูลเสริม/เวลา (rem)
+          <span id="cfgNsMetaFsVal" style="color:#ffd54f;font-weight:700;margin-left:6px">0.68</span>
+        </label>
+        <input type="range" id="cfgNsMetaFs" min="0.4" max="2.0" step="0.05" value="0.68"
+          style="width:100%;accent-color:#90caf9;cursor:pointer;margin-top:5px"
+          oninput="document.getElementById('cfgNsMetaFsVal').textContent=parseFloat(this.value).toFixed(2);applyNoShowSettings()"/>
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#3a5a78;margin-top:3px">
+          <span>เล็ก</span><span>ปกติ</span><span>ใหญ่</span>
+        </div>
+      </div>
+      <button class="btn-apply" onclick="applyNoShowSettings()">✓ นำไปใช้</button>
+    </div>
+
+    <!-- Theme settings -->
+    <div class="dpane" id="dpane-theme">
+      <div class="sf-label" style="margin-bottom:10px">เลือกธีมสีหน้าจอ</div>
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
+
+    <!-- Custom color settings -->
+    <div class="dpane" id="dpane-custom">
+      <div class="color-section">
+        <div class="color-section-title">📊 แถบหัว (Header)</div>
+        <div class="color-row-2">
+          <div class="color-field"><label>พื้นหลัง (ซ้าย)</label><input type="color" id="ccHa" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>พื้นหลัง (ขวา)</label><input type="color" id="ccHb" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีขอบล่าง</label><input type="color" id="ccHborder" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีตัวอักษร</label><input type="color" id="ccHtxt" oninput="applyCustom()"/></div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:.7rem;color:#3a5a78;display:flex;align-items:center;justify-content:space-between">
+            <span>ขนาดตัวอักษรหัว (rem)</span>
+            <span id="lblHdrFs" style="color:#ffd54f;font-weight:700">1.15</span>
+          </label>
+          <input type="range" id="ccHdrFs" min="0.7" max="3.5" step="0.05" value="1.15"
+            style="width:100%;accent-color:#64b5f6;cursor:pointer;margin-top:5px"
+            oninput="document.getElementById('lblHdrFs').textContent=parseFloat(this.value).toFixed(2);applyCustom()"/>
+          <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#3a5a78;margin-top:3px">
+            <span>เล็ก</span><span>ปกติ</span><span>ใหญ่</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">🔢 ช่องแสดงหมายเลขคิว</div>
+        <div class="color-row-2">
+          <div class="color-field"><label>พื้นหลังช่อง</label><input type="color" id="ccCell" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีขอบช่อง</label><input type="color" id="ccCborder" oninput="applyCustom()"/></div>
+        </div>
+        <div class="color-field" style="margin-top:8px"><label>ขนาดหมายเลขคิว (vw)</label>
+          <input type="number" id="ccNumFs" min="3" max="20" step="0.5" oninput="applyCustom()"/></div>
+        <div class="color-row-2" style="margin-top:8px">
+          <div class="color-field">
+            <label>สีตัวเลขคิว <span style="font-size:.6rem;color:#556">(ติ๊ก=ล็อคสี)</span></label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="checkbox" id="ccNumColorOn" style="accent-color:#42a5f5;width:15px;height:15px;cursor:pointer;flex-shrink:0" onchange="applyCustom()"/>
+              <input type="color" id="ccNumColor" value="#ffffff" oninput="applyCustom()" style="flex:1;height:28px;border:1px solid #1e3a5f;border-radius:6px;background:#0f1923;cursor:pointer;padding:2px"/>
+            </div>
+          </div>
+          <div class="color-field"><label>สีกระพริบตอนเรียก</label>
+            <input type="color" id="ccBlinkColor" value="#ffd54f" oninput="applyCustom()"/>
+          </div>
+        </div>
+        <div class="color-row-2" style="margin-top:10px">
+          <div class="color-field">
+            <label>กระพริบ <span id="lblBlinkCount" style="color:#ffd54f;font-weight:700">3</span> ครั้ง</label>
+            <input type="range" id="ccBlinkCount" min="1" max="10" step="1" value="3"
+              style="width:100%;accent-color:#ffd54f;cursor:pointer;margin-top:5px"
+              oninput="document.getElementById('lblBlinkCount').textContent=this.value;applyCustom()"/>
+          </div>
+          <div class="color-field">
+            <label>ช้า/เร็ว <span id="lblBlinkDur" style="color:#ffd54f;font-weight:700">0.5</span>s/ครั้ง</label>
+            <input type="range" id="ccBlinkDur" min="0.1" max="2.0" step="0.1" value="0.5"
+              style="width:100%;accent-color:#ffd54f;cursor:pointer;margin-top:5px"
+              oninput="document.getElementById('lblBlinkDur').textContent=parseFloat(this.value).toFixed(1);applyCustom()"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">🔤 ตัวอักษรในช่องคิว</div>
+        <div class="color-row-2">
+          <div class="color-field"><label>ขนาดชื่อช่อง (rem)</label>
+            <input type="number" id="ccNameFs" min="0.4" max="2.5" step="0.02" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีชื่อช่อง</label>
+            <input type="color" id="ccNameClr" oninput="applyCustom()"/></div>
+        </div>
+        <div class="color-row-2" style="margin-top:8px">
+          <div class="color-field"><label>ขนาดประเภทคิว (rem)</label>
+            <input type="number" id="ccTypeFs" min="0.4" max="2.5" step="0.02" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีประเภทคิว</label>
+            <input type="color" id="ccTypeClr" oninput="applyCustom()"/></div>
+        </div>
+        <div class="color-row-2" style="margin-top:8px">
+          <div class="color-field"><label>สีเวลาที่เรียก</label>
+            <input type="color" id="ccTimeClr" oninput="applyCustom()"/></div>
+        </div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">📢 แถบข้อความวิ่ง (Ticker)</div>
+        <div class="color-row-2">
+          <div class="color-field"><label>พื้นหลัง</label><input type="color" id="ccTkbg" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีขอบบน</label><input type="color" id="ccTkborder" oninput="applyCustom()"/></div>
+          <div class="color-field"><label>สีตัวอักษร</label><input type="color" id="ccTktxt" oninput="applyCustom()"/></div>
+        </div>
+        <div class="color-field" style="margin-top:8px"><label>ขนาดตัวอักษร (rem)</label>
+          <input type="number" id="ccTickerFs" min="0.6" max="3" step="0.05" oninput="applyCustom()"/></div>
+      </div>
+
+      <button class="btn-reset-custom" onclick="resetCustom()">↺ รีเซ็ตเป็นค่าธีมปัจจุบัน</button>
+    </div>
+
+    <!-- Ticker messages -->
+    <div class="dpane" id="dpane-ticker">
+      <div class="sf-label" style="margin-bottom:8px">รายการข้อความวิ่ง (ลากเพื่อเรียงลำดับ)</div>
+      <div class="ticker-list" id="cfgTickerList"></div>
+      <div class="ticker-add-row">
+        <input type="text" id="newTickerMsg" placeholder="พิมพ์ข้อความใหม่..."/>
+        <button class="btn-add-ticker" onclick="addTickerMsg()">+ เพิ่ม</button>
+      </div>
+      <button class="btn-apply" style="margin-top:12px" onclick="saveTickerMessages()">✓ บันทึก</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const sysId  = new URLSearchParams(location.search).get('sys') || 1;
+const socket = io();
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+let allCounters   = [];
+let noShows       = [];
+let lastByCounter = {};
+let recentByCtr   = {};
+let tickerMsgs    = [];
+
+// ── Settings ─────────────────────────────────────────────────────────────
+const LS_KEY = 'qf_display_' + sysId;
+const DEF = { columns:2, maxPerCounter:1, selectedCounters:[], showNoShow:false, nsRows:5, nsWidth:280, nsRowH:70, nsNumFs:1.1, nsMetaFs:0.68, speechRate:0.65, voiceGender:'female', voiceName:'', custom:{} };
+let cfg = { ...DEF, ...(JSON.parse(localStorage.getItem(LS_KEY) || '{}')) };
+function saveCfg() { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
+
+// ── Clock ─────────────────────────────────────────────────────────────────
+setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH'); }, 1000);
+document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH');
+
+// ── Socket ────────────────────────────────────────────────────────────────
+socket.on('queue_called', ({ calledQueue, noShows: ns, lastCalledByCounter: lbc, recentByCounter: rbc }) => {
+  if (lbc) lastByCounter = lbc;
+  if (rbc) recentByCtr   = rbc;
+  noShows = ns || noShows;
+  if (allCounters.length && !document.getElementById('cell-' + allCounters[0].id)) buildCounterGrid();
+  renderCounters(true, calledQueue);
+  renderNoShow();
+  playBell();
+  announceQueue(calledQueue);
+});
+socket.on('queue_uncalled', ({ lastCalledByCounter: lbc, recentByCounter: rbc }) => {
+  if (lbc) lastByCounter = lbc;
+  if (rbc) recentByCtr   = rbc;
+  renderCounters(false, null);
+});
+socket.on('queue_noshow',       ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
+socket.on('noshow_recalled',    ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
+socket.on('counters_updated',   c  => { allCounters = c; buildCounterGrid(); rebuildCfgList(); });
+socket.on('display_config_updated', dc => { tickerMsgs = dc.tickerMessages||[]; updateTicker(); buildTickerList(); });
+socket.on('queue_reset', () => { lastByCounter={}; recentByCtr={}; noShows=[]; renderCounters(false,null); renderNoShow(); });
+
+// ── Load ──────────────────────────────────────────────────────────────────
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  allCounters   = d.counters      || [];
+  noShows       = d.noShows       || [];
+  lastByCounter = d.lastCalledByCounter || {};
+  recentByCtr   = d.recentByCounter     || {};
+  tickerMsgs    = (d.displayConfig||{}).tickerMessages || [];
+  if (d.sysInfo) { document.getElementById('hdrTitle').textContent = d.sysInfo.name; document.title = `แสดงคิว — ${d.sysInfo.name}`; }
+  buildCounterGrid(); renderCounters(false, null);
+  renderNoShow(); applyLayout(); updateTicker(); buildTickerList(); rebuildCfgList(); loadCfgUI();
+  applyTheme(activeTheme); restoreCustom(); applyNsFontSizes();
+});
+
+// ── Layout ────────────────────────────────────────────────────────────────
+function getVisibleCounters() {
+  if (!cfg.selectedCounters.length) return allCounters;
+  const filtered = allCounters.filter(c => cfg.selectedCounters.includes(c.id));
+  return filtered.length ? filtered : allCounters;
+}
+function buildCounterGrid() {
+  const visible = getVisibleCounters();
+  const area    = document.getElementById('counterArea');
+  const cols    = Math.min(cfg.columns, visible.length || 1);
+  area.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  area.innerHTML = '';
+  visible.forEach(c => {
+    const cell = document.createElement('div');
+    cell.className = 'counter-cell';
+    cell.id = `cell-${c.id}`;
+    area.appendChild(cell);
+    renderCell(c.id, false, null);
+  });
+}
+function applyLayout() {
+  const ns = document.getElementById('noShowPanel');
+  ns.style.display = cfg.showNoShow ? 'flex' : 'none';
+  if (cfg.showNoShow) ns.style.width = cfg.nsWidth + 'px';
+  buildCounterGrid();
+}
+
+// ── Cell rendering ────────────────────────────────────────────────────────
+function renderCell(counterId, animate, flashFor) {
+  const cell    = document.getElementById(`cell-${counterId}`);
+  if (!cell) return;
+  const counter = allCounters.find(c => c.id === counterId);
+  const recent  = (recentByCtr[counterId] || []).slice(0, cfg.maxPerCounter);
+  const visLen  = getVisibleCounters().length;
+
+  const nameHtml = `<div class="cc-name">🪟 ${counter?.name || 'ช่อง '+counterId}</div>`;
+
+  if (!recent.length) {
+    cell.innerHTML = nameHtml + `<div class="cc-idle">รอเรียกคิว...</div>`;
+    cell.classList.remove('has-call');
+    return;
+  }
+
+  const mainFs  = cfg.custom.numFs  ? `${cfg.custom.numFs}vw` : (visLen <= 2 ? 'clamp(3.5rem,9vw,8rem)' : 'clamp(2rem,5vw,5rem)');
+  const prevFs  = cfg.custom.numFs  ? `${cfg.custom.numFs * 0.55}vw` : (visLen <= 2 ? 'clamp(1.8rem,5vw,4rem)' : 'clamp(1.2rem,3vw,2.5rem)');
+
+  cell.classList.add('has-call');
+  let html = nameHtml + `<div class="cc-tickets">`;
+  recent.forEach((ticket, i) => {
+    const isMain  = i === 0;
+    const doFlash = isMain && animate && (!flashFor || ticket.display === flashFor?.display);
+    const sz      = isMain ? mainFs : prevFs;
+    if (i > 0) html += `<div class="cc-divider"></div>`;
+    html += `
+      <div class="cc-ticket ${!isMain ? 'cc-prev' : ''}">
+        <div class="cc-badge-row">
+          <div class="cc-prefix" style="background:${ticket.color};${!isMain ? 'width:26px;height:26px;font-size:.75rem' : ''}">${ticket.prefix}</div>
+          <span class="cc-typename" style="${!isMain ? 'font-size:.72rem' : ''}">${ticket.typeName}</span>
+        </div>
+        <div class="cc-num ${doFlash ? 'blink' : ''}" style="--num-color:${isMain && cfg.custom.numColor ? cfg.custom.numColor : ticket.color};font-size:${sz}">${ticket.display}</div>
+        <div class="cc-time" style="${!isMain ? 'font-size:.65rem' : ''}">${ticket.calledAt || ''}</div>
+      </div>`;
+  });
+  html += `</div>`;
+  cell.innerHTML = html;
+
+  // Apply blink timing directly via JS — CSS var() substitution is unreliable
+  // for animation-duration / animation-iteration-count in all browsers
+  if (animate) {
+    const blinkEl = cell.querySelector('.cc-num.blink');
+    if (blinkEl) {
+      const dur   = cfg.custom.blinkDur   > 0  ? cfg.custom.blinkDur   : 0.5;
+      const count = cfg.custom.blinkCount >= 1  ? cfg.custom.blinkCount : 3;
+      blinkEl.style.animationDuration       = dur + 's';
+      blinkEl.style.animationIterationCount = count;
+    }
+  }
+}
+
+function renderCounters(animate, latestCall) {
+  getVisibleCounters().forEach(c => renderCell(c.id, animate, animate ? latestCall : null));
+}
+
+// ── No-show panel ─────────────────────────────────────────────────────────
+function renderNoShow() {
+  if (!cfg.showNoShow) return;
+  const list = noShows.slice(0, cfg.nsRows);
+  const el   = document.getElementById('nsList');
+  if (!list.length) { el.innerHTML = '<div class="ns-empty">ยังไม่มีรายการ</div>'; return; }
+  el.innerHTML = list.map(t => `
+    <div class="ns-item" style="height:${cfg.nsRowH}px">
+      <div class="ns-badge" style="background:${t.color}">${t.prefix}</div>
+      <div>
+        <div class="ns-num">${t.display}</div>
+        <div class="ns-meta">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+      </div>
+      <div class="ns-times">
+        <div class="ns-called">เรียก ${t.calledAt}</div>
+        <div class="ns-at">ไม่มา ${t.noShowAt}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────────
+function updateTicker() {
+  const txt = tickerMsgs.length ? tickerMsgs.join('    |    ') : 'ยินดีต้อนรับ | Welcome';
+  const el  = document.getElementById('tickerTrack');
+  el.textContent = '  ' + txt + '  ';
+  el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────────
+function openDrawer()  { buildThemeGrid(); syncCustomUI(); populateVoiceList(); loadCfgUI(); updateVoiceActiveInfo(); document.getElementById('drawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); }
+function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); }
+function switchDTab(name, el) {
+  document.querySelectorAll('.dtab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dpane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dpane-' + name).classList.add('active');
+}
+function loadCfgUI() {
+  document.getElementById('cfgColumns').value       = cfg.columns;
+  document.getElementById('cfgMaxPerCtr').value     = cfg.maxPerCounter;
+  document.getElementById('cfgShowNs').checked      = cfg.showNoShow;
+  document.getElementById('cfgNsRows').value        = cfg.nsRows;
+  document.getElementById('cfgNsWidth').value       = cfg.nsWidth;
+  document.getElementById('cfgNsRowH').value        = cfg.nsRowH;
+  const nsNumFs  = cfg.nsNumFs  || 1.1;
+  const nsMetaFs = cfg.nsMetaFs || 0.68;
+  document.getElementById('cfgNsNumFs').value  = nsNumFs;
+  document.getElementById('cfgNsNumFsVal').textContent  = nsNumFs.toFixed(2);
+  document.getElementById('cfgNsMetaFs').value = nsMetaFs;
+  document.getElementById('cfgNsMetaFsVal').textContent = nsMetaFs.toFixed(2);
+  const rate = cfg.speechRate || 0.65;
+  document.getElementById('cfgSpeechRate').value    = rate;
+  document.getElementById('cfgSpeechRateVal').textContent = rate.toFixed(2);
+  const gId = (cfg.voiceGender || 'female') === 'male' ? 'cfgVoiceMale' : 'cfgVoiceFemale';
+  const gEl = document.getElementById(gId); if (gEl) gEl.checked = true;
+}
+function rebuildCfgList() {
+  document.getElementById('cfgCounterList').innerHTML = allCounters.map(c => `
+    <label class="cc-chk-item">
+      <input type="checkbox" value="${c.id}"
+        ${!cfg.selectedCounters.length || cfg.selectedCounters.includes(c.id) ? 'checked' : ''}
+        onchange="onCounterCheck()"/>
+      <span class="cc-chk-label">🪟 ${c.name}</span>
+    </label>`).join('');
+}
+function onCounterCheck() {
+  const checked = [...document.querySelectorAll('#cfgCounterList input:checked')].map(e => Number(e.value));
+  cfg.selectedCounters = checked.length === allCounters.length ? [] : checked;
+}
+function applyCounterSettings() {
+  cfg.columns      = Math.max(1, parseInt(document.getElementById('cfgColumns').value)    || 2);
+  cfg.maxPerCounter= Math.max(1, parseInt(document.getElementById('cfgMaxPerCtr').value)  || 1);
+  cfg.speechRate   = Math.min(1.2, Math.max(0.5, parseFloat(document.getElementById('cfgSpeechRate').value) || 0.65));
+  cfg.voiceGender  = document.querySelector('input[name="voiceGender"]:checked')?.value || 'female';
+  cfg.voiceName    = document.getElementById('cfgVoiceName')?.value || '';
+  onCounterCheck();
+  saveCfg(); applyLayout(); loadCfgUI(); updateVoiceActiveInfo();
+}
+function applyNsFontSizes() {
+  const r = document.documentElement;
+  r.style.setProperty('--ns-num-fs',   (cfg.nsNumFs  || 1.1)  + 'rem');
+  r.style.setProperty('--ns-meta-fs',  (cfg.nsMetaFs || 0.68) + 'rem');
+  r.style.setProperty('--ns-times-fs', (cfg.nsMetaFs || 0.68) + 'rem');
+}
+function applyNoShowSettings() {
+  cfg.showNoShow = document.getElementById('cfgShowNs').checked;
+  cfg.nsRows     = Math.max(1,   parseInt(document.getElementById('cfgNsRows').value)  || 5);
+  cfg.nsWidth    = Math.max(180, parseInt(document.getElementById('cfgNsWidth').value) || 280);
+  cfg.nsRowH     = Math.max(40,  parseInt(document.getElementById('cfgNsRowH').value)  || 70);
+  cfg.nsNumFs    = Math.max(0.6, Math.min(3.0,  parseFloat(document.getElementById('cfgNsNumFs').value)  || 1.1));
+  cfg.nsMetaFs   = Math.max(0.4, Math.min(2.0,  parseFloat(document.getElementById('cfgNsMetaFs').value) || 0.68));
+  applyNsFontSizes();
+  saveCfg(); applyLayout(); renderNoShow();
+}
+
+// ── Ticker management ─────────────────────────────────────────────────────
+function buildTickerList() {
+  document.getElementById('cfgTickerList').innerHTML = tickerMsgs.map((m, i) => `
+    <div class="ticker-item" draggable="true" data-i="${i}"
+         ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event)" ondrop="onDrop(event,${i})">
+      <span class="drag-handle">☰</span>
+      <span class="ti-text">${escHtml(m)}</span>
+      <button class="btn-del-ticker" onclick="deleteTickerMsg(${i})">✕</button>
+    </div>`).join('');
+}
+function addTickerMsg() {
+  const inp = document.getElementById('newTickerMsg'); const val = inp.value.trim();
+  if (!val) return; tickerMsgs.push(val); inp.value = ''; buildTickerList();
+}
+function deleteTickerMsg(i) { tickerMsgs.splice(i, 1); buildTickerList(); }
+function saveTickerMessages() {
+  fetch(`/api/sys/${sysId}/display-config`, { method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ tickerMessages: tickerMsgs }) })
+  .then(r=>r.json()).then(d => { if (d.success) updateTicker(); });
+}
+let dragFrom = null;
+function onDragStart(e, i) { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; }
+function onDragOver(e)  { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onDrop(e, i)   { e.preventDefault(); if (dragFrom === null || dragFrom === i) return; const [item] = tickerMsgs.splice(dragFrom, 1); tickerMsgs.splice(i, 0, item); dragFrom = null; buildTickerList(); }
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Themes ────────────────────────────────────────────────────────────────
+const THEMES = {
+  blue:  { label:'🔵 Classic Blue',  bg:'#000c1a',bg2:'#020a14',ha:'#0a1828',hb:'#0d47a1',hborder:'#ffd54f',accent:'#ffd54f',cell:'#0d1f33',cborder:'#1e3a5f',dim:'#90caf9',tkbg:'#0d47a1',tkborder:'#ffd54f',htxt:'#ffffff',tktxt:'#ffffff' },
+  gold:  { label:'✨ Gold Prestige', bg:'#0d0900',bg2:'#080600',ha:'#1a1100',hb:'#7a5000',hborder:'#ffd700',accent:'#ffd700',cell:'#1a1200',cborder:'#6a4000',dim:'#d4a040',tkbg:'#6a4000',tkborder:'#ffd700',htxt:'#ffd700',tktxt:'#ffd700' },
+  green: { label:'🌿 Emerald',       bg:'#000e06',bg2:'#000904',ha:'#001a08',hb:'#005c18',hborder:'#00e676',accent:'#00e676',cell:'#001c0e',cborder:'#005a1c',dim:'#80cfa0',tkbg:'#005020',tkborder:'#00e676',htxt:'#ffffff',tktxt:'#00e676' },
+  purple:{ label:'💜 Purple Night',  bg:'#080010',bg2:'#040008',ha:'#120022',hb:'#520098',hborder:'#e040fb',accent:'#e040fb',cell:'#180030',cborder:'#500090',dim:'#c080e0',tkbg:'#500090',tkborder:'#e040fb',htxt:'#ffffff',tktxt:'#e040fb' },
+  red:   { label:'🔥 Solar Red',     bg:'#0d0000',bg2:'#080000',ha:'#200000',hb:'#8b0000',hborder:'#ff5722',accent:'#ff5722',cell:'#1c0400',cborder:'#6a1000',dim:'#e08060',tkbg:'#8b0000',tkborder:'#ff5722',htxt:'#ffffff',tktxt:'#ff5722' },
+  teal:  { label:'🌊 Teal Ocean',    bg:'#000d0e',bg2:'#000809',ha:'#001a1c',hb:'#006064',hborder:'#00e5ff',accent:'#00e5ff',cell:'#001c1e',cborder:'#006070',dim:'#80d8e0',tkbg:'#006064',tkborder:'#00e5ff',htxt:'#ffffff',tktxt:'#00e5ff' },
+  pink:  { label:'🌸 Neon Pink',     bg:'#0d0008',bg2:'#080005',ha:'#1c0018',hb:'#880040',hborder:'#f50057',accent:'#f50057',cell:'#1a0010',cborder:'#7a0038',dim:'#e080a0',tkbg:'#7b003a',tkborder:'#f50057',htxt:'#ffffff',tktxt:'#f50057' },
+  white: { label:'☀️ Light Mode',    bg:'#e8edf4',bg2:'#dde4ed',ha:'#1565c0',hb:'#1976d2',hborder:'#1565c0',accent:'#1565c0',cell:'#ffffff',cborder:'#cdd6e0',dim:'#1565c0',tkbg:'#1565c0',tkborder:'#1976d2',text:'#1a1a2e',htxt:'#ffffff',tktxt:'#ffffff' },
+  neon:  { label:'⚡ Neon Cyber',    bg:'#020012',bg2:'#010009',ha:'#06001e',hb:'#1a0060',hborder:'#7c4dff',accent:'#7c4dff',cell:'#0a0028',cborder:'#3a1080',dim:'#b060ff',tkbg:'#1a0060',tkborder:'#7c4dff',htxt:'#ffffff',tktxt:'#7c4dff' },
+};
+let activeTheme = localStorage.getItem('qf_theme_' + sysId) || 'blue';
+
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.blue;
+  const r = document.documentElement;
+  r.style.setProperty('--bg',       t.bg);
+  r.style.setProperty('--bg2',      t.bg2);
+  r.style.setProperty('--ha',       t.ha);
+  r.style.setProperty('--hb',       t.hb);
+  r.style.setProperty('--hborder',  t.hborder);
+  r.style.setProperty('--accent',   t.accent);
+  r.style.setProperty('--accentDim',t.accentDim||'rgba(0,0,0,.15)');
+  r.style.setProperty('--cell',     t.cell);
+  r.style.setProperty('--cborder',  t.cborder);
+  r.style.setProperty('--dim',      t.dim);
+  r.style.setProperty('--tkbg',     t.tkbg);
+  r.style.setProperty('--tkborder', t.tkborder);
+  r.style.setProperty('--text',     t.text||'#ffffff');
+  r.style.setProperty('--htxt',     t.htxt||'#ffffff');
+  r.style.setProperty('--tktxt',    t.tktxt||'#ffffff');
+  activeTheme = name;
+  localStorage.setItem('qf_theme_' + sysId, name);
+  buildThemeGrid();
+}
+function switchTheme(name) {
+  cfg.custom = {}; saveCfg();
+  applyTheme(name);
+  syncCustomUI();
+}
+function buildThemeGrid() {
+  document.getElementById('themeGrid').innerHTML = Object.entries(THEMES).map(([key,t]) => `
+    <div class="theme-card ${key===activeTheme?'sel':''}" style="background:${t.bg}" onclick="switchTheme('${key}')">
+      <div class="theme-preview" style="background:linear-gradient(135deg,${t.ha},${t.hb});color:${t.accent}">A001</div>
+      <div class="theme-name" style="color:${t.dim}">${t.label}</div>
+      <div class="sel-check">✓</div>
+    </div>`).join('');
+}
+
+// ── Custom colors ─────────────────────────────────────────────────────────
+function syncCustomUI() {
+  const t = THEMES[activeTheme] || THEMES.blue;
+  const c = cfg.custom;
+  const set = (id, key, def) => { const el = document.getElementById(id); if (el) el.value = c[key] || def; };
+  set('ccHa',       'ha',       t.ha);
+  set('ccHb',       'hb',       t.hb);
+  set('ccHborder',  'hborder',  t.hborder);
+  set('ccHtxt',     'htxt',     t.htxt||'#ffffff');
+  set('ccHdrFs',    'hdrFs',    1.15);
+  const hdrFsEl = document.getElementById('ccHdrFs');
+  if (hdrFsEl) { const lbl = document.getElementById('lblHdrFs'); if (lbl) lbl.textContent = parseFloat(hdrFsEl.value).toFixed(2); }
+  set('ccCell',     'cell',     t.cell);
+  set('ccCborder',  'cborder',  t.cborder);
+  set('ccNumFs',    'numFs',    8);
+  set('ccNumColor',   'numColor',   t.accent || '#ffd54f');
+  set('ccBlinkColor', 'blinkColor', '#ffd54f');
+  set('ccBlinkCount', 'blinkCount', 3);
+  set('ccBlinkDur',   'blinkDur',   0.5);
+  const bcEl = document.getElementById('ccBlinkCount');
+  const bdEl = document.getElementById('ccBlinkDur');
+  if (bcEl) document.getElementById('lblBlinkCount').textContent = bcEl.value;
+  if (bdEl) document.getElementById('lblBlinkDur').textContent   = parseFloat(bdEl.value).toFixed(1);
+  const numColorOnEl = document.getElementById('ccNumColorOn');
+  if (numColorOnEl) numColorOnEl.checked = !!(cfg.custom.numColor);
+  set('ccNameFs',   'ccNameFs',  0.78);
+  set('ccNameClr',  'ccNameClr', t.dim || '#90caf9');
+  set('ccTypeFs',   'ccTypeFs',  0.82);
+  set('ccTypeClr',  'ccTypeClr', '#90caf9');
+  set('ccTimeClr',  'ccTimeClr', '#aaaaaa');
+  set('ccTkbg',     'tkbg',     t.tkbg);
+  set('ccTkborder', 'tkborder', t.tkborder);
+  set('ccTktxt',    'tktxt',    t.tktxt||'#ffffff');
+  set('ccTickerFs', 'tickerFs', 0.95);
+}
+function applyCustom() {
+  const g = (id) => document.getElementById(id)?.value;
+  cfg.custom = {
+    ha:        g('ccHa'), hb:g('ccHb'), hborder:g('ccHborder'), htxt:g('ccHtxt'),
+    hdrFs:     parseFloat(g('ccHdrFs'))||1.15,
+    cell:      g('ccCell'), cborder:g('ccCborder'),
+    numFs:     parseFloat(g('ccNumFs'))||8,
+    numColor:  document.getElementById('ccNumColorOn')?.checked ? (g('ccNumColor')||'') : '',
+    blinkColor: g('ccBlinkColor') || '#ffd54f',
+    blinkCount: parseInt(g('ccBlinkCount'))  || 3,
+    blinkDur:   parseFloat(g('ccBlinkDur'))  || 0.5,
+    ccNameFs:  parseFloat(g('ccNameFs'))  || 0,
+    ccNameClr: g('ccNameClr') || '',
+    ccTypeFs:  parseFloat(g('ccTypeFs'))  || 0,
+    ccTypeClr: g('ccTypeClr') || '',
+    ccTimeClr: g('ccTimeClr') || '',
+    tkbg:      g('ccTkbg'), tkborder:g('ccTkborder'), tktxt:g('ccTktxt'),
+    tickerFs:  parseFloat(g('ccTickerFs'))||0.95,
+  };
+  const r = document.documentElement;
+  if (cfg.custom.ha)       r.style.setProperty('--ha',       cfg.custom.ha);
+  if (cfg.custom.hb)       r.style.setProperty('--hb',       cfg.custom.hb);
+  if (cfg.custom.hborder)  r.style.setProperty('--hborder',  cfg.custom.hborder);
+  if (cfg.custom.htxt)     r.style.setProperty('--htxt',     cfg.custom.htxt);
+  if (cfg.custom.hdrFs)    r.style.setProperty('--hdr-fs',   cfg.custom.hdrFs + 'rem');
+  if (cfg.custom.cell)     r.style.setProperty('--cell',     cfg.custom.cell);
+  if (cfg.custom.cborder)  r.style.setProperty('--cborder',  cfg.custom.cborder);
+  if (cfg.custom.numFs)    r.style.setProperty('--num-fs',   cfg.custom.numFs + 'vw');
+  if (cfg.custom.blinkColor) r.style.setProperty('--blink-color', cfg.custom.blinkColor);
+  if (cfg.custom.ccNameFs)  r.style.setProperty('--cc-name-fs',  cfg.custom.ccNameFs + 'rem');
+  if (cfg.custom.ccNameClr) r.style.setProperty('--cc-name-clr', cfg.custom.ccNameClr);
+  if (cfg.custom.ccTypeFs)  r.style.setProperty('--cc-type-fs',  cfg.custom.ccTypeFs + 'rem');
+  if (cfg.custom.ccTypeClr) r.style.setProperty('--cc-type-clr', cfg.custom.ccTypeClr);
+  if (cfg.custom.ccTimeClr) r.style.setProperty('--cc-time-clr', cfg.custom.ccTimeClr);
+  if (cfg.custom.tkbg)     r.style.setProperty('--tkbg',     cfg.custom.tkbg);
+  if (cfg.custom.tkborder) r.style.setProperty('--tkborder', cfg.custom.tkborder);
+  if (cfg.custom.tktxt)    r.style.setProperty('--tktxt',    cfg.custom.tktxt);
+  if (cfg.custom.tickerFs) r.style.setProperty('--ticker-fs',cfg.custom.tickerFs + 'rem');
+  saveCfg();
+  renderCounters(false, null);
+}
+function resetCustom() { cfg.custom = {}; saveCfg(); applyTheme(activeTheme); syncCustomUI(); }
+
+function restoreCustom() {
+  const c = cfg.custom;
+  if (!c || !Object.keys(c).length) return;
+  const r = document.documentElement;
+  if (c.ha)       r.style.setProperty('--ha',       c.ha);
+  if (c.hb)       r.style.setProperty('--hb',       c.hb);
+  if (c.hborder)  r.style.setProperty('--hborder',  c.hborder);
+  if (c.htxt)     r.style.setProperty('--htxt',     c.htxt);
+  if (c.hdrFs)    r.style.setProperty('--hdr-fs',   c.hdrFs + 'rem');
+  if (c.cell)     r.style.setProperty('--cell',     c.cell);
+  if (c.cborder)  r.style.setProperty('--cborder',  c.cborder);
+  if (c.numFs)      r.style.setProperty('--num-fs',     c.numFs + 'vw');
+  if (c.blinkColor) r.style.setProperty('--blink-color', c.blinkColor);
+  if (c.blinkCount != null) { const el = document.getElementById('lblBlinkCount'); if (el) el.textContent = c.blinkCount; }
+  if (c.blinkDur   != null) { const el = document.getElementById('lblBlinkDur');   if (el) el.textContent = parseFloat(c.blinkDur).toFixed(1); }
+  if (c.ccNameFs)  r.style.setProperty('--cc-name-fs',  c.ccNameFs + 'rem');
+  if (c.ccNameClr) r.style.setProperty('--cc-name-clr', c.ccNameClr);
+  if (c.ccTypeFs)  r.style.setProperty('--cc-type-fs',  c.ccTypeFs + 'rem');
+  if (c.ccTypeClr) r.style.setProperty('--cc-type-clr', c.ccTypeClr);
+  if (c.ccTimeClr) r.style.setProperty('--cc-time-clr', c.ccTimeClr);
+  if (c.tkbg)     r.style.setProperty('--tkbg',     c.tkbg);
+  if (c.tkborder) r.style.setProperty('--tkborder', c.tkborder);
+  if (c.tktxt)    r.style.setProperty('--tktxt',    c.tktxt);
+  if (c.tickerFs) r.style.setProperty('--ticker-fs',c.tickerFs + 'rem');
+}
+
+// ── TTS (Google Voice via Web Speech API) ────────────────────────────────
+let soundEnabled = localStorage.getItem('qf_sound_' + sysId) === 'true';
+
+function updateSoundBtn() {
+  const btn = document.getElementById('btnSound');
+  if (!btn) return;
+  btn.textContent = soundEnabled ? '🔊 เสียง' : '🔇 เสียง';
+  btn.classList.toggle('on', soundEnabled);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('qf_sound_' + sysId, soundEnabled);
+  updateSoundBtn();
+  if (soundEnabled && window.speechSynthesis) {
+    const run = () => speakUtterance('เปิดเสียงแล้ว');
+    if (speechSynthesis.getVoices().length) run();
+    else {
+      const h = () => { speechSynthesis.removeEventListener('voiceschanged', h); run(); };
+      speechSynthesis.addEventListener('voiceschanged', h);
+    }
+  }
+}
+
+function fmtQueueNum(display) {
+  const LETTERS = {
+    A:'เอ', B:'บี', C:'ซี', D:'ดี', E:'อี', F:'เอฟ', G:'จี',
+    H:'เอช', I:'ไอ', J:'เจ', K:'เค', L:'แอล', M:'เอ็ม',
+    N:'เอ็น', O:'โอ', P:'พี', Q:'คิว', R:'อาร์', S:'เอส',
+    T:'ที', U:'ยู', V:'วี', W:'ดับเบิลยู', X:'เอ็กซ์',
+    Y:'วาย', Z:'แซด',
+  };
+  const DIGITS = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+  const m = (display || '').match(/^([A-Za-z]+)(\d+)$/);
+  if (!m) return display || '';
+  const prefix = [...m[1].toUpperCase()].map(c => LETTERS[c] || c).join(', ');
+  const digits = [...m[2]].map(d => DIGITS[parseInt(d)]).join(', ');
+  return prefix + ', ' + digits;
+}
+
+function getThaiVoice() {
+  const voices = speechSynthesis.getVoices();
+  // Use specific voice if set
+  if (cfg.voiceName) {
+    const named = voices.find(v => v.name === cfg.voiceName);
+    if (named) return named;
+  }
+  const gender = cfg.voiceGender || 'female';
+  // Try voices with Thai lang code (th, th-TH, th_TH …)
+  let th = voices.filter(v => /^th/i.test(v.lang));
+  // Fallback: voices with "thai" in name or lang
+  if (!th.length) th = voices.filter(v => /thai/i.test(v.name + v.lang));
+  if (!th.length) return null;
+  if (gender === 'male') {
+    return th.find(v => /male|ชาย|man|niwat/i.test(v.name)) ||
+           th[th.length - 1] || null;
+  }
+  return th.find(v => /female|หญิง|woman|premwadee|sabina/i.test(v.name)) ||
+         th.find(v => !/male|ชาย|man|niwat/i.test(v.name)) ||
+         th[0] || null;
+}
+
+function updateVoiceActiveInfo() {
+  const el = document.getElementById('voiceActiveInfo');
+  if (!el || !window.speechSynthesis) return;
+  const v = getThaiVoice();
+  el.textContent = v ? `เสียงที่ใช้: ${v.name}` : 'ไม่พบเสียงภาษาไทย — กรุณาเลือกเสียงเอง';
+}
+
+function onGenderChange(gender) {
+  cfg.voiceGender = gender;
+  cfg.voiceName   = '';                                  // reset specific voice → use auto
+  const sel = document.getElementById('cfgVoiceName');
+  if (sel) sel.value = '';
+  saveCfg();
+  updateVoiceActiveInfo();
+}
+
+function populateVoiceList() {
+  const sel = document.getElementById('cfgVoiceName');
+  if (!sel) return;
+  const voices = speechSynthesis.getVoices();
+  const th    = voices.filter(v => /^th/i.test(v.lang));
+  const other = voices.filter(v => !/^th/i.test(v.lang));
+  const cur   = cfg.voiceName || '';
+  let opts = `<option value="">อัตโนมัติ (ตามเพศที่เลือก)</option>`;
+  if (th.length) {
+    opts += `<optgroup label="── เสียงภาษาไทย ──">` +
+      th.map(v => `<option value="${v.name}"${v.name===cur?' selected':''}>${v.name}</option>`).join('') +
+      `</optgroup>`;
+  }
+  if (other.length) {
+    opts += `<optgroup label="── เสียงอื่น ──">` +
+      other.map(v => `<option value="${v.name}"${v.name===cur?' selected':''}>${v.name} [${v.lang}]</option>`).join('') +
+      `</optgroup>`;
+  }
+  sel.innerHTML = opts;
+  updateVoiceActiveInfo();
+}
+
+function makeUtterance(text) {
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang  = 'th-TH';
+  u.rate  = cfg.speechRate || 0.65;
+  u.pitch = 1.0;
+  const voice = getThaiVoice();
+  if (voice) u.voice = voice;
+  return u;
+}
+
+function speakUtterance(text) {
+  speechSynthesis.cancel();
+  speechSynthesis.speak(makeUtterance(text));
+}
+
+function sanitizeForSpeech(str) {
+  return (str || '').replace(/\//g, ' ทับ ').replace(/\s+/g, ' ').trim();
+}
+
+function announceQueue(ticket) {
+  if (!soundEnabled || !ticket || !window.speechSynthesis) return;
+  const num = fmtQueueNum(ticket.display);
+  const ctr = sanitizeForSpeech(ticket.counterName || '');
+  const run = () => {
+    speechSynthesis.cancel();
+    // Queue both utterances — more reliable than onend callback
+    speechSynthesis.speak(makeUtterance(`ขอเชิญ หมายเลข ${num}`));
+    if (ctr) speechSynthesis.speak(makeUtterance(`ที่ช่องบริการ ${ctr}`));
+  };
+  setTimeout(() => {
+    if (speechSynthesis.getVoices().length) { run(); return; }
+    const h = () => { speechSynthesis.removeEventListener('voiceschanged', h); run(); };
+    speechSynthesis.addEventListener('voiceschanged', h);
+  }, 700);
+}
+
+function testVoice() {
+  applyCounterSettings();
+  speechSynthesis.cancel();
+  const num = fmtQueueNum('A001');
+  const ctr = sanitizeForSpeech('ชำระเงิน ช่อง 1');
+  const run = () => {
+    speechSynthesis.cancel();
+    speechSynthesis.speak(makeUtterance(`ขอเชิญ หมายเลข ${num}`));
+    speechSynthesis.speak(makeUtterance(`ที่ช่องบริการ ${ctr}`));
+  };
+  if (speechSynthesis.getVoices().length) run();
+  else {
+    const h = () => { speechSynthesis.removeEventListener('voiceschanged', h); run(); };
+    speechSynthesis.addEventListener('voiceschanged', h);
+  }
+}
+
+// Apply on load
+applyTheme(activeTheme);
+restoreCustom();
+applyNsFontSizes();
+updateSoundBtn();
+if (window.speechSynthesis) {
+  const _initVoices = () => { populateVoiceList(); updateVoiceActiveInfo(); };
+  if (speechSynthesis.getVoices().length) _initVoices();
+  else speechSynthesis.addEventListener('voiceschanged', _initVoices);
+}
+
+// ── Polling fallback (ensures display stays in sync) ─────────────────────
+setInterval(() => {
+  fetch(`/api/sys/${sysId}/status`).then(r => r.json()).then(d => {
+    if (!d) return;
+    allCounters   = d.counters             || allCounters;
+    recentByCtr   = d.recentByCounter      || {};
+    noShows       = d.noShows              || [];
+    lastByCounter = d.lastCalledByCounter  || {};
+    if (allCounters.length && !document.getElementById('cell-' + allCounters[0].id)) buildCounterGrid();
+    renderCounters(false, null);
+    renderNoShow();
+  }).catch(() => {});
+}, 3000);
+
+// ── Bell ──────────────────────────────────────────────────────────────────
+function playBell() {
+  try {
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784].forEach((freq, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq; o.type = 'sine';
+      const t = ctx.currentTime + i * .18;
+      g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .5);
+      o.start(t); o.stop(t + .5);
+    });
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
