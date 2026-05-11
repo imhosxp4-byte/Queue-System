@@ -82,6 +82,38 @@
       color:#ef9a9a;border-radius:8px;padding:6px 12px;font-size:.75rem;cursor:pointer;
       font-family:inherit;transition:all .2s}
     .btn-sc-del:hover{background:rgba(239,83,80,.2);color:#ef5350}
+    .btn-sc-link{flex:1;background:rgba(100,181,246,.07);border:1px solid rgba(100,181,246,.22);
+      color:#64b5f6;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;
+      font-family:inherit;transition:all .2s}
+    .btn-sc-link:hover{background:rgba(100,181,246,.18);color:#90caf9}
+
+    /* LINK MODAL */
+    .link-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;
+      align-items:center;justify-content:center;padding:20px}
+    .link-modal-bg.open{display:flex}
+    .link-modal{background:#0c1b2e;border:1px solid #1e3a5f;border-radius:22px;
+      padding:28px 28px 22px;width:100%;max-width:480px}
+    .lm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .lm-title{font-size:1rem;font-weight:700;color:#64b5f6}
+    .lm-sys-name{color:#fff;font-weight:900}
+    .btn-lm-close{background:none;border:none;color:#3a5a78;cursor:pointer;font-size:1rem;
+      padding:2px 8px;border-radius:6px;font-family:inherit;transition:background .15s}
+    .btn-lm-close:hover{background:#1e3a5f;color:#fff}
+    .lm-sec{background:#091524;border:1px solid #1a2e45;border-radius:14px;
+      padding:14px 16px;margin-bottom:12px}
+    .lm-lbl{font-size:.72rem;color:#90caf9;font-weight:700;letter-spacing:.8px;
+      text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .lm-url-row{display:flex;gap:7px;align-items:center}
+    .lm-url{flex:1;background:#060e1a;border:1px solid #1e3a5f;border-radius:8px;
+      color:#64b5f6;font-size:.78rem;padding:7px 10px;font-family:monospace;cursor:text;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .lm-url:focus{outline:none;border-color:#42a5f5}
+    .btn-lm-copy{background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;
+      border:none;border-radius:8px;padding:7px 14px;font-size:.76rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit;transition:opacity .2s;flex-shrink:0}
+    .btn-lm-copy:hover{opacity:.85}
+    .btn-lm-copy.copied{background:linear-gradient(135deg,#2e7d32,#1b5e20)}
+    .lm-hint{font-size:.68rem;color:#2a4060;margin-top:6px;line-height:1.5}
 
     /* ADD CARD */
     .add-card{
@@ -161,6 +193,20 @@
       border-radius:20px;padding:5px 14px;font-size:.78rem;cursor:pointer;font-family:inherit;
       transition:all .2s;white-space:nowrap}
     .btn-logout:hover{background:rgba(239,83,80,.25);color:#fff;border-color:#ef5350}
+
+    /* NO QUEUE SYSTEM CARD */
+    .no-sys-card{
+      grid-column:1/-1;
+      background:rgba(239,83,80,.05);
+      border:2px dashed rgba(239,83,80,.25);
+      border-radius:22px;padding:52px 40px;
+      text-align:center;max-width:520px;margin:0 auto;
+    }
+    .no-sys-card .ns-icon{font-size:3.5rem;margin-bottom:18px;line-height:1}
+    .no-sys-card .ns-title{font-size:1.2rem;font-weight:700;color:#ef9a9a;margin-bottom:10px}
+    .no-sys-card .ns-body{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.9}
+    .no-sys-card .ns-dept{color:#ffd54f;font-weight:700}
+    .no-sys-card .ns-hint{margin-top:20px;font-size:.82rem;color:rgba(255,255,255,.3)}
   </style>
 </head>
 <body>
@@ -222,13 +268,43 @@
   </div>
 </div>
 
+<!-- Link share modal -->
+<div class="link-modal-bg" id="linkModal">
+  <div class="link-modal">
+    <div class="lm-head">
+      <div class="lm-title">🔗 ลิงค์เชื่อมต่อ — <span class="lm-sys-name" id="lmSysName"></span></div>
+      <button class="btn-lm-close" onclick="closeLinkModal()">✕</button>
+    </div>
+    <div class="lm-sec">
+      <div class="lm-lbl">🎫 ออกบัตรคิว <span style="color:#3a5a78;font-weight:400;text-transform:none;letter-spacing:0">(สำหรับผู้รับบริการ)</span></div>
+      <div class="lm-url-row">
+        <input type="text" class="lm-url" id="lmUrlQueue" readonly onclick="this.select()">
+        <button class="btn-lm-copy" id="btnCpQueue" onclick="copyLink('lmUrlQueue','btnCpQueue')">📋 คัดลอก</button>
+      </div>
+      <div class="lm-hint">ส่งให้เครื่อง kiosk / แท็บเล็ต ที่ให้บริการออกบัตรคิว</div>
+    </div>
+    <div class="lm-sec">
+      <div class="lm-lbl">🖥️ แสดงคิว <span style="color:#3a5a78;font-weight:400;text-transform:none;letter-spacing:0">(สำหรับจอแสดงผล)</span></div>
+      <div class="lm-url-row">
+        <input type="text" class="lm-url" id="lmUrlDisplay" readonly onclick="this.select()">
+        <button class="btn-lm-copy" id="btnCpDisplay" onclick="copyLink('lmUrlDisplay','btnCpDisplay')">📋 คัดลอก</button>
+      </div>
+      <div class="lm-hint">ส่งให้จอ TV / monitor ที่แสดงหมายเลขคิวให้ผู้รับบริการ</div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const socket = io();
 
-const _navOfficer = sessionStorage.getItem('officerName');
-if (_navOfficer) document.getElementById('navOfficer').textContent = '👤 ' + _navOfficer;
+const _navOfficer  = sessionStorage.getItem('officerName');
+const _navDeptName = sessionStorage.getItem('currentDeptName');
+if (_navOfficer) {
+  const deptPart = _navDeptName ? ` — ${_navDeptName}` : '';
+  document.getElementById('navOfficer').textContent = '👤 ' + _navOfficer + deptPart;
+}
 
 function doLogout() {
   const token = sessionStorage.getItem('authToken');
@@ -242,18 +318,82 @@ const ICONS  = ['💰','💊','🏥','📋','🎫','🔵','⭐','🏛️','📞'
 const COLORS = ['#42a5f5','#ffd54f','#66bb6a','#ef5350','#ab47bc','#ff7043','#26c6da','#ec407a','#26a69a','#8d6e63'];
 
 let systems     = [];
+let mySysIds    = [];   // sysIds belonging to current user's dept
 let editSysId   = null;
 let deleteSysId = null;
 let selIcon     = ICONS[0];
 let selColor    = COLORS[0];
 
+const authToken = sessionStorage.getItem('authToken');
+// ถ้าไม่มี depcode = admin / ยังไม่เลือกห้อง → เห็นทุกระบบ
+const currentDepcode = sessionStorage.getItem('currentDepcode');
+let isAdmin = !currentDepcode;
+
+// ── Auth guard ────────────────────────────────────────────────────────────
+if (!authToken) {
+  location.href = '/login.html';
+  throw new Error('redirect');
+}
+fetch('/api/auth/verify', {
+  method: 'POST', headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({ token: authToken })
+}).then(r => r.json()).then(d => {
+  if (!d.success) { location.href = '/login.html'; }
+}).catch(() => {});
+
+function loadMySystems(cb) {
+  fetch('/api/my-systems', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ token: authToken })
+  }).then(r=>r.json()).then(d => {
+    if (d.success) {
+      mySysIds = d.sysIds || [];
+      // Admin = no dept selected; a dept user with no systems is NOT admin
+    }
+    cb && cb();
+  }).catch(() => { cb && cb(); });
+}
+
 socket.on('systems_updated', s => { systems = s; renderSystems(); });
-fetch('/api/systems').then(r=>r.json()).then(d => { systems = d; renderSystems(); });
+socket.on('system_deleted', ({ sysId }) => {
+  mySysIds = mySysIds.filter(id => id !== sysId);
+  renderSystems();
+});
+
+loadMySystems(() => {
+  fetch('/api/systems').then(r=>r.json()).then(d => { systems = d; renderSystems(); });
+});
 
 // ── Render ────────────────────────────────────────────────────────────────
 function renderSystems() {
-  const grid  = document.getElementById('systemsGrid');
-  const cards = systems.map(s => `
+  const grid    = document.getElementById('systemsGrid');
+  const visible = isAdmin ? systems : systems.filter(s => mySysIds.includes(s.id));
+
+  const addCardHtml = `
+    <div class="add-card" id="addCard">
+      <div class="add-card-icon">+</div>
+      <div class="add-card-text">สร้างระบบคิวใหม่</div>
+    </div>`;
+
+  // Dept user has no queue systems → show info card + allow creating one
+  if (!isAdmin && visible.length === 0) {
+    const deptName = sessionStorage.getItem('currentDeptName') || currentDepcode || '';
+    grid.innerHTML = `
+      <div class="no-sys-card">
+        <div class="ns-icon">🚫</div>
+        <div class="ns-title">ไม่พบระบบคิว</div>
+        <div class="ns-body">
+          ${deptName ? `ห้องตรวจ / แผนก <span class="ns-dept">${esc(deptName)}</span><br>` : ''}
+          ยังไม่มีระบบคิวที่กำหนดไว้สำหรับแผนกนี้
+        </div>
+        <div class="ns-hint">หากต้องการใช้งาน กดปุ่ม <strong>+&nbsp;สร้างระบบคิวใหม่</strong> ด้านล่าง<br>เพื่อเพิ่มระบบคิวของห้องตรวจนี้</div>
+      </div>
+    ` + addCardHtml;
+    grid.onclick = e => { if (e.target.closest('#addCard')) openCreate(); };
+    return;
+  }
+
+  const cards = visible.map(s => `
     <div class="sys-card" style="--c:${s.color}33" data-sysid="${s.id}">
       <div class="sc-icon">${s.icon || '📋'}</div>
       <div class="sc-name">${esc(s.name)}</div>
@@ -268,21 +408,25 @@ function renderSystems() {
         <a class="sc-link sc-link-sec" href="/settings.html?sys=${s.id}">⚙️ ตั้งค่า</a>
       </div>
       <div class="sc-footer">
+        <button class="btn-sc-link" data-action="link" data-sysid="${s.id}">🔗 ลิงค์แชร์</button>
         <button class="btn-sc-edit" data-action="edit" data-sysid="${s.id}">✏️ แก้ไขระบบ</button>
         <button class="btn-sc-del"  data-action="del"  data-sysid="${s.id}">🗑</button>
       </div>
     </div>`).join('');
 
-  grid.innerHTML = cards + `
-    <div class="add-card" id="addCard">
-      <div class="add-card-icon">+</div>
-      <div class="add-card-text">สร้างระบบคิวใหม่</div>
-    </div>`;
+  grid.innerHTML = cards + addCardHtml;
 
   // Event delegation — one listener handles all cards
   grid.onclick = e => {
     const btn = e.target.closest('[data-action]');
-    if (btn) { e.stopPropagation(); const id = Number(btn.dataset.sysid); btn.dataset.action === 'edit' ? openEdit(id) : openDelModal(id); return; }
+    if (btn) {
+      e.stopPropagation();
+      const id = Number(btn.dataset.sysid);
+      if (btn.dataset.action === 'edit')  openEdit(id);
+      else if (btn.dataset.action === 'del')  openDelModal(id);
+      else if (btn.dataset.action === 'link') openLinkModal(id);
+      return;
+    }
     if (e.target.closest('#addCard')) openCreate();
   };
 }
@@ -344,14 +488,24 @@ function saveSys() {
   const name = document.getElementById('mName').value.trim();
   const desc = document.getElementById('mDesc').value.trim();
   if (!name) { document.getElementById('mName').focus(); return; }
-  const body   = { name, description: desc, icon: selIcon, color: selColor };
+  const body   = { name, description: desc, icon: selIcon, color: selColor, token: authToken };
   const url    = editSysId ? `/api/systems/${editSysId}` : '/api/systems';
   const method = editSysId ? 'PUT' : 'POST';
   const isEdit = !!editSysId;
   fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
     .then(r=>r.json()).then(d => {
-      if (d.success) { closeModal(); toast(isEdit ? `แก้ไข "${name}" สำเร็จ` : `สร้าง "${name}" สำเร็จ`, 'ok'); }
-      else toast(d.message, 'err');
+      if (d.success) {
+        closeModal();
+        toast(isEdit ? `แก้ไข "${name}" สำเร็จ` : `สร้าง "${name}" สำเร็จ`, 'ok');
+        if (!isEdit && d.system) {
+          if (!mySysIds.includes(d.system.id)) mySysIds.push(d.system.id);
+          systems = systems.filter(s => s.id !== d.system.id);
+          systems.push(d.system);
+          renderSystems();
+        }
+      } else {
+        toast(d.message, 'err');
+      }
     });
 }
 
@@ -374,10 +528,53 @@ function confirmDelete() {
   closeDelModal();
   fetch(`/api/systems/${id}`, { method: 'DELETE' })
     .then(r=>r.json()).then(d => {
-      if (d.success) toast(`ลบ "${name}" เรียบร้อยแล้ว`, 'ok');
-      else toast(d.message, 'err');
+      if (d.success) {
+        toast(`ลบ "${name}" เรียบร้อยแล้ว`, 'ok');
+        mySysIds = mySysIds.filter(x => x !== id);
+        systems  = systems.filter(s => s.id !== id);
+        renderSystems();
+      } else {
+        toast(d.message, 'err');
+      }
     });
 }
+
+// ── Link share modal ──────────────────────────────────────────────────────
+let linkSysId = null;
+function openLinkModal(id) {
+  const s = systems.find(x => x.id === id);
+  if (!s) return;
+  linkSysId = id;
+  const origin = window.location.origin;
+  document.getElementById('lmSysName').textContent = s.name;
+  document.getElementById('lmUrlQueue').value   = `${origin}/queue.html?sys=${id}`;
+  document.getElementById('lmUrlDisplay').value = `${origin}/display.html?sys=${id}`;
+  document.getElementById('btnCpQueue').textContent   = '📋 คัดลอก';
+  document.getElementById('btnCpQueue').classList.remove('copied');
+  document.getElementById('btnCpDisplay').textContent = '📋 คัดลอก';
+  document.getElementById('btnCpDisplay').classList.remove('copied');
+  document.getElementById('linkModal').classList.add('open');
+}
+function closeLinkModal() {
+  document.getElementById('linkModal').classList.remove('open');
+  linkSysId = null;
+}
+function copyLink(inputId, btnId) {
+  const text = document.getElementById(inputId).value;
+  const btn  = document.getElementById(btnId);
+  const doFallback = () => {
+    const el = document.getElementById(inputId);
+    el.select(); el.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); } catch {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {}).catch(doFallback);
+  } else { doFallback(); }
+  btn.textContent = '✅ คัดลอกแล้ว';
+  btn.classList.add('copied');
+  toast('คัดลอกลิงค์เรียบร้อย', 'ok');
+}
+document.getElementById('linkModal').addEventListener('click', e => { if (e.target.id === 'linkModal') closeLinkModal(); });
 
 // ── Toast ─────────────────────────────────────────────────────────────────
 function toast(msg, type = '') {
@@ -404,12 +601,41 @@ function esc(s) {
 document.getElementById('modalSys').addEventListener('click', e => { if (e.target.id === 'modalSys') closeModal(); });
 document.getElementById('delModal').addEventListener('click',  e => { if (e.target.id === 'delModal')  closeDelModal(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); closeDelModal(); }
+  if (e.key === 'Escape') { closeModal(); closeDelModal(); closeLinkModal(); }
   if (e.key === 'Enter') {
     if (document.getElementById('modalSys').classList.contains('open')) saveSys();
     if (document.getElementById('delModal').classList.contains('open'))  confirmDelete();
   }
 });
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>

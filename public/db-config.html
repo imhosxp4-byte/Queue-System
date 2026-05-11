@@ -74,6 +74,23 @@
       background:#1a2a3a;border:1px solid #42a5f5;color:#fff;padding:10px 26px;
       border-radius:30px;font-size:.9rem;transition:transform .3s;z-index:200;white-space:nowrap}
     .toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* Table status card */
+    .tbl-row{display:flex;align-items:center;justify-content:space-between;
+      padding:10px 0;border-bottom:1px solid #1e3a5f}
+    .tbl-row:last-child{border-bottom:none}
+    .tbl-name{font-size:.88rem;font-family:'Courier New',monospace;color:#e0e0e0}
+    .tbl-badge{padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700}
+    .tbl-badge.ok{background:rgba(102,187,106,.18);border:1px solid rgba(102,187,106,.4);color:#a5d6a7}
+    .tbl-badge.miss{background:rgba(255,167,38,.12);border:1px solid rgba(255,167,38,.4);color:#ffcc80}
+    .btn-migrate{width:100%;margin-top:18px;border:none;border-radius:12px;
+      padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-migrate.active{background:linear-gradient(135deg,#ff9800,#e65100);color:#fff}
+    .btn-migrate.active:hover{opacity:.88}
+    .btn-migrate.done{background:#263238;color:#546e7a;cursor:not-allowed}
+    .tbl-msg{border-radius:10px;padding:10px 14px;font-size:.84rem;margin-top:12px;display:none;line-height:1.5}
+    .tbl-msg.ok{background:rgba(102,187,106,.1);border:1px solid rgba(102,187,106,.3);color:#a5d6a7;display:block}
+    .tbl-msg.fail{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);color:#ef9a9a;display:block}
   </style>
 </head>
 <body>
@@ -130,6 +147,24 @@
       <button class="btn-test" id="testBtn" onclick="testConn()">🔌 ทดสอบการเชื่อมต่อ</button>
       <button class="btn-save" id="saveBtn" onclick="saveConn()">💾 บันทึกข้อมูลเชื่อมต่อ</button>
     </div>
+  </div>
+  <!-- Table creation card -->
+  <div class="card" id="tableCard" style="display:none">
+    <div class="card-title">ตารางในฐานข้อมูล</div>
+    <div id="tblRows">
+      <div class="tbl-row">
+        <span class="tbl-name">app_queue_opd</span>
+        <span class="tbl-badge miss" id="badge_opd">ตรวจสอบ...</span>
+      </div>
+      <div class="tbl-row">
+        <span class="tbl-name">app_queue_events</span>
+        <span class="tbl-badge miss" id="badge_evt">ตรวจสอบ...</span>
+      </div>
+    </div>
+    <div class="tbl-msg" id="tblMsg"></div>
+    <button class="btn-migrate done" id="migrateBtn" onclick="doMigrate()" disabled>
+      ⏳ กำลังตรวจสอบ...
+    </button>
   </div>
 </div>
 
@@ -216,8 +251,11 @@
     .then(r => r.json())
     .then(d => {
       if (d.success) {
-        toast('บันทึกสำเร็จ กำลังกลับหน้าเข้าสู่ระบบ...');
-        setTimeout(() => { location.href = '/login.html'; }, 1200);
+        toast('บันทึกสำเร็จ');
+        btn.disabled = false;
+        btn.textContent = '💾 บันทึกข้อมูลเชื่อมต่อ';
+        document.getElementById('tableCard').style.display = 'block';
+        checkTables();
       } else {
         btn.disabled = false;
         btn.textContent = '💾 บันทึกข้อมูลเชื่อมต่อ';
@@ -235,6 +273,80 @@
     setTimeout(() => t.classList.remove('show'), 2500);
   }
 
+  // ── Table check / migrate ────────────────────────────────────────────────
+  function renderTableStatus(tables) {
+    const badgeOpd = document.getElementById('badge_opd');
+    const badgeEvt = document.getElementById('badge_evt');
+    const btn      = document.getElementById('migrateBtn');
+    badgeOpd.textContent = tables.app_queue_opd ? 'มีแล้ว' : 'ยังไม่มี';
+    badgeOpd.className   = 'tbl-badge ' + (tables.app_queue_opd ? 'ok' : 'miss');
+    badgeEvt.textContent = tables.app_queue_events  ? 'มีแล้ว' : 'ยังไม่มี';
+    badgeEvt.className   = 'tbl-badge ' + (tables.app_queue_events  ? 'ok' : 'miss');
+    const allExist = tables.app_queue_opd && tables.app_queue_events;
+    btn.disabled   = allExist;
+    btn.className  = 'btn-migrate ' + (allExist ? 'done' : 'active');
+    btn.textContent = allExist ? '✓ ตารางครบแล้ว' : '+ เพิ่มตาราง';
+  }
+
+  function checkTables() {
+    fetch('/api/db/check-tables').then(r => r.json()).then(d => {
+      if (d.tables) {
+        renderTableStatus(d.tables);
+      } else {
+        const btn = document.getElementById('migrateBtn');
+        btn.textContent = '+ เพิ่มตาราง';
+        btn.disabled = false;
+        btn.className = 'btn-migrate active';
+        const msgEl = document.getElementById('tblMsg');
+        msgEl.textContent = '✗ ' + (d.message || 'ไม่สามารถตรวจสอบได้');
+        msgEl.className = 'tbl-msg fail';
+        document.getElementById('badge_opd').textContent = '?';
+        document.getElementById('badge_evt').textContent = '?';
+      }
+    }).catch(err => {
+      const btn = document.getElementById('migrateBtn');
+      btn.textContent = '+ เพิ่มตาราง';
+      btn.disabled = false;
+      btn.className = 'btn-migrate active';
+      document.getElementById('badge_opd').textContent = '?';
+      document.getElementById('badge_evt').textContent = '?';
+      const msgEl = document.getElementById('tblMsg');
+      msgEl.textContent = '✗ ไม่สามารถเชื่อมต่อ server ได้ — กรุณา restart server แล้วลองใหม่';
+      msgEl.className = 'tbl-msg fail';
+    });
+  }
+
+  function doMigrate() {
+    const btn    = document.getElementById('migrateBtn');
+    const msgEl  = document.getElementById('tblMsg');
+    btn.disabled = true;
+    btn.className = 'btn-migrate done';
+    btn.innerHTML = '<span class="spinner"></span>กำลังสร้างตาราง...';
+    msgEl.className = 'tbl-msg'; msgEl.textContent = '';
+    fetch('/api/db/migrate', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          msgEl.textContent = '✓ สร้างตารางสำเร็จ';
+          msgEl.className   = 'tbl-msg ok';
+          renderTableStatus(d.tables);
+        } else {
+          msgEl.textContent = '✗ ' + (d.message || 'เกิดข้อผิดพลาด');
+          msgEl.className   = 'tbl-msg fail';
+          btn.disabled = false;
+          btn.className = 'btn-migrate active';
+          btn.textContent = '+ เพิ่มตาราง';
+        }
+      })
+      .catch(() => {
+        msgEl.textContent = '✗ เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        msgEl.className   = 'tbl-msg fail';
+        btn.disabled = false;
+        btn.className = 'btn-migrate active';
+        btn.textContent = '+ เพิ่มตาราง';
+      });
+  }
+
   // Load existing config on page load
   fetch('/api/db-config').then(r => r.json()).then(cfg => {
     if (cfg.type) setType(cfg.type);
@@ -242,7 +354,41 @@
     if (cfg.port)     document.getElementById('port').value     = cfg.port;
     if (cfg.database) document.getElementById('database').value = cfg.database;
     if (cfg.username) document.getElementById('dbUser').value   = cfg.username;
+    if (cfg.password) document.getElementById('dbPass').value   = cfg.password;
+    if (cfg.host && cfg.database) {
+      document.getElementById('tableCard').style.display = 'block';
+      checkTables();
+    }
   });
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>

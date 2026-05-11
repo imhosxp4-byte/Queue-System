@@ -25,17 +25,18 @@ function sysDir(sysId) {
 }
 function loadJson(file, defaults) {
   if (!fs.existsSync(file)) { fs.writeFileSync(file, JSON.stringify(defaults, null, 2)); return JSON.parse(JSON.stringify(defaults)); }
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return JSON.parse(JSON.stringify(defaults)); }
+  try { return Object.assign(JSON.parse(JSON.stringify(defaults)), JSON.parse(fs.readFileSync(file, 'utf8'))); } catch { return JSON.parse(JSON.stringify(defaults)); }
 }
 function saveJson(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
 
 // ── Systems ───────────────────────────────────────────────────────────────
 const SYSTEMS_FILE = path.join(DATA_DIR, 'systems.json');
+const GLOBAL_CONFIG_FILE = path.join(DATA_DIR, 'global-config.json');
 
 function migrateIfNeeded() {
   if (fs.existsSync(SYSTEMS_FILE)) return;
   saveJson(SYSTEMS_FILE, [
-    { id: 1, name: 'ระบบคิวการเงิน', description: 'Finance Queue System', icon: '💰', color: '#42a5f5' }
+    { id: 1, name: 'ระบบคิวการเงิน', description: 'ระบบแสดงคิวแผนกการเงิน', icon: '💰', color: '#42a5f5' }
   ]);
   const newDir = path.join(DATA_DIR, 'sys-1');
   if (!fs.existsSync(newDir)) fs.mkdirSync(newDir, { recursive: true });
@@ -53,6 +54,36 @@ let nextSysId = Math.max(0, ...systems.map(s => s.id)) + 1;
 // ── Per-system state ──────────────────────────────────────────────────────
 const sysData = {};
 
+const SCREEN_CFG_DEFAULTS = {
+  fontFamily:      'Kanit',
+  bgPreset:        'teal',
+  bgC1:            '#29b6c8',
+  bgC2:            '#0097a7',
+  bgC3:            '#00696f',
+  accentColor:     '#00bcd4',
+  cardSize:        'normal',
+  cardStyle:       'glass',
+  showScannerCard: true,
+  showToggles:     true,
+  navOpacity:      45,
+  titleFontSize:    24,
+  titleColor:       '#ffd54f',
+  cardNameFontSize: 15,
+  cardNameColor:    '#ffffff',
+  cardWaitFontSize: 12,
+  cardWaitNumColor: '#ffd54f',
+  barBgColor:       '#001c28',
+  barBgOpacity:     78,
+  barInputBg:       8,
+  barInputBorderColor: '',
+  barInputTextColor:   '#ffffff',
+  barInputFontSize:    17,
+  barPlaceholderColor: '#ffffff',
+  barPlaceholderOpacity: 28,
+  barLabelColor:    '',
+  barLabelSize:     10,
+};
+
 const PRINT_CFG_DEFAULTS = {
   paperSize:'80mm', customWidth:'80', customHeight:'',
   printerName:'',
@@ -63,7 +94,7 @@ const PRINT_CFG_DEFAULTS = {
   showDateTime:true, dateFontSize:9,
   showFooter:true,
   footerText:'กรุณานั่งรอเรียกหมายเลขของท่าน\nPlease wait for your number',
-  footerFontSize:8, autoPrint:true,
+  footerFontSize:8, autoPrint:true, copies:1,
 };
 
 function loadSysData(sysId) {
@@ -71,7 +102,8 @@ function loadSysData(sysId) {
   const typesFile       = path.join(dir, 'queue-types.json');
   const ctrsFile        = path.join(dir, 'counters.json');
   const displayFile     = path.join(dir, 'display-config.json');
-  const printConfigFile = path.join(dir, 'print-config.json');
+  const printConfigFile  = path.join(dir, 'print-config.json');
+  const screenConfigFile = path.join(dir, 'screen-config.json');
 
   const queueTypes = loadJson(typesFile, [
     { id: 1, name: 'ทั่วไป',    prefix: 'A', color: '#42a5f5' },
@@ -84,20 +116,28 @@ function loadSysData(sysId) {
   const displayConfig = loadJson(displayFile, {
     tickerMessages: [
       'ยินดีต้อนรับสู่ระบบคิว',
-      'Welcome to Queue System',
       'กรุณานั่งรอเรียกหมายเลขของท่าน',
-      'Please wait for your number to be called',
-      'ขอบคุณที่ใช้บริการ | Thank you for your patience',
+      'ขอบคุณที่ใช้บริการ',
     ],
   });
-  const printConfig = loadJson(printConfigFile, PRINT_CFG_DEFAULTS);
+  const printConfig       = loadJson(printConfigFile,  PRINT_CFG_DEFAULTS);
+  const screenConfig      = loadJson(screenConfigFile, SCREEN_CFG_DEFAULTS);
+  const lookupConfigFile  = path.join(dir, 'lookup-config.json');
+  const lookupConfig      = loadJson(lookupConfigFile, {
+    barcodeField: 'hn', barcodePrefixLen: 0, barcodeUseLen: 0,
+    allowAllPtypes: true, pttypeRules: [],
+  });
+  const displaySettingsFile  = path.join(dir, 'display-settings.json');
+  const displaySettings      = loadJson(displaySettingsFile, {});
+  const cashierSettingsFile  = path.join(dir, 'cashier-settings.json');
+  const cashierSettings      = loadJson(cashierSettingsFile, {});
 
   const state = {};
   queueTypes.forEach(t => { state[t.id] = { serial: 0, waiting: [], served: [], calledQueue: null }; });
 
   sysData[sysId] = {
-    queueTypes, counters, displayConfig, printConfig,
-    typesFile, ctrsFile, displayFile, printConfigFile,
+    queueTypes, counters, displayConfig, printConfig, screenConfig, lookupConfig, displaySettings, cashierSettings,
+    typesFile, ctrsFile, displayFile, printConfigFile, screenConfigFile, lookupConfigFile, displaySettingsFile, cashierSettingsFile,
     nextTypeId:          Math.max(0, ...queueTypes.map(t => t.id)) + 1,
     nextCounterId:       Math.max(0, ...counters.map(c => c.id))   + 1,
     state,
@@ -105,6 +145,7 @@ function loadSysData(sysId) {
     lastCalledByCounter: {},
     recentByCounter:     {},
   };
+  restoreQueueState(sysId, sysData[sysId]);
 }
 systems.forEach(s => loadSysData(s.id));
 
@@ -116,6 +157,142 @@ function requireSys(req, res, next) {
   req.sys   = sys;
   req.sysId = Number(req.params.sysId);
   next();
+}
+
+// ── DB helpers (fire-and-forget queue logging) ────────────────────────────
+function dbFire(fn) {
+  const cfg = loadDbConfig();
+  if (!cfg.host) return;
+  (async () => {
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+      try { await fn('mysql', conn); } finally { conn.end().catch(() => {}); }
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      try { await fn('pg', client); } finally { client.end().catch(() => {}); }
+    }
+  })().catch(e => console.error('[DB]', e.message));
+}
+
+async function dbRun(type, conn, sql, params) {
+  if (type === 'mysql') {
+    const [r] = await conn.execute(sql, params);
+    return r;
+  } else {
+    let i = 0;
+    const r = await conn.query(sql.replace(/\?/g, () => `$${++i}`), params);
+    return r;
+  }
+}
+
+function dbIssueTicket(sysId, ticket) {
+  dbFire(async (type, conn) => {
+    const today = todayStr();
+    let ticketDbId;
+    if (type === 'mysql') {
+      const r = await dbRun(type, conn,
+        `INSERT INTO app_queue_opd (sys_id,service_date,vn,vstdate,vsttime,type_id,type_name,prefix,ticket_no,display,hn,qn,patient_name,status,issued_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'waiting',NOW())`,
+        [sysId, today, ticket.vn||null, ticket.vstdate||today, ticket.vsttime||null,
+         ticket.typeId, ticket.typeName, ticket.prefix, ticket.number,
+         ticket.display, ticket.hn||null, ticket.qn||null, ticket.patientName||null]);
+      ticketDbId = r.insertId;
+    } else {
+      const r = await dbRun(type, conn,
+        `INSERT INTO app_queue_opd (sys_id,service_date,vn,vstdate,vsttime,type_id,type_name,prefix,ticket_no,display,hn,qn,patient_name,status,issued_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'waiting',NOW()) RETURNING id`,
+        [sysId, today, ticket.vn||null, ticket.vstdate||today, ticket.vsttime||null,
+         ticket.typeId, ticket.typeName, ticket.prefix, ticket.number,
+         ticket.display, ticket.hn||null, ticket.qn||null, ticket.patientName||null]);
+      ticketDbId = r.rows[0].id;
+    }
+    ticket._dbId = ticketDbId;
+    await dbRun(type, conn,
+      `INSERT INTO app_queue_events (ticket_id,sys_id,service_date,event_type,event_at) VALUES (?,?,?,'issued',NOW())`,
+      [ticketDbId, sysId, today]);
+  });
+}
+
+function dbCallTicket(sysId, ticket) {
+  dbFire(async (type, conn) => {
+    const today = todayStr();
+    await dbRun(type, conn,
+      `UPDATE app_queue_opd SET status='called', called_at=NOW(), counter_id=?, counter_name=?, updated_at=NOW()
+       WHERE display=? AND sys_id=? AND service_date=?`,
+      [ticket.counterId||null, ticket.counterName||null, ticket.display, sysId, today]);
+    const dbId = ticket._dbId || null;
+    await dbRun(type, conn,
+      `INSERT INTO app_queue_events (ticket_id,sys_id,service_date,event_type,counter_id,counter_name,event_at) VALUES (?,?,?,?,?,?,NOW())`,
+      [dbId, sysId, today, ticket.recalled?'recalled':'called', ticket.counterId||null, ticket.counterName||null]);
+  });
+}
+
+function dbReturnTicket(sysId, display) {
+  dbFire(async (type, conn) => {
+    const today = todayStr();
+    const r = await dbRun(type, conn,
+      `SELECT id FROM app_queue_opd WHERE display=? AND sys_id=? AND service_date=? LIMIT 1`,
+      [display, sysId, today]);
+    const dbId = (type==='mysql' ? r[0]?.id : r.rows[0]?.id) || null;
+    await dbRun(type, conn,
+      `UPDATE app_queue_opd SET status='waiting', called_at=NULL, updated_at=NOW() WHERE display=? AND sys_id=? AND service_date=?`,
+      [display, sysId, today]);
+    await dbRun(type, conn,
+      `INSERT INTO app_queue_events (ticket_id,sys_id,service_date,event_type,event_at) VALUES (?,?,?,'returned',NOW())`,
+      [dbId, sysId, today]);
+  });
+}
+
+function dbNoShow(sysId, display) {
+  dbFire(async (type, conn) => {
+    const today = todayStr();
+    const r = await dbRun(type, conn,
+      `SELECT id FROM app_queue_opd WHERE display=? AND sys_id=? AND service_date=? LIMIT 1`,
+      [display, sysId, today]);
+    const dbId = (type==='mysql' ? r[0]?.id : r.rows[0]?.id) || null;
+    await dbRun(type, conn,
+      `UPDATE app_queue_opd SET status='noshow', noshow_at=NOW(), updated_at=NOW() WHERE display=? AND sys_id=? AND service_date=?`,
+      [display, sysId, today]);
+    await dbRun(type, conn,
+      `INSERT INTO app_queue_events (ticket_id,sys_id,service_date,event_type,event_at) VALUES (?,?,?,'noshow',NOW())`,
+      [dbId, sysId, today]);
+  });
+}
+
+// ── Queue-state persistence ───────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function saveQueueState(sysId, sys) {
+  const file = path.join(sysDir(sysId), 'queue-state.json');
+  saveJson(file, {
+    date:                todayStr(),
+    state:               sys.state,
+    noShows:             sys.noShows,
+    lastCalledByCounter: sys.lastCalledByCounter,
+    recentByCounter:     sys.recentByCounter,
+  });
+}
+
+function restoreQueueState(sysId, sys) {
+  const file = path.join(sysDir(sysId), 'queue-state.json');
+  if (!fs.existsSync(file)) return;
+  try {
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (saved.date !== todayStr()) return;
+    for (const [id, s] of Object.entries(saved.state || {})) {
+      const tid = Number(id);
+      if (sys.state[tid]) sys.state[tid] = s;
+    }
+    sys.noShows             = saved.noShows             || [];
+    sys.lastCalledByCounter = saved.lastCalledByCounter || {};
+    sys.recentByCounter     = saved.recentByCounter     || {};
+  } catch {}
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -148,19 +325,40 @@ function broadcastCall(sysId, sys, called) {
 
 // ── Socket rooms ──────────────────────────────────────────────────────────
 io.on('connection', socket => {
-  socket.on('join_sys', sysId => socket.join('sys-' + sysId));
+  socket.on('join_sys', sysId => {
+    socket.join('sys-' + sysId);
+    const sys = getSys(sysId);
+    if (!sys) return;
+    socket.emit('sys_state', {
+      sysInfo:             systems.find(s => s.id === sysId) || null,
+      counters:            sys.counters,
+      queueTypes:          sys.queueTypes,
+      noShows:             sys.noShows.slice(0, 40),
+      lastCalledByCounter: sys.lastCalledByCounter,
+      recentByCounter:     sys.recentByCounter,
+      displayConfig:       sys.displayConfig,
+      displaySettings:     sys.displaySettings,
+      cashierSettings:     sys.cashierSettings,
+      typeWaiting:         typeWaiting(sys),
+      allWaiting:          allWaiting(sys),
+      allServed:           allServed(sys),
+    });
+  });
 });
 
 // ── Systems API ───────────────────────────────────────────────────────────
 app.get('/api/systems', (req, res) => res.json(systems));
 
 app.post('/api/systems', (req, res) => {
-  const { name, description, icon, color } = req.body;
+  const { name, description, icon, color, token } = req.body;
   if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อระบบ' });
   const sys = { id: nextSysId++, name: name.trim(), description: description || '', icon: icon || '📋', color: color || '#42a5f5' };
   systems.push(sys);
   saveJson(SYSTEMS_FILE, systems);
   loadSysData(sys.id);
+  // Associate with dept if logged in
+  const depcode = token && sessions[token] ? sessions[token].depcode : null;
+  if (depcode) addSysToDept(depcode, sys.id);
   io.emit('systems_updated', systems);
   res.json({ success: true, system: sys });
 });
@@ -181,13 +379,19 @@ app.put('/api/systems/:id', (req, res) => {
 
 app.delete('/api/systems/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  if (systems.length <= 1) return res.status(400).json({ success: false, message: 'ต้องมีอย่างน้อย 1 ระบบ' });
   const idx = systems.findIndex(s => s.id === id);
   if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบระบบ' });
   systems.splice(idx, 1);
   delete sysData[id];
   saveJson(SYSTEMS_FILE, systems);
+  // Remove from all dept mappings
+  removeSysFromDepts(id);
+  // Invalidate sessions that used this system
+  for (const tok of Object.keys(sessions)) {
+    if (sessions[tok].sysId === id) delete sessions[tok].sysId;
+  }
   io.emit('systems_updated', systems);
+  io.emit('system_deleted', { sysId: id });
   res.json({ success: true });
 });
 
@@ -205,9 +409,11 @@ app.get('/api/sys/:sysId/queue-types', requireSys, (req, res) => res.json(req.sy
 app.post('/api/sys/:sysId/queue-types', requireSys, (req, res) => {
   const { sys, sysId } = req;
   const { name, prefix, color } = req.body;
-  if (!name || !prefix) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อและ prefix' });
-  const p = prefix.toUpperCase().trim();
-  if (sys.queueTypes.find(t => t.prefix === p))
+  if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อประเภทคิว' });
+  const p = (prefix || '').toUpperCase().trim();
+  if (p === '' && sys.queueTypes.find(t => t.prefix === ''))
+    return res.status(400).json({ success: false, message: 'มีประเภทคิวที่ไม่ใช้ Prefix อยู่แล้ว (มีได้เพียงหนึ่งประเภท)' });
+  if (p !== '' && sys.queueTypes.find(t => t.prefix === p))
     return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
   const type = { id: sys.nextTypeId++, name: name.trim(), prefix: p, color: color || '#42a5f5' };
   sys.queueTypes.push(type); initTypeState(sys, type.id);
@@ -222,9 +428,11 @@ app.put('/api/sys/:sysId/queue-types/:id', requireSys, (req, res) => {
   const idx = sys.queueTypes.findIndex(t => t.id === id);
   if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบประเภทคิว' });
   const { name, prefix, color } = req.body;
-  if (prefix) {
+  if (prefix !== undefined && prefix !== null) {
     const p = prefix.toUpperCase().trim();
-    if (sys.queueTypes.find(t => t.id !== id && t.prefix === p))
+    if (p === '' && sys.queueTypes.find(t => t.id !== id && t.prefix === ''))
+      return res.status(400).json({ success: false, message: 'มีประเภทคิวที่ไม่ใช้ Prefix อยู่แล้ว' });
+    if (p !== '' && sys.queueTypes.find(t => t.id !== id && t.prefix === p))
       return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
     sys.queueTypes[idx].prefix = p;
   }
@@ -293,9 +501,12 @@ app.put('/api/sys/:sysId/display-config', requireSys, (req, res) => {
   const { sys, sysId } = req;
   if (Array.isArray(req.body.tickerMessages)) {
     sys.displayConfig.tickerMessages = req.body.tickerMessages;
-    saveJson(sys.displayFile, sys.displayConfig);
-    io.to('sys-' + sysId).emit('display_config_updated', sys.displayConfig);
   }
+  if (req.body.custom) {
+    sys.displayConfig.custom = req.body.custom;
+  }
+  saveJson(sys.displayFile, sys.displayConfig);
+  io.to('sys-' + sysId).emit('display_config_updated', sys.displayConfig);
   res.json({ success: true, displayConfig: sys.displayConfig });
 });
 
@@ -316,7 +527,7 @@ app.get('/api/sys/:sysId/peek-next', requireSys, (req, res) => {
 // ── Queue Operations ──────────────────────────────────────────────────────
 app.post('/api/sys/:sysId/get-serial', requireSys, (req, res) => {
   const { sys, sysId } = req;
-  const { typeId, hn, qn, patientName } = req.body;
+  const { typeId, hn, qn, patientName, pttypeName, vn, vstdate, vsttime } = req.body;
   const type = sys.queueTypes.find(t => t.id === Number(typeId));
   if (!type) return res.status(400).json({ success: false, message: 'ระบุประเภทคิวไม่ถูกต้อง' });
   initTypeState(sys, type.id);
@@ -332,9 +543,15 @@ app.post('/api/sys/:sysId/get-serial', requireSys, (req, res) => {
     issuedTs:    Date.now(),
     hn:          hn          || null,
     qn:          qn          || null,
+    vn:          vn          || null,
     patientName: patientName || null,
+    pttypeName:  pttypeName  || null,
+    vstdate:     vstdate     || null,
+    vsttime:     vsttime     || null,
   };
   s.waiting.push(ticket);
+  saveQueueState(sysId, sys);
+  dbIssueTicket(sysId, ticket);
   io.to('sys-' + sysId).emit('queue_issued', { ticket, typeWaiting: typeWaiting(sys), allWaiting: allWaiting(sys) });
   res.json({ success: true, ticket });
 });
@@ -359,6 +576,8 @@ function doCall(sys, sysId, ticket, s, counterId) {
     if (sys.recentByCounter[called.counterId].length > 5) sys.recentByCounter[called.counterId].pop();
   }
   broadcastCall(sysId, sys, called);
+  saveQueueState(sysId, sys);
+  dbCallTicket(sysId, called);
   return called;
 }
 
@@ -385,10 +604,14 @@ app.post('/api/sys/:sysId/call-next', requireSys, (req, res) => {
 
 app.post('/api/sys/:sysId/call-number', requireSys, (req, res) => {
   const { sys, sysId } = req;
-  const display   = (req.body.display || '').toUpperCase().trim();
+  const input     = (req.body.display || '').trim();
+  const upper     = input.toUpperCase();
   const counterId = req.body.counterId ? Number(req.body.counterId) : null;
   for (const s of Object.values(sys.state)) {
-    const idx = s.waiting.findIndex(t => t.display === display);
+    const idx = s.waiting.findIndex(t =>
+      t.display === upper ||
+      (t.qn && String(t.qn).trim() === input)
+    );
     if (idx !== -1) {
       const [ticket] = s.waiting.splice(idx, 1);
       return res.json({ success: true, calledQueue: doCall(sys, sysId, ticket, s, counterId) });
@@ -414,17 +637,20 @@ app.post('/api/sys/:sysId/uncall', requireSys, (req, res) => {
         if (rc) { const ri = rc.findIndex(t => t.display === display); if (ri !== -1) rc.splice(ri, 1); }
       }
       const restored = {
-        number: ticket.number, display: ticket.display, typeId: ticket.typeId,
-        typeName: ticket.typeName, prefix: ticket.prefix, color: ticket.color,
-        issuedAt: ticket.issuedAt, date: ticket.date,
+        ...ticket,
         issuedTs:    ticket.issuedTs || ticket._ts,
-        _ts:         ticket.issuedTs || ticket._ts,  // sort by original issue time
+        _ts:         ticket.issuedTs || ticket._ts,
         returned:    true,
         returnedAt:  new Date().toLocaleTimeString('th-TH'),
         returnCount: (ticket.returnCount || 0) + 1,
+        calledAt:    undefined,
+        counterId:   undefined,
+        counterName: undefined,
       };
       s.waiting.push(restored);
       s.waiting.sort((a, b) => a._ts - b._ts);
+      saveQueueState(sysId, sys);
+      dbReturnTicket(sysId, display);
       io.to('sys-' + sysId).emit('queue_uncalled', {
         display,
         typeWaiting:         typeWaiting(sys),
@@ -465,6 +691,8 @@ app.post('/api/sys/:sysId/recall-served', requireSys, (req, res) => {
     if (sys.recentByCounter[recalled.counterId].length > 5) sys.recentByCounter[recalled.counterId].pop();
   }
   broadcastCall(sysId, sys, recalled);
+  recalled.recalled = true;
+  dbCallTicket(sysId, recalled);
   res.json({ success: true, calledQueue: recalled });
 });
 
@@ -482,6 +710,8 @@ app.post('/api/sys/:sysId/no-show', requireSys, (req, res) => {
   const entry = { ...record, noShowAt: new Date().toLocaleTimeString('th-TH'), noShowTs: Date.now() };
   sys.noShows.unshift(entry);
   if (sys.noShows.length > 50) sys.noShows.pop();
+  saveQueueState(sysId, sys);
+  dbNoShow(sysId, display);
   io.to('sys-' + sysId).emit('queue_noshow', { display, entry, noShows: sys.noShows.slice(0, 40), allServed: allServed(sys) });
   res.json({ success: true, entry });
 });
@@ -513,6 +743,8 @@ app.post('/api/sys/:sysId/recall-noshow', requireSys, (req, res) => {
     if (sys.recentByCounter[recalled.counterId].length > 5) sys.recentByCounter[recalled.counterId].pop();
   }
   broadcastCall(sysId, sys, recalled);
+  saveQueueState(sysId, sys);
+  dbCallTicket(sysId, recalled);
   io.to('sys-' + sysId).emit('noshow_recalled', { display, noShows: sys.noShows.slice(0, 40) });
   res.json({ success: true, calledQueue: recalled });
 });
@@ -535,7 +767,65 @@ app.get('/api/sys/:sysId/status', requireSys, (req, res) => {
     recentByCounter:     sys.recentByCounter,
     displayConfig:       sys.displayConfig,
     printConfig:         sys.printConfig,
+    screenConfig:        sys.screenConfig,
   });
+});
+
+// ── Screen config ─────────────────────────────────────────────────────────
+app.get('/api/sys/:sysId/screen-config', requireSys, (req, res) => res.json(req.sys.screenConfig));
+
+app.post('/api/sys/:sysId/screen-config', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  Object.assign(sys.screenConfig, req.body);
+  saveJson(sys.screenConfigFile, sys.screenConfig);
+  io.to('sys-' + sysId).emit('screen_config_updated', sys.screenConfig);
+  res.json({ success: true, screenConfig: sys.screenConfig });
+});
+
+// ── Lookup config (barcode field + pttype rules) ──────────────────────────
+app.get('/api/sys/:sysId/lookup-config', requireSys, (req, res) => res.json(req.sys.lookupConfig));
+
+app.post('/api/sys/:sysId/lookup-config', requireSys, (req, res) => {
+  const { sys } = req;
+  Object.assign(sys.lookupConfig, req.body);
+  saveJson(sys.lookupConfigFile, sys.lookupConfig);
+  res.json({ success: true, lookupConfig: sys.lookupConfig });
+});
+
+// ── Global color config ───────────────────────────────────────────────────
+app.get('/api/global-config', (req, res) => {
+  res.json(loadJson(GLOBAL_CONFIG_FILE, { brightness: 1, saturation: 1.2 }));
+});
+
+app.post('/api/global-config', (req, res) => {
+  const b = parseFloat(req.body.brightness);
+  const s = parseFloat(req.body.saturation);
+  const cfg = { brightness: isNaN(b) ? 1 : b, saturation: isNaN(s) ? 1.2 : s };
+  saveJson(GLOBAL_CONFIG_FILE, cfg);
+  io.emit('global_config_updated', cfg);
+  res.json({ success: true, ...cfg });
+});
+
+// ── Per-sys display settings ──────────────────────────────────────────────
+app.get('/api/sys/:sysId/display-settings', requireSys, (req, res) => res.json(req.sys.displaySettings));
+
+app.post('/api/sys/:sysId/display-settings', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  Object.assign(sys.displaySettings, req.body);
+  saveJson(sys.displaySettingsFile, sys.displaySettings);
+  io.to('sys-' + sysId).emit('display_settings_updated', sys.displaySettings);
+  res.json({ success: true });
+});
+
+// ── Per-sys cashier settings ──────────────────────────────────────────────
+app.get('/api/sys/:sysId/cashier-settings', requireSys, (req, res) => res.json(req.sys.cashierSettings));
+
+app.post('/api/sys/:sysId/cashier-settings', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  Object.assign(sys.cashierSettings, req.body);
+  saveJson(sys.cashierSettingsFile, sys.cashierSettings);
+  io.to('sys-' + sysId).emit('cashier_settings_updated', sys.cashierSettings);
+  res.json({ success: true });
 });
 
 // ── Print config ──────────────────────────────────────────────────────────
@@ -549,8 +839,18 @@ app.post('/api/sys/:sysId/print-config', requireSys, (req, res) => {
   res.json({ success: true, printConfig: sys.printConfig });
 });
 
+// ── CORS for local cross-origin print requests (client → localhost) ───────
+function corsLocal(req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+}
+
 // ── Printer list (Windows) ────────────────────────────────────────────────
-app.get('/api/printers', (req, res) => {
+app.options('/api/printers', corsLocal);
+app.get('/api/printers', corsLocal, (req, res) => {
   exec('powershell -NoProfile -Command "Get-Printer | Select-Object -ExpandProperty Name"',
     { timeout: 6000, windowsHide: true }, (err, stdout) => {
     if (err) return res.json({ printers: [] });
@@ -562,52 +862,66 @@ app.get('/api/printers', (req, res) => {
 // ── Direct print (server-side, no browser dialog) ────────────────────────
 function buildPrintLines(cfg, ticket) {
   const lines = [];
-  if (cfg.showHeader) {
-    lines.push({ t: 'text', text: cfg.headerName || ticket.sysName || 'ระบบคิว', fs: cfg.headerFontSize || 14, bold: true, color: 'Black' });
-    if (cfg.headerSubtitle) lines.push({ t: 'text', text: cfg.headerSubtitle, fs: Math.max(7, (cfg.headerFontSize || 14) - 3), bold: false, color: 'DimGray' });
-  }
-  if (cfg.showDividerLine) lines.push({ t: 'div' });
-  if (cfg.showPatientName && ticket.patientName) lines.push({ t: 'text', text: ticket.patientName, fs: cfg.patientFontSize || 11, bold: true, color: 'Black' });
-  if (cfg.showHnQn) {
-    const parts = [ticket.hn ? 'HN: ' + ticket.hn : '', ticket.qn ? 'QN: ' + ticket.qn : ''].filter(Boolean);
-    if (parts.length) lines.push({ t: 'text', text: parts.join('   '), fs: Math.max(7, (cfg.patientFontSize || 11) - 2), bold: false, color: 'DimGray' });
-  }
-  if (cfg.showDividerLine) lines.push({ t: 'div' });
-  if (cfg.showQueueType && ticket.typeName) lines.push({ t: 'text', text: ticket.typeName, fs: cfg.queueTypeFontSize || 11, bold: false, color: 'Black' });
-  lines.push({ t: 'num', text: ticket.display, fs: cfg.queueNumFontSize || 60, bold: true, color: 'Black' });
-  if (cfg.showDateTime) lines.push({ t: 'text', text: `${ticket.date}  ${ticket.issuedAt}`, fs: cfg.dateFontSize || 9, bold: false, color: 'DimGray' });
-  if (cfg.showDividerLine) lines.push({ t: 'div' });
-  if (cfg.showFooter && cfg.footerText) {
-    cfg.footerText.split('\n').forEach(line => {
-      if (line.trim()) lines.push({ t: 'text', text: line, fs: cfg.footerFontSize || 8, bold: false, color: 'DimGray' });
-    });
+  const DEFAULT_ORDER = ['header','patientName','hnQn','queueType','queueNum','dateTime','footer'];
+  const order = (cfg.layoutOrder && cfg.layoutOrder.length) ? cfg.layoutOrder : DEFAULT_ORDER;
+
+  const builders = {
+    header: () => {
+      if (!cfg.showHeader) return;
+      lines.push({ t:'text', text: cfg.headerName || ticket.sysName || 'ระบบคิว', fs: cfg.headerFontSize||14, bold:true, color:'Black' });
+      if (cfg.headerSubtitle) lines.push({ t:'text', text: cfg.headerSubtitle, fs: Math.max(7,(cfg.headerFontSize||14)-3), bold:false, color:'DimGray' });
+    },
+    patientName: () => {
+      if (!cfg.showPatientName || !ticket.patientName) return;
+      lines.push({ t:'text', text: ticket.patientName, fs: cfg.patientFontSize||11, bold:true, color:'Black' });
+    },
+    hnQn: () => {
+      if (!cfg.showHnQn) return;
+      const parts = [ticket.hn?'HN: '+ticket.hn:'', ticket.qn?'QN: '+ticket.qn:''].filter(Boolean);
+      if (parts.length) lines.push({ t:'text', text: parts.join('   '), fs: Math.max(7,(cfg.patientFontSize||11)-2), bold:false, color:'DimGray' });
+    },
+    queueType: () => {
+      if (!cfg.showQueueType || !ticket.typeName) return;
+      lines.push({ t:'text', text: ticket.typeName, fs: cfg.queueTypeFontSize||11, bold:false, color:'Black' });
+    },
+    queueNum: () => {
+      lines.push({ t:'num', text: ticket.display, fs: cfg.queueNumFontSize||60, bold:true, color:'Black' });
+    },
+    dateTime: () => {
+      if (!cfg.showDateTime) return;
+      lines.push({ t:'text', text: `${ticket.date}  ${ticket.issuedAt}`, fs: cfg.dateFontSize||9, bold:false, color:'DimGray' });
+    },
+    footer: () => {
+      if (!cfg.showFooter || !cfg.footerText) return;
+      cfg.footerText.split('\n').forEach(l => {
+        if (l.trim()) lines.push({ t:'text', text: l, fs: cfg.footerFontSize||8, bold:false, color:'DimGray' });
+      });
+    }
+  };
+
+  for (const id of order) {
+    if (id === 'divider') {
+      if (cfg.showDividerLine && lines.length && lines[lines.length-1]?.t !== 'div')
+        lines.push({ t:'div' });
+    } else if (builders[id]) {
+      builders[id]();
+    }
   }
   return lines;
 }
 
-app.post('/api/sys/:sysId/print-ticket', requireSys, (req, res) => {
-  const sys = req.sys;
-  const cfg = sys.printConfig;
-  if (!cfg.printerName) return res.json({ success: false, message: 'ไม่ได้เลือกเครื่องพิมพ์' });
-
-  const paperMm = cfg.paperSize === '58mm' ? 58
-                : cfg.paperSize === 'a4'   ? 210
-                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80)
-                : 80;
-
-  const printData = { printerName: cfg.printerName, paperMm, lines: buildPrintLines(cfg, req.body) };
+function runPowershellPrint(printData, callback) {
   const ts       = Date.now();
   const dataFile = path.join(os.tmpdir(), `qdata_${ts}.json`);
   const ps1File  = path.join(os.tmpdir(), `qprint_${ts}.ps1`);
-
   fs.writeFileSync(dataFile, JSON.stringify(printData), 'utf8');
-
   const psScript = `
 Add-Type -AssemblyName System.Drawing
 $script:d = Get-Content '${dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''")}' -Raw -Encoding utf8 | ConvertFrom-Json
 $pw100 = [int]($script:d.paperMm / 25.4 * 100)
 $pd = New-Object System.Drawing.Printing.PrintDocument
 $pd.PrinterSettings.PrinterName = $script:d.printerName
+$pd.PrinterSettings.Copies = [int16]([Math]::Max(1,$script:d.copies))
 $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
 $pd.add_PrintPage({
@@ -645,12 +959,38 @@ $pd.add_PrintPage({
 })
 $pd.Print()
 `;
-
   fs.writeFileSync(ps1File, psScript, 'utf8');
   exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1File}"`,
     { timeout: 15000, windowsHide: true }, (err, stdout, stderr) => {
       try { fs.unlinkSync(ps1File); } catch {}
       try { fs.unlinkSync(dataFile); } catch {}
+      callback(err, stderr);
+    });
+}
+
+app.post('/api/sys/:sysId/print-ticket', requireSys, (req, res) => {
+  const cfg = req.sys.printConfig;
+  if (!cfg.printerName) return res.json({ success: false, message: 'ไม่ได้เลือกเครื่องพิมพ์' });
+  const paperMm = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
+                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  runPowershellPrint({ printerName: cfg.printerName, paperMm, copies: cfg.copies || 1, lines: buildPrintLines(cfg, req.body) },
+    (err, stderr) => {
+      if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
+      res.json({ success: true });
+    });
+});
+
+// ── Local print (CORS — called from client machine's localhost) ───────────
+app.options('/api/local-print', corsLocal);
+app.post('/api/local-print', corsLocal, (req, res) => {
+  const { printerName, sysId, ticket } = req.body;
+  if (!printerName) return res.json({ success: false, message: 'ไม่ได้ระบุเครื่องพิมพ์' });
+  const sys = getSys(Number(sysId) || 1);
+  const cfg = sys ? { ...sys.printConfig, printerName } : { ...PRINT_CFG_DEFAULTS, printerName };
+  const paperMm = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
+                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  runPowershellPrint({ printerName, paperMm, copies: cfg.copies || 1, lines: buildPrintLines(cfg, ticket || req.body) },
+    (err, stderr) => {
       if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
       res.json({ success: true });
     });
@@ -661,6 +1001,7 @@ function resetSys(sysId, sys) {
   for (const id of Object.keys(sys.state))
     sys.state[id] = { serial: 0, waiting: [], served: [], calledQueue: null };
   sys.noShows = []; sys.lastCalledByCounter = {}; sys.recentByCounter = {};
+  try { fs.unlinkSync(path.join(sysDir(sysId), 'queue-state.json')); } catch {}
   io.to('sys-' + sysId).emit('queue_reset');
 }
 (function scheduleReset() {
@@ -671,21 +1012,34 @@ function resetSys(sysId, sys) {
 
 // ── Patient lookup ────────────────────────────────────────────────────────
 app.post('/api/patient-lookup', async (req, res) => {
-  const { type, value } = req.body;
+  const { type, value, sysId: reqSysId } = req.body;
   if (!value || !value.toString().trim()) return res.json({ success: false, message: 'กรุณาระบุข้อมูล' });
   const cfg = loadDbConfig();
   if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล' });
-  const val = value.toString().trim();
+
+  // Apply per-system barcode config
+  const lc = (reqSysId && sysData[reqSysId]) ? sysData[reqSysId].lookupConfig : null;
+  let val = value.toString().trim();
+  if (lc) {
+    if (lc.barcodePrefixLen > 0) val = val.slice(lc.barcodePrefixLen);
+    if (lc.barcodeUseLen   > 0) val = val.slice(0, lc.barcodeUseLen);
+  }
+  // Determine search column: use lookupConfig.barcodeField when type is 'barcode', else use explicit type
+  const searchField = (type === 'barcode' && lc) ? (lc.barcodeField || 'hn')
+                    : (type === 'hn' ? 'hn' : 'qn');
   try {
     let row = null;
     if (cfg.type === 'mysql') {
       const mysql = require('mysql2/promise');
       const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
-      const col   = type === 'hn' ? 'o.hn' : 'o.oqueue';
+      const col   = searchField === 'hn' ? 'o.hn' : 'o.oqueue';
       const [rows] = await conn.execute(
-        `SELECT o.hn, o.oqueue, o.vstdate,
-           CONCAT(IFNULL(p.pname,''), IFNULL(p.fname,''), ' ', IFNULL(p.lname,'')) AS ptname
-         FROM ovst o LEFT JOIN patient p ON p.hn = o.hn
+        `SELECT o.hn, o.oqueue, o.vn, o.vstdate, o.vsttime,
+           CONCAT(IFNULL(p.pname,''), IFNULL(p.fname,''), ' ', IFNULL(p.lname,'')) AS ptname,
+           pt.name AS pttype_name, o.pttype
+         FROM ovst o
+         LEFT JOIN patient p  ON p.hn      = o.hn
+         LEFT JOIN pttype  pt ON pt.pttype = o.pttype
          WHERE ${col} = ? AND o.vstdate = CURDATE()
          ORDER BY o.vn DESC LIMIT 1`,
         [val]
@@ -696,11 +1050,14 @@ app.post('/api/patient-lookup', async (req, res) => {
       const { Client } = require('pg');
       const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
       await client.connect();
-      const col    = type === 'hn' ? 'o.hn' : 'o.oqueue';
+      const col    = searchField === 'hn' ? 'o.hn' : 'o.oqueue';
       const result = await client.query(
-        `SELECT o.hn, o.oqueue, o.vstdate,
-           COALESCE(p.pname,'') || COALESCE(p.fname,'') || ' ' || COALESCE(p.lname,'') AS ptname
-         FROM ovst o LEFT JOIN patient p ON p.hn = o.hn
+        `SELECT o.hn, o.oqueue, o.vn, o.vstdate, o.vsttime,
+           COALESCE(p.pname,'') || COALESCE(p.fname,'') || ' ' || COALESCE(p.lname,'') AS ptname,
+           pt.name AS pttype_name, o.pttype
+         FROM ovst o
+         LEFT JOIN patient p  ON p.hn      = o.hn
+         LEFT JOIN pttype  pt ON pt.pttype = o.pttype
          WHERE ${col} = $1 AND o.vstdate = CURRENT_DATE
          ORDER BY o.vn DESC LIMIT 1`,
         [val]
@@ -709,19 +1066,62 @@ app.post('/api/patient-lookup', async (req, res) => {
       row = result.rows[0] || null;
     }
     if (!row) return res.json({ success: false, message: 'ไม่พบ visit รับบริการในวันนี้' });
+
+    // Pttype rule matching
+    const pttype     = (row.pttype || '').trim();
+    const pttypeName = (row.pttype_name || '').trim() || null;
+    let autoTypeId   = null;
+    if (lc && !lc.allowAllPtypes) {
+      const rule = (lc.pttypeRules || []).find(r => r.enabled !== false && r.code === pttype);
+      if (!rule) return res.json({ success: false, message: `สิทธิการรักษา "${pttype || pttypeName || 'ไม่ระบุ'}" ไม่ได้รับอนุญาตในระบบนี้` });
+      autoTypeId = rule.autoTypeId || null;
+    } else if (lc) {
+      const rule = (lc.pttypeRules || []).find(r => r.enabled !== false && r.code === pttype);
+      if (rule) autoTypeId = rule.autoTypeId || null;
+    }
+
     res.json({
       success: true,
       patient: {
-        hn:      row.hn,
-        qn:      row.oqueue || '-',
-        name:    (row.ptname || '').trim() || '(ไม่ระบุชื่อ)',
-        vstdate: row.vstdate,
+        hn:          row.hn,
+        qn:          row.oqueue     || '-',
+        vn:          row.vn         || null,
+        name:        (row.ptname || '').trim() || '(ไม่ระบุชื่อ)',
+        pttype,
+        pttypeName,
+        autoTypeId,
+        vstdate:     row.vstdate,
+        vsttime:     row.vsttime    || null,
       }
     });
   } catch (err) {
     res.json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
   }
 });
+
+// ── Dept → System mapping  (format: { depcode: [sysId, ...] }) ───────────
+const DEPT_SYS_FILE = path.join(DATA_DIR, 'dept-systems.json');
+function loadDeptSystems() {
+  const raw = loadJson(DEPT_SYS_FILE, {});
+  // migrate old format { depcode: sysId } → { depcode: [sysId] }
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    out[k] = Array.isArray(v) ? v : (v ? [v] : []);
+  }
+  return out;
+}
+function saveDeptSystems(d) { saveJson(DEPT_SYS_FILE, d); }
+function addSysToDept(depcode, sysId) {
+  const d = loadDeptSystems();
+  if (!d[depcode]) d[depcode] = [];
+  if (!d[depcode].includes(sysId)) d[depcode].push(sysId);
+  saveDeptSystems(d);
+}
+function removeSysFromDepts(sysId) {
+  const d = loadDeptSystems();
+  for (const k of Object.keys(d)) d[k] = d[k].filter(id => id !== sysId);
+  saveDeptSystems(d);
+}
 
 // ── DB Config & Auth ──────────────────────────────────────────────────────
 const DB_CONFIG_FILE = path.join(DATA_DIR, 'db-config.json');
@@ -733,7 +1133,7 @@ function loadDbConfig() {
 
 app.get('/api/db-config', (req, res) => {
   const cfg = loadDbConfig();
-  res.json({ type: cfg.type, host: cfg.host, port: cfg.port, database: cfg.database, username: cfg.username });
+  res.json({ type: cfg.type, host: cfg.host, port: cfg.port, database: cfg.database, username: cfg.username, password: cfg.password });
 });
 
 app.post('/api/db-config/save', (req, res) => {
@@ -759,6 +1159,153 @@ app.post('/api/db-config/test', async (req, res) => {
       await client.end();
     }
     res.json({ success: true, message: 'เชื่อมต่อสำเร็จ' });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// ── DB table check & migrate ──────────────────────────────────────────────
+const TABLE_NAMES = ['app_queue_opd', 'app_queue_events'];
+
+async function checkTables(cfg) {
+  const result = { app_queue_opd: false, app_queue_events: false };
+  if (cfg.type === 'mysql') {
+    const mysql = require('mysql2/promise');
+    const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+    const [rows] = await conn.execute(
+      `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN ('app_queue_opd','app_queue_events')`,
+      [cfg.database]
+    );
+    await conn.end();
+    rows.forEach(r => { result[r.TABLE_NAME] = true; });
+  } else {
+    const { Client } = require('pg');
+    const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+    await client.connect();
+    const { rows } = await client.query(
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('app_queue_opd','app_queue_events')`
+    );
+    await client.end();
+    rows.forEach(r => { result[r.table_name] = true; });
+  }
+  return result;
+}
+
+app.get('/api/db/check-tables', async (req, res) => {
+  const cfg = loadDbConfig();
+  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล', tables: { app_queue_opd: false, app_queue_events: false } });
+  try {
+    const tables = await checkTables(cfg);
+    res.json({ success: true, tables });
+  } catch (err) {
+    res.json({ success: false, message: err.message, tables: { app_queue_opd: false, app_queue_events: false } });
+  }
+});
+
+app.post('/api/db/migrate', async (req, res) => {
+  const cfg = loadDbConfig();
+  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล' });
+  try {
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000, multipleStatements: true });
+      await conn.execute(`CREATE TABLE IF NOT EXISTS app_queue_opd (
+        id           INT          NOT NULL AUTO_INCREMENT,
+        sys_id       INT          NOT NULL DEFAULT 1,
+        service_date DATE,
+        vn           VARCHAR(13),
+        vstdate      DATE,
+        vsttime      TIME,
+        type_id      INT,
+        type_name    VARCHAR(100),
+        prefix       VARCHAR(10),
+        ticket_no    INT,
+        display      VARCHAR(20),
+        hn           VARCHAR(20),
+        qn           VARCHAR(20),
+        patient_name VARCHAR(200),
+        status       ENUM('waiting','called','noshow','completed','void') DEFAULT 'waiting',
+        issued_at    DATETIME,
+        called_at    DATETIME,
+        counter_id   INT,
+        counter_name VARCHAR(100),
+        return_count INT          DEFAULT 0,
+        noshow_at    DATETIME,
+        created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+        updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      await conn.execute(`CREATE TABLE IF NOT EXISTS app_queue_events (
+        id           INT          NOT NULL AUTO_INCREMENT,
+        ticket_id    INT,
+        sys_id       INT          NOT NULL DEFAULT 1,
+        service_date DATE,
+        event_type   ENUM('issued','called','recalled','noshow','noshow_recalled','returned','completed','void'),
+        counter_id   INT,
+        counter_name VARCHAR(100),
+        event_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
+        meta         JSON,
+        PRIMARY KEY (id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      // Add UNIQUE index on id — ignore error if already exists
+      for (const [tbl, idx] of [['app_queue_opd','uq_opd_id'],['app_queue_events','uq_evt_id']]) {
+        try { await conn.execute(`ALTER TABLE ${tbl} ADD UNIQUE KEY ${idx} (id)`); } catch {}
+      }
+      // Add vn column if not exists
+      try { await conn.execute(`ALTER TABLE app_queue_opd ADD COLUMN vn VARCHAR(13) AFTER service_date`); } catch {}
+      await conn.end();
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      await client.query(`CREATE TABLE IF NOT EXISTS app_queue_opd (
+        id           SERIAL       NOT NULL,
+        sys_id       INT          NOT NULL DEFAULT 1,
+        service_date DATE,
+        vn           VARCHAR(13),
+        vstdate      DATE,
+        vsttime      TIME,
+        type_id      INT,
+        type_name    VARCHAR(100),
+        prefix       VARCHAR(10),
+        ticket_no    INT,
+        display      VARCHAR(20),
+        hn           VARCHAR(20),
+        qn           VARCHAR(20),
+        patient_name VARCHAR(200),
+        status       VARCHAR(20)  DEFAULT 'waiting',
+        issued_at    TIMESTAMP,
+        called_at    TIMESTAMP,
+        counter_id   INT,
+        counter_name VARCHAR(100),
+        return_count INT          DEFAULT 0,
+        noshow_at    TIMESTAMP,
+        created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      )`);
+      await client.query(`CREATE TABLE IF NOT EXISTS app_queue_events (
+        id           SERIAL       NOT NULL,
+        ticket_id    INT,
+        sys_id       INT          NOT NULL DEFAULT 1,
+        service_date DATE,
+        event_type   VARCHAR(30),
+        counter_id   INT,
+        counter_name VARCHAR(100),
+        event_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        meta         JSONB,
+        PRIMARY KEY (id)
+      )`);
+      // Add UNIQUE index on id — ignore error if already exists
+      for (const [tbl, idx] of [['app_queue_opd','uq_opd_id'],['app_queue_events','uq_evt_id']]) {
+        try { await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ${idx} ON ${tbl} (id)`); } catch {}
+      }
+      // Add vn column if not exists
+      try { await client.query(`ALTER TABLE app_queue_opd ADD COLUMN IF NOT EXISTS vn VARCHAR(13)`); } catch {}
+      await client.end();
+    }
+    const tables = await checkTables(cfg);
+    res.json({ success: true, tables });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
@@ -844,5 +1391,120 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// ── Officer departments ───────────────────────────────────────────────────
+app.post('/api/officer/departments', async (req, res) => {
+  const token = (req.body || {}).token;
+  if (!token || !sessions[token]) return res.json({ success: false, message: 'กรุณาเข้าสู่ระบบ' });
+  const officerId = sessions[token].officerId;
+  const cfg = loadDbConfig();
+  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าฐานข้อมูล' });
+  try {
+    let rows = [];
+    if (cfg.type === 'mysql') {
+      const mysql = require('mysql2/promise');
+      const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+      const [r] = await conn.execute(
+        `SELECT od.depcode, k.department
+         FROM officer_department od
+         JOIN kskdepartment k ON k.depcode = od.depcode
+         WHERE od.officer_id = ?
+         ORDER BY k.department`,
+        [officerId]
+      );
+      await conn.end();
+      rows = r;
+    } else {
+      const { Client } = require('pg');
+      const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+      await client.connect();
+      const result = await client.query(
+        `SELECT od.depcode, k.department
+         FROM officer_department od
+         JOIN kskdepartment k ON k.depcode = od.depcode
+         WHERE od.officer_id = $1
+         ORDER BY k.department`,
+        [officerId]
+      );
+      await client.end();
+      rows = result.rows;
+    }
+    res.json({ success: true, departments: rows.map(r => ({ depcode: r.depcode, name: r.department })) });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// ── Select department (only sets session depcode — no auto-create) ────────
+app.post('/api/auth/select-dept', (req, res) => {
+  const { token, depcode, deptName } = req.body || {};
+  if (!token || !sessions[token]) return res.json({ success: false, message: 'กรุณาเข้าสู่ระบบ' });
+  if (!depcode) return res.json({ success: false, message: 'กรุณาเลือกห้องตรวจ' });
+  sessions[token].depcode  = depcode;
+  sessions[token].deptName = deptName || depcode;
+  res.json({ success: true, depcode, deptName: deptName || depcode });
+});
+
+// ── My systems (systems belonging to current user's dept) ─────────────────
+app.post('/api/my-systems', (req, res) => {
+  const token = (req.body || {}).token;
+  if (!token || !sessions[token]) return res.json({ success: false, sysIds: [] });
+  const depcode = sessions[token].depcode;
+  if (!depcode) return res.json({ success: true, sysIds: [] });
+  const deptSys = loadDeptSystems();
+  const sysIds  = (deptSys[depcode] || []).filter(id => systems.find(s => s.id === id));
+  res.json({ success: true, sysIds });
+});
+
+// ── Startup / auto-start control (Windows registry) ──────────────────────
+const BAT_PATH = path.join(__dirname, 'start-server.bat');
+
+app.get('/api/startup-status', (req, res) => {
+  exec(
+    `powershell -NoProfile -Command "if (Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'QueueSystem' -ErrorAction SilentlyContinue) { '1' } else { '0' }"`,
+    { timeout: 5000, windowsHide: true },
+    (err, stdout) => res.json({ autoStart: stdout.trim() === '1' })
+  );
+});
+
+app.post('/api/startup/set', (req, res) => {
+  const enable = !!req.body.enable;
+  const cmd = enable
+    ? `powershell -NoProfile -Command "Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'QueueSystem' -Value '${BAT_PATH.replace(/'/g, "''")}'"`
+    : `powershell -NoProfile -Command "Remove-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'QueueSystem' -ErrorAction SilentlyContinue"`;
+  exec(cmd, { timeout: 5000, windowsHide: true }, err =>
+    res.json({ success: !err, autoStart: enable })
+  );
+});
+
+app.post('/api/server/restart', (req, res) => {
+  res.json({ success: true });
+  setTimeout(() => {
+    const { spawn } = require('child_process');
+    spawn('cmd', ['/c', 'start', '', BAT_PATH], { detached: true, stdio: 'ignore', shell: false }).unref();
+  }, 300);
+});
+
+// ── Server info (for multi-PC connection guide) ───────────────────────────
+app.get('/api/server-info', (req, res) => {
+  const nets = os.networkInterfaces();
+  const ips  = [];
+  for (const name of Object.keys(nets)) {
+    for (const iface of nets[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        ips.push({ iface: name, ip: iface.address });
+      }
+    }
+  }
+  res.json({ port: PORT, hostname: os.hostname(), ips });
+});
+
 const PORT = 3000;
-server.listen(PORT, () => console.log(`ระบบคิว  http://localhost:${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+  const nets = os.networkInterfaces();
+  const lanIps = [];
+  for (const n of Object.values(nets)) {
+    for (const i of n) { if (i.family === 'IPv4' && !i.internal) lanIps.push(i.address); }
+  }
+  console.log(`ระบบคิว  http://localhost:${PORT}`);
+  if (lanIps.length) console.log(`LAN      http://${lanIps[0]}:${PORT}  (เปิดจากเครื่องอื่นบน LAN)`);
+});

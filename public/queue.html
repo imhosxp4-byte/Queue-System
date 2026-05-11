@@ -7,7 +7,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&family=Sarabun:wght@300;400;600;700&family=Prompt:wght@300;400;600;700&family=Mitr:wght@300;400;600;700&family=Noto+Sans+Thai:wght@300;400;600;700&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
 
     body{
@@ -392,6 +392,7 @@
         <div class="pt-tags">
           <div class="pt-tag">HN: <b id="ptHN">-</b></div>
           <div class="pt-tag">QN: <b id="ptQN">-</b></div>
+          <div class="pt-tag" id="ptPttypeTag" style="display:none;background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.3);color:#ffd54f">สิทธิ: <b id="ptPttype">-</b></div>
         </div>
       </div>
       <button class="btn-back" onclick="backToScanner()">← ค้นหาใหม่</button>
@@ -444,6 +445,7 @@ let queueTypes     = [];
 let typeWaiting    = {};
 let sysInfo        = null;
 let printConfig    = {};
+let screenConfig   = {};
 let currentPatient = null;
 let isScanning     = false;
 let scanCooldown   = false;
@@ -488,17 +490,24 @@ function doLogout() {
 });
 
 // ── Socket ────────────────────────────────────────────────────────────────
+socket.on('screen_config_updated',  cfg => { screenConfig = cfg; applyScreenConfig(cfg); });
+socket.on('print_config_updated',   cfg => { printConfig  = cfg; });
 socket.on('types_updated', t  => { queueTypes = t; renderCards(); });
 socket.on('queue_issued',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
 socket.on('queue_called',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
 socket.on('queue_reset',   () => { typeWaiting = {}; renderCards(); backToScanner(); });
+socket.on('system_deleted', ({ sysId: deletedId }) => {
+  if (Number(deletedId) === Number(sysId)) location.href = '/login.html';
+});
 
 // ── Load ──────────────────────────────────────────────────────────────────
 fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   sysInfo     = d.sysInfo;
   queueTypes  = d.queueTypes;
   typeWaiting = d.typeWaiting;
-  printConfig = d.printConfig || {};
+  printConfig  = d.printConfig  || {};
+  screenConfig = d.screenConfig || {};
+  applyScreenConfig(screenConfig);
   if (sysInfo) {
     document.getElementById('sysIcon').textContent      = sysInfo.icon || '📋';
     document.getElementById('sysNameLabel').textContent = sysInfo.name;
@@ -586,12 +595,14 @@ function setStatus(msg, color) {
   statusBar.style.color = color || '';
 }
 
+let _fromBarcode = false;
 function onBarcodeScanned(value) {
   stopScanner();
   setStatus(`✓ สแกนได้: ${value}`, '#2e7d32');
   hnEl.value = value;
   qnEl.value = '';
   syncFields();
+  _fromBarcode = true;
   doLookup();
   setTimeout(() => { scanCooldown = false; }, 3000);
 }
@@ -626,7 +637,8 @@ function doLookup() {
     return;
   }
 
-  const type  = hn ? 'hn' : 'qn';
+  const isBarcode = _fromBarcode; _fromBarcode = false;
+  const type  = isBarcode ? 'barcode' : (hn ? 'hn' : 'qn');
   const value = hn || qn;
 
   btn.disabled = true;
@@ -634,7 +646,7 @@ function doLookup() {
 
   fetch('/api/patient-lookup', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ type, value })
+    body: JSON.stringify({ type, value, sysId: Number(sysId) })
   })
   .then(r => r.json())
   .then(d => {
@@ -643,8 +655,21 @@ function doLookup() {
       document.getElementById('ptName').textContent = d.patient.name;
       document.getElementById('ptHN').textContent   = d.patient.hn;
       document.getElementById('ptQN').textContent   = d.patient.qn;
+      // Show สิทธิการรักษา badge
+      const pttypeTag = document.getElementById('ptPttypeTag');
+      const pttypeEl  = document.getElementById('ptPttype');
+      if (d.patient.pttypeName || d.patient.pttype) {
+        pttypeEl.textContent = d.patient.pttypeName || d.patient.pttype;
+        pttypeTag.style.display = '';
+      } else {
+        pttypeTag.style.display = 'none';
+      }
       stopScanner();
       showStep('type');
+      // Auto-select queue type if pttype rule matched
+      if (d.patient.autoTypeId) {
+        setTimeout(() => getQueue(d.patient.autoTypeId), 180);
+      }
     } else {
       setStatus(`✗ ${d.message}`, '#c62828');
       setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
@@ -674,6 +699,8 @@ function backToScanner() {
   hnEl.classList.remove('active-field','dim');
   qnEl.classList.remove('active-field','dim');
   setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน');
+  const pttypeTag = document.getElementById('ptPttypeTag');
+  if (pttypeTag) pttypeTag.style.display = 'none';
   showStep('scanner');
   if (chkAutoScan.checked) setTimeout(() => startScanner(), 400);
 }
@@ -693,35 +720,208 @@ function renderCards() {
     </div>`).join('');
 }
 
-// ── renderSlipHtml (mirrors settings.html version) ───────────────────────
+// ── Apply screen config ───────────────────────────────────────────────────
+const BG_PRESETS_Q = {
+  teal:   ['#29b6c8','#0097a7','#00696f'],
+  ocean:  ['#1e88e5','#0d47a1','#0b3574'],
+  purple: ['#9c27b0','#6a1b9a','#4a148c'],
+  forest: ['#43a047','#2e7d32','#1b5e20'],
+  dark:   ['#455a64','#263238','#0d1b21'],
+  sunset: ['#ef6c00','#bf360c','#7f0000'],
+  blue:   ['#039be5','#0277bd','#01579b'],
+  rose:   ['#d81b60','#c2185b','#880e4f'],
+};
+
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+}
+
+function applyScreenConfig(cfg) {
+  if (!cfg || !Object.keys(cfg).length) return;
+
+  // Resolve background colors: prefer explicit bgC1/2/3, fallback to preset, then teal
+  let c1 = cfg.bgC1, c2 = cfg.bgC2, c3 = cfg.bgC3;
+  if (!c1 || !c2 || !c3) {
+    [c1, c2, c3] = BG_PRESETS_Q[cfg.bgPreset] || BG_PRESETS_Q.teal;
+  }
+
+  const accent       = cfg.accentColor      || '#00bcd4';
+  const font         = cfg.fontFamily       || 'Kanit';
+  const titleFs      = cfg.titleFontSize    || 24;
+  const titleClr     = cfg.titleColor       || '#ffd54f';
+  const cardNameFs   = cfg.cardNameFontSize || 15;
+  const cardNameClr  = cfg.cardNameColor    || '#ffffff';
+  const waitFs       = cfg.cardWaitFontSize || 12;
+  const waitNumClr   = cfg.cardWaitNumColor || '#ffd54f';
+
+  // Card size
+  const szMap = {
+    compact: { p:'16px 14px', minW:'120px', maxW:'170px', ics:'44px' },
+    normal:  { p:'26px 22px', minW:'148px', maxW:'200px', ics:'56px' },
+    large:   { p:'34px 28px', minW:'170px', maxW:'240px', ics:'68px' },
+  };
+  const sz = szMap[cfg.cardSize] || szMap.normal;
+
+  // Card style
+  const csMap = {
+    glass:   'background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px)',
+    solid:   'background:rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.45)',
+    outline: 'background:transparent;border:2px solid rgba(255,255,255,.45)',
+  };
+  const cardCss = csMap[cfg.cardStyle] || csMap.glass;
+
+  // Inject stylesheet
+  let el = document.getElementById('_screenCfgStyle');
+  if (!el) { el = document.createElement('style'); el.id = '_screenCfgStyle'; document.head.appendChild(el); }
+
+  el.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=${font.replace(/ /g,'+')}:wght@300;400;600;700;900&display=swap');
+    body {
+      font-family:'${font}','Kanit','Leelawadee UI',sans-serif !important;
+      background:
+        radial-gradient(ellipse 90% 70% at 0% 0%,   ${c1}8c 0%, transparent 55%),
+        radial-gradient(ellipse 70% 55% at 100% 0%,  ${c2}72 0%, transparent 55%),
+        radial-gradient(ellipse 80% 65% at 50% 120%, ${c3}99 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 80%, ${c2}80 0%, transparent 55%),
+        linear-gradient(145deg,${c1} 0%,${c2} 45%,${c3} 100%) !important;
+    }
+    nav { background:rgba(0,0,0,${(cfg.navOpacity??45)/100}) !important; }
+
+    /* Scan title */
+    .scan-title {
+      font-size:${titleFs}px !important;
+      color:${titleClr} !important;
+      font-family:'${font}','Kanit',sans-serif !important;
+    }
+
+    /* Scan button */
+    .btn-scan-toggle {
+      background:linear-gradient(135deg,${accent},${c2}) !important;
+      box-shadow:0 6px 22px ${accent}66 !important;
+      font-family:'${font}','Kanit',sans-serif !important;
+    }
+    .btn-scan-toggle.stop { background:linear-gradient(135deg,#ef5350,#c62828) !important; }
+
+    /* Queue type cards */
+    .q-card {
+      ${cardCss} !important;
+      min-width:${sz.minW} !important;
+      max-width:${sz.maxW} !important;
+      padding:${sz.p} !important;
+    }
+    .qc-icon { width:${sz.ics} !important; height:${sz.ics} !important; }
+    .qc-name {
+      font-size:${cardNameFs}px !important;
+      color:${cardNameClr} !important;
+    }
+    .qc-wait { font-size:${waitFs}px !important; }
+    .qc-wait strong { color:${waitNumClr} !important; font-size:${Math.round(waitFs*1.2)}px !important; }
+
+    /* Bottom bar */
+    ${(() => {
+      const barBgHex  = cfg.barBgColor || '#001c28';
+      const barBgOp   = (cfg.barBgOpacity ?? 78) / 100;
+      const rgb       = hexToRgb(barBgHex);
+      const barBgCss  = `rgba(${rgb.r},${rgb.g},${rgb.b},${barBgOp})`;
+      const borderClr = cfg.barInputBorderColor || (accent+'52');
+      const inputBorderClr = cfg.barInputBorderColor || (accent+'44');
+      const lblClr    = cfg.barLabelColor || (accent+'c0');
+      const lblSz     = cfg.barLabelSize  || 10;
+      const inputBgOp = (cfg.barInputBg ?? 8) / 100;
+      const inputBgCss= `rgba(255,255,255,${inputBgOp})`;
+      const inputClr  = cfg.barInputTextColor || '#ffffff';
+      const inputFs   = cfg.barInputFontSize  || 17;
+      const phHex     = cfg.barPlaceholderColor || '#ffffff';
+      const phOp      = (cfg.barPlaceholderOpacity ?? 28) / 100;
+      const phRgb     = hexToRgb(phHex);
+      const phCss     = `rgba(${phRgb.r},${phRgb.g},${phRgb.b},${phOp})`;
+      return `
+    .bottom-bar   { background:${barBgCss} !important; border-color:${borderClr} !important; }
+    .bar-field-lbl{ color:${lblClr} !important; font-size:${lblSz}px !important; }
+    .bar-input    {
+      background:${inputBgCss} !important;
+      border-color:${inputBorderClr} !important;
+      color:${inputClr} !important;
+      font-size:${inputFs}px !important;
+      font-family:'${font}','Kanit',sans-serif !important;
+    }
+    .bar-input::placeholder { color:${phCss} !important; }
+    .bar-input:focus { border-color:${cfg.barInputBorderColor||accent} !important; box-shadow:0 0 0 3px ${accent}22 !important; }
+    .bar-input.active-field { border-color:${cfg.barInputBorderColor||accent+'a0'} !important; }`;
+    })()}
+    .btn-bar-search {
+      background:linear-gradient(145deg,${accent},${c2}) !important;
+      box-shadow:0 4px 16px ${accent}66 !important;
+      font-family:'${font}','Kanit',sans-serif !important;
+    }
+    .toggle-sw input:checked + .toggle-knob { background:linear-gradient(135deg,#00e676,#00c853) !important; }
+  `;
+
+  // Show / hide sections
+  const scannerCard = document.querySelector('.scanner-card');
+  const btnScan     = document.getElementById('btnScanToggle');
+  if (scannerCard) scannerCard.style.display = cfg.showScannerCard !== false ? '' : 'none';
+  if (btnScan)     btnScan.style.display     = cfg.showScannerCard !== false ? '' : 'none';
+
+  document.querySelectorAll('.auto-scan-wrap').forEach(el => {
+    el.style.display = cfg.showToggles !== false ? '' : 'none';
+  });
+}
+
+// ── renderSlipHtml — uses cfg.layoutOrder to match settings preview exactly ──
 function renderSlipHtml(cfg, d) {
   const divider = cfg.showDividerLine
     ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
-  let h = '';
-  if (cfg.showHeader) {
-    const name = cfg.headerName || d.sysName;
-    h += `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize||14}pt;margin-bottom:2px">${name}</div>`;
-    if (cfg.headerSubtitle)
-      h += `<div style="text-align:center;font-size:${(cfg.headerFontSize||14)-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+
+  const DEFAULT_ORDER = ['header','patientName','hnQn','queueType','queueNum','dateTime','footer'];
+
+  const builders = {
+    header: () => {
+      if (!cfg.showHeader) return '';
+      const name = cfg.headerName || d.sysName;
+      let h = `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize||14}pt;margin-bottom:2px">${name}</div>`;
+      if (cfg.headerSubtitle)
+        h += `<div style="text-align:center;font-size:${(cfg.headerFontSize||14)-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+      return h;
+    },
+    patientName: () => {
+      if (!cfg.showPatientName || !d.patientName) return '';
+      return `<div style="font-size:${cfg.patientFontSize||11}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
+    },
+    hnQn: () => {
+      if (!cfg.showHnQn || (!d.hn && !d.qn)) return '';
+      const parts = [d.hn ? 'HN: '+d.hn : '', d.qn ? 'QN: '+d.qn : ''].filter(Boolean).join('   ');
+      return `<div style="font-size:${(cfg.patientFontSize||11)-2}pt;color:#555;text-align:center;margin:2px 0">${parts}</div>`;
+    },
+    queueType: () => {
+      if (!cfg.showQueueType || !d.typeName) return '';
+      return `<div style="font-size:${cfg.queueTypeFontSize||11}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
+    },
+    queueNum: () => {
+      return `<div style="font-size:${cfg.queueNumFontSize||60}pt;font-weight:900;text-align:center;letter-spacing:4px;border:3px solid #000;padding:1px 10px;display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
+    },
+    dateTime: () => {
+      if (!cfg.showDateTime) return '';
+      return `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
+    },
+    footer: () => {
+      if (!cfg.showFooter || !cfg.footerText) return '';
+      return `<div style="font-size:${cfg.footerFontSize||8}pt;color:#555;text-align:center;margin:3px 0;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
+    }
+  };
+
+  const order = (cfg.layoutOrder && cfg.layoutOrder.length) ? cfg.layoutOrder : DEFAULT_ORDER;
+  let h = '', lastWasDivider = false;
+  for (const id of order) {
+    if (id === 'divider') {
+      if (!lastWasDivider) { h += divider; lastWasDivider = true; }
+    } else if (builders[id]) {
+      const html = builders[id]();
+      if (html) { h += html; lastWasDivider = false; }
+    }
   }
-  h += divider;
-  if (cfg.showPatientName && d.patientName)
-    h += `<div style="font-size:${cfg.patientFontSize||11}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
-  if (cfg.showHnQn && (d.hn || d.qn)) {
-    const parts = [d.hn?'HN:'+d.hn:'', d.qn?'QN:'+d.qn:''].filter(Boolean).join('   ');
-    h += `<div style="font-size:${(cfg.patientFontSize||11)-2}pt;color:#555;text-align:center;margin-bottom:3px">${parts}</div>`;
-  }
-  h += divider;
-  if (cfg.showQueueType && d.typeName)
-    h += `<div style="font-size:${cfg.queueTypeFontSize||11}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
-  h += `<div style="font-size:${cfg.queueNumFontSize||60}pt;font-weight:900;text-align:center;
-    letter-spacing:4px;border:3px solid #000;padding:1px 10px;
-    display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
-  if (cfg.showDateTime)
-    h += `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
-  h += divider;
-  if (cfg.showFooter && cfg.footerText)
-    h += `<div style="font-size:${cfg.footerFontSize||8}pt;color:#555;text-align:center;margin-top:3px;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
   return h;
 }
 
@@ -738,21 +938,46 @@ function doPrint(ticket) {
     date:        ticket.date,
     issuedAt:    ticket.issuedAt,
   };
-  if (printConfig.printerName) {
-    fetch(`/api/sys/${sysId}/print-ticket`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data),
-    }).then(r => r.json()).then(r => {
-      if (!r.success) browserPrint(data);
-    }).catch(() => browserPrint(data));
+  const printMode    = localStorage.getItem('queuePrintMode')    || 'host';
+  const localPrinter = localStorage.getItem('queueLocalPrinter') || '';
+  if (printMode === 'local') {
+    if (localPrinter) {
+      fetch('http://localhost:3001/api/local-print', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ printerName: localPrinter, sysId, ticket: data, cfg: printConfig }),
+        signal: AbortSignal.timeout(15000),
+      }).then(r => r.json()).then(r => {
+        if (!r.success) browserPrint(data);
+      }).catch(() => browserPrint(data));
+    } else {
+      browserPrint(data);
+    }
   } else {
-    browserPrint(data);
+    // HOST mode: use server-side PowerShell print if printer configured
+    if (printConfig.printerName) {
+      fetch(`/api/sys/${sysId}/print-ticket`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data),
+      }).then(r => r.json()).then(r => {
+        if (!r.success) browserPrint(data);
+      }).catch(() => browserPrint(data));
+    } else {
+      browserPrint(data);
+    }
   }
 }
 
 function browserPrint(data) {
   const el = document.getElementById('printDynArea');
-  el.innerHTML = renderSlipHtml(printConfig, data);
+  const copies = Math.max(1, Number(printConfig.copies) || 1);
+  const slipHtml = renderSlipHtml(printConfig, data);
+  if (copies <= 1) {
+    el.innerHTML = slipHtml;
+  } else {
+    el.innerHTML = Array.from({ length: copies }, (_, i) =>
+      `<div style="${i < copies - 1 ? 'page-break-after:always' : ''}">${slipHtml}</div>`
+    ).join('');
+  }
   let ps = document.getElementById('_printStyle');
   if (!ps) { ps = document.createElement('style'); ps.id = '_printStyle'; document.head.appendChild(ps); }
   const szMap = {'80mm':'80mm auto','58mm':'58mm auto','a4':'A4','custom':`${printConfig.customWidth||80}mm auto`};
@@ -766,9 +991,13 @@ function getQueue(typeId) {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       typeId,
-      hn:          currentPatient?.hn   || null,
-      qn:          currentPatient?.qn   || null,
-      patientName: currentPatient?.name || null,
+      hn:          currentPatient?.hn          || null,
+      qn:          currentPatient?.qn          || null,
+      vn:          currentPatient?.vn          || null,
+      patientName: currentPatient?.name        || null,
+      pttypeName:  currentPatient?.pttypeName  || null,
+      vstdate:     currentPatient?.vstdate     || null,
+      vsttime:     currentPatient?.vsttime     || null,
     })
   }).then(r => r.json()).then(d => {
     if (!d.success) { alert(d.message); return; }
@@ -796,6 +1025,35 @@ function getQueue(typeId) {
 function closeResult() {
   backToScanner();
 }
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>

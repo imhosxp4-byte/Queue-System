@@ -22,13 +22,14 @@
       --cs-wq-next:#1565c0;
       --cs-stat-w:#ffd54f;--cs-stat-s:#4caf50;--cs-stat-n:#ef5350;
       --cs-nav-txt:#90caf9;--cs-logo-clr:#ffd54f;
+      --cs-nav-fs:.82rem;
       --cs-call-type-clr:#64b5f6;--cs-call-ctr-clr:#ffd54f;
-      --cs-call-fs:3.4rem;
+      --cs-call-fs:4.5rem;
       --cs-call-meta-fs:.78rem;
       --cs-btn-next-fs:.95rem;
       --cs-stat-fs:1.7rem;
-      --cs-wq-fs:1.15rem;
-      --cs-wq-meta-fs:.72rem;
+      --cs-wq-fs:1.4rem;
+      --cs-wq-meta-fs:.85rem;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--cs-body-bg,#0b141f);
@@ -37,17 +38,17 @@
     /* ── NAV ── */
     nav{background:var(--cs-nav-bg,#0d1f33);border-bottom:2px solid #1e3a5f;padding:0 22px;
       display:flex;align-items:center;gap:4px;height:50px;flex-shrink:0}
-    .nav-logo{font-size:.9rem;font-weight:700;color:var(--cs-logo-clr,#ffd54f);margin-right:16px;
+    .nav-logo{font-size:var(--cs-logo-fs,.90rem);font-weight:700;color:var(--cs-logo-clr,#ffd54f);margin-right:16px;
       text-decoration:none;white-space:nowrap}
     nav a{color:var(--cs-nav-txt,#90caf9);text-decoration:none;padding:5px 12px;border-radius:18px;
-      font-size:.82rem;transition:background .2s;white-space:nowrap}
+      font-size:var(--cs-nav-fs,.82rem);transition:background .2s;white-space:nowrap}
     nav a:hover{background:#1e3a5f}
     nav a.active{background:#1565c0;color:#fff}
 
     /* ── COUNTER BAR ── */
     .cbar{background:var(--cs-cbar-bg,#08111c);border-bottom:1px solid #1a2e45;padding:6px 22px;
       display:flex;align-items:center;gap:10px;flex-shrink:0}
-    .cbar-lbl{font-size:.72rem;color:#3a5a78}
+    .cbar-lbl{font-size:var(--cs-cbar-lbl-fs,.72rem);color:#3a5a78}
     .cbadge{background:#1565c0;color:#fff;border-radius:14px;padding:3px 12px;
       font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:5px}
     .cbadge .dot{width:7px;height:7px;background:#4caf50;border-radius:50%}
@@ -81,11 +82,12 @@
     /* ── LEFT PANEL ── */
     .left-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #1a2e45}
 
-    .called-box{background:linear-gradient(160deg,var(--cs-called-top,#0d1f33),var(--cs-called-bot,#091524));padding:20px 18px;flex-shrink:0}
-    .called-top{font-size:.68rem;color:#3a5a78;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
-    .called-main{display:flex;align-items:center;gap:12px}
-    .call-badge{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;
-      justify-content:center;font-size:1.2rem;font-weight:900;color:#000;flex-shrink:0}
+    .called-box{background:linear-gradient(160deg,var(--cs-called-top,#0d1f33),var(--cs-called-bot,#091524));padding:22px 18px 18px;flex-shrink:0;border-bottom:2px solid rgba(66,165,245,.15)}
+    .called-top{font-size:var(--cs-called-top-fs,.68rem);color:#3a5a78;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+    .called-main{display:flex;align-items:center;gap:16px;min-height:72px}
+    .call-badge{width:80px;height:80px;border-radius:18px;display:flex;align-items:center;
+      justify-content:center;font-size:2rem;font-weight:900;color:#000;flex-shrink:0;
+      box-shadow:0 4px 20px rgba(0,0,0,.5);letter-spacing:1px}
     .call-num{font-size:var(--cs-call-fs,3.4rem);font-weight:900;letter-spacing:3px;line-height:1}
     .call-meta{flex:1}
     .call-type{font-size:var(--cs-call-meta-fs,.78rem);color:var(--cs-call-type-clr,#64b5f6);margin-bottom:2px}
@@ -107,9 +109,9 @@
     .btn:active{transform:translateY(0)}
     .btn:disabled{opacity:.28;cursor:not-allowed;transform:none}
     .btn-next{background:linear-gradient(135deg,var(--cs-btn-next1,#1976d2),var(--cs-btn-next2,#0d47a1));color:#fff;font-size:var(--cs-btn-next-fs,.95rem);padding:13px}
-    .btn-recall{background:var(--cs-btn-recall-bg,#12253a);color:var(--cs-btn-recall-clr,#64b5f6);border:1px solid #1e3a5f}
+    .btn-recall{background:var(--cs-btn-recall-bg,#12253a);color:var(--cs-btn-recall-clr,#64b5f6);border:1px solid #1e3a5f;font-size:var(--cs-btn-recall-fs,.88rem)}
     .btn-recall:hover{opacity:.85}
-    .btn-noshow{background:linear-gradient(135deg,var(--cs-btn-noshow1,#c62828),var(--cs-btn-noshow2,#b71c1c));color:#fff}
+    .btn-noshow{background:linear-gradient(135deg,var(--cs-btn-noshow1,#c62828),var(--cs-btn-noshow2,#b71c1c));color:#fff;font-size:var(--cs-btn-noshow-fs,.88rem)}
     .sp-row{display:flex;gap:6px}
     .sp-row input{flex:1;background:#091524;border:1px solid #1e3a5f;border-radius:8px;
       padding:9px 10px;color:#fff;font-size:.85rem;text-align:center;text-transform:uppercase;
@@ -125,14 +127,14 @@
     .stat{background:#091524;border-radius:9px;padding:9px 6px;text-align:center;
       border:1px solid #1a2e45}
     .stat .sv{font-size:var(--cs-stat-fs,1.7rem);font-weight:800}
-    .stat .sl{font-size:.68rem;color:#3a5a78;margin-top:1px}
+    .stat .sl{font-size:var(--cs-stat-lbl-fs,.68rem);color:#3a5a78;margin-top:1px}
     .sv-w{color:var(--cs-stat-w,#ffd54f)}.sv-s{color:var(--cs-stat-s,#4caf50)}.sv-n{color:var(--cs-stat-n,#ef5350)}
 
     /* ── RIGHT PANEL ── */
     .right-panel{display:flex;flex-direction:column;overflow:hidden}
     .rp-header{background:var(--cs-wq-hdr-bg,#0d1a28);border-bottom:1px solid #1a2e45;padding:10px 16px;
       display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-    .rp-title{font-size:.82rem;color:#90caf9;font-weight:600;letter-spacing:1px;
+    .rp-title{font-size:var(--cs-rp-title-fs,.82rem);color:#90caf9;font-weight:600;letter-spacing:1px;
       display:flex;align-items:center;gap:8px}
     .rp-cnt{background:#1565c0;color:#fff;border-radius:10px;padding:2px 9px;
       font-size:.78rem;font-weight:700}
@@ -168,9 +170,17 @@
     .btn-call-item:hover{opacity:.85;transform:scale(1.04)}
     .wq-empty{text-align:center;color:#1a2e45;padding:40px 16px;font-size:.88rem}
     .wq-empty-icon{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-    .wq-patient{font-size:1rem;color:#90caf9;font-weight:700;margin-top:3px;
+    .wq-name-right{flex:1.8;text-align:right;min-width:0;padding-left:10px}
+    .wq-hn-row{display:flex;justify-content:flex-end;align-items:baseline;gap:18px;margin-bottom:5px}
+    .wq-hn-item{display:flex;flex-direction:column;align-items:flex-end}
+    .wq-hn-lbl{font-size:.72rem;color:#3a5a78;letter-spacing:.8px;text-transform:uppercase}
+    .wq-hn-val{font-size:1.25rem;color:#fff;font-weight:800;letter-spacing:.5px}
+    .wq-patient{font-size:1.45rem;color:#90caf9;font-weight:700;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .wq-hn{font-size:.78rem;color:#3a5a78;margin-top:2px;letter-spacing:.3px}
+    .wq-pttype{display:inline-block;background:rgba(255,213,79,.1);
+      border:1px solid rgba(255,213,79,.35);color:#ffd54f;
+      border-radius:6px;padding:1px 9px;font-size:.82rem;font-weight:600;
+      margin-left:8px;vertical-align:middle;white-space:nowrap}
 
     /* ── BOTTOM HISTORY ── */
     .history-strip{grid-column:1/-1;border-top:1px solid #1a2e45;
@@ -344,6 +354,13 @@
       font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
     .sp-reset:hover{background:#1e3a5f}
 
+    .sp-nval{width:58px;background:#091524;border:1px solid #1e3a5f;border-radius:6px;
+      color:#90caf9;font-size:.72rem;padding:3px 5px;text-align:center;
+      font-family:inherit;flex-shrink:0}
+    .sp-nval:focus{outline:none;border-color:#42a5f5}
+    .sp-txt{width:100%;background:#091524;border:1px solid #1e3a5f;border-radius:6px;
+      color:#fff;font-size:.8rem;padding:5px 8px;font-family:inherit}
+    .sp-txt:focus{outline:none;border-color:#42a5f5}
     .nav-officer{font-size:.78rem;color:rgba(255,255,255,.45);white-space:nowrap;margin-left:auto}
     .btn-logout{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.25);color:#ef9a9a;
       border-radius:18px;padding:4px 13px;font-size:.78rem;cursor:pointer;font-family:inherit;
@@ -354,7 +371,7 @@
 <body>
 
 <nav>
-  <a href="/" class="nav-logo">⬡ ระบบคิว</a>
+  <a href="/" class="nav-logo" id="navLogo">⬡ ระบบคิว</a>
   <a href="#" id="navQueue">ออกคิว</a>
   <a href="#" id="navCashier" class="active">เรียกคิว</a>
   <a href="#" id="navDisplay" target="_blank">แสดงคิว</a>
@@ -365,7 +382,7 @@
 </nav>
 
 <div class="cbar">
-  <span class="cbar-lbl">ช่องบริการ:</span>
+  <span class="cbar-lbl" id="cbarLbl">ช่องบริการ:</span>
   <select id="cbarSelect" class="cbar-sel" onchange="pickCtrSelect(this.value)">
     <option value="">— เลือกช่องบริการ —</option>
   </select>
@@ -383,7 +400,7 @@
   <!-- LEFT -->
   <div class="left-panel">
     <div class="called-box">
-      <div class="called-top">กำลังให้บริการ</div>
+      <div class="called-top" id="calledTopLbl">กำลังให้บริการ</div>
       <div class="called-main" id="calledMain">
         <div class="idle-txt">ยังไม่มีการเรียกคิว</div>
       </div>
@@ -398,22 +415,22 @@
       <button class="btn btn-recall" id="btnRecall" onclick="recallCurrent()" disabled>↺ เรียกซ้ำ</button>
       <button class="btn btn-noshow" id="btnNoShow" onclick="markNoShow()"    disabled>✕ ไม่มา</button>
       <div class="sp-row">
-        <input type="text" id="spNum" placeholder="เรียกเฉพาะ เช่น A001" maxlength="6"/>
+        <input type="text" id="spNum" placeholder="เลขคิว เช่น A001 หรือ QN" maxlength="20"/>
         <button class="btn-sp" onclick="callSpecific()">เรียก</button>
       </div>
     </div>
 
     <div class="stats-area">
-      <div class="stat"><div class="sv sv-w" id="stW">0</div><div class="sl">คิวรอ</div></div>
-      <div class="stat"><div class="sv sv-s" id="stS">0</div><div class="sl">ให้บริการแล้ว</div></div>
-      <div class="stat"><div class="sv sv-n" id="stN">0</div><div class="sl">ไม่มา</div></div>
+      <div class="stat"><div class="sv sv-w" id="stW">0</div><div class="sl" id="stLblW">คิวรอ</div></div>
+      <div class="stat"><div class="sv sv-s" id="stS">0</div><div class="sl" id="stLblS">ให้บริการแล้ว</div></div>
+      <div class="stat"><div class="sv sv-n" id="stN">0</div><div class="sl" id="stLblN">ไม่มา</div></div>
     </div>
   </div>
 
   <!-- RIGHT: waiting list -->
   <div class="right-panel">
     <div class="rp-header">
-      <div class="rp-title">📋 คิวรอเรียก <span class="rp-cnt" id="rpCnt">0</span></div>
+      <div class="rp-title"><span id="rpTitleTxt">📋 คิวรอเรียก</span> <span class="rp-cnt" id="rpCnt">0</span></div>
       <div class="rp-type-filter" id="rpFilter">ทั้งหมด</div>
     </div>
     <div class="waiting-list" id="waitingList"></div>
@@ -478,27 +495,42 @@
   <div class="sp-tabs">
     <button class="sptab active" onclick="swSpTab('general',this)">ทั่วไป</button>
     <button class="sptab" onclick="swSpTab('colors',this)">สี</button>
+    <button class="sptab" onclick="swSpTab('text',this)">ข้อความ</button>
   </div>
   <div class="sp-body">
 
     <!-- ── General tab ── -->
     <div class="sptab-pane active" id="spGeneral">
       <div class="sp-sec">
+        <div class="sp-sec-lbl">🔤 ขนาดตัวอักษร — แถบเมนู</div>
+        <div class="sp-field">
+          <label>ลิงก์เมนูบาร์ / nav</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_navFs" min="0.6" max="2.0" step="0.02"
+              oninput="onSC('navFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_navFs" min="0.4" max="4" step="0.02"
+              oninput="onSCNum('navFs','cs_navFs',0.6,2.0,this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
         <div class="sp-sec-lbl">🔢 ขนาดตัวอักษร — กล่องเรียกคิว</div>
         <div class="sp-field">
           <label>หมายเลขที่กำลังเรียก</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_callFs" min="2" max="5.5" step="0.1"
+            <input type="range" id="cs_callFs" min="2" max="12" step="0.1"
               oninput="onSC('callFs',this.value,true)">
-            <span class="sp-rval" id="lbl_callFs">3.4rem</span>
+            <input type="number" class="sp-nval" id="lbl_callFs" min="1" max="20" step="0.1"
+              oninput="onSCNum('callFs','cs_callFs',2,12,this.value)">
           </div>
         </div>
         <div class="sp-field">
           <label>ข้อมูล (ประเภท / เวลา / ช่อง)</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_callMetaFs" min="0.55" max="1.2" step="0.02"
+            <input type="range" id="cs_callMetaFs" min="0.55" max="1.5" step="0.02"
               oninput="onSC('callMetaFs',this.value,true)">
-            <span class="sp-rval" id="lbl_callMetaFs">.78rem</span>
+            <input type="number" class="sp-nval" id="lbl_callMetaFs" min="0.4" max="4" step="0.02"
+              oninput="onSCNum('callMetaFs','cs_callMetaFs',0.55,1.5,this.value)">
           </div>
         </div>
       </div>
@@ -507,17 +539,19 @@
         <div class="sp-field">
           <label>หมายเลขในรายการรอ</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_wqFs" min="0.85" max="1.8" step="0.05"
+            <input type="range" id="cs_wqFs" min="0.85" max="3.0" step="0.05"
               oninput="onSC('wqFs',this.value,true)">
-            <span class="sp-rval" id="lbl_wqFs">1.15rem</span>
+            <input type="number" class="sp-nval" id="lbl_wqFs" min="0.5" max="6" step="0.05"
+              oninput="onSCNum('wqFs','cs_wqFs',0.85,3.0,this.value)">
           </div>
         </div>
         <div class="sp-field">
           <label>ประเภท / เวลา</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_wqMetaFs" min="0.55" max="1.1" step="0.02"
+            <input type="range" id="cs_wqMetaFs" min="0.55" max="1.5" step="0.02"
               oninput="onSC('wqMetaFs',this.value,true)">
-            <span class="sp-rval" id="lbl_wqMetaFs">.72rem</span>
+            <input type="number" class="sp-nval" id="lbl_wqMetaFs" min="0.4" max="4" step="0.02"
+              oninput="onSCNum('wqMetaFs','cs_wqMetaFs',0.55,1.5,this.value)">
           </div>
         </div>
       </div>
@@ -526,17 +560,19 @@
         <div class="sp-field">
           <label>ปุ่มเรียกถัดไป</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_btnNextFs" min="0.7" max="1.4" step="0.02"
+            <input type="range" id="cs_btnNextFs" min="0.7" max="2.0" step="0.02"
               oninput="onSC('btnNextFs',this.value,true)">
-            <span class="sp-rval" id="lbl_btnNextFs">.95rem</span>
+            <input type="number" class="sp-nval" id="lbl_btnNextFs" min="0.4" max="4" step="0.02"
+              oninput="onSCNum('btnNextFs','cs_btnNextFs',0.7,2.0,this.value)">
           </div>
         </div>
         <div class="sp-field">
           <label>ตัวเลขสถิติ</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_statFs" min="1.2" max="3.0" step="0.1"
+            <input type="range" id="cs_statFs" min="1.2" max="5.0" step="0.1"
               oninput="onSC('statFs',this.value,true)">
-            <span class="sp-rval" id="lbl_statFs">1.7rem</span>
+            <input type="number" class="sp-nval" id="lbl_statFs" min="0.5" max="8" step="0.1"
+              oninput="onSCNum('statFs','cs_statFs',1.2,5.0,this.value)">
           </div>
         </div>
       </div>
@@ -545,9 +581,10 @@
         <div class="sp-field">
           <label>ความกว้างแผงซ้าย</label>
           <div class="sp-rrow">
-            <input type="range" id="cs_leftW" min="280" max="540" step="10"
+            <input type="range" id="cs_leftW" min="280" max="600" step="10"
               oninput="onSC('leftW',this.value,true)">
-            <span class="sp-rval" id="lbl_leftW">420px</span>
+            <input type="number" class="sp-nval" id="lbl_leftW" min="200" max="800" step="10"
+              oninput="onSCNum('leftW','cs_leftW',280,600,this.value)">
           </div>
         </div>
       </div>
@@ -567,6 +604,11 @@
           <input type="checkbox" id="cs_showSkip"
             onchange="onST('showSkip',this.checked)">
           <span>แสดงตัวเลือก "เรียกทันที"</span>
+        </label>
+        <label class="sp-ck">
+          <input type="checkbox" id="cs_showCallDetail"
+            onchange="onST('showCallDetail',this.checked)">
+          <span>แสดงรายละเอียด (ชื่อ / ประเภท / เวลา) ในกล่องเรียกคิว</span>
         </label>
       </div>
       <button class="sp-reset" onclick="resetStyle()">↺ คืนค่าเริ่มต้น</button>
@@ -622,13 +664,126 @@
       <button class="sp-reset" onclick="resetStyle()">↺ คืนค่าเริ่มต้น</button>
     </div>
 
+    <!-- ── Text tab ── -->
+    <div class="sptab-pane" id="spText">
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🏷 แถบ Nav</div>
+        <div class="sp-field">
+          <label>โลโก้</label>
+          <input type="text" class="sp-txt" id="tx_logo" oninput="onST2('lblLogo',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_logoFs" min="0.6" max="2.0" step="0.02" oninput="onSC('logoFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_logoFs" min="0.4" max="4" step="0.02" oninput="onSCNum('logoFs','cs_logoFs',0.6,2.0,this.value)">
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ป้าย "ช่องบริการ"</label>
+          <input type="text" class="sp-txt" id="tx_cbarLbl" oninput="onST2('lblCbarCtr',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_cbarLblFs" min="0.5" max="1.4" step="0.02" oninput="onSC('cbarLblFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_cbarLblFs" min="0.4" max="3" step="0.02" oninput="onSCNum('cbarLblFs','cs_cbarLblFs',0.5,1.4,this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📋 กล่องเรียกคิว</div>
+        <div class="sp-field">
+          <label>หัวข้อกล่อง</label>
+          <input type="text" class="sp-txt" id="tx_calledTop" oninput="onST2('lblCalledTop',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_calledTopFs" min="0.5" max="1.4" step="0.02" oninput="onSC('calledTopFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_calledTopFs" min="0.4" max="3" step="0.02" oninput="onSCNum('calledTopFs','cs_calledTopFs',0.5,1.4,this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">🔘 ปุ่ม</div>
+        <div class="sp-field">
+          <label>เรียกถัดไป</label>
+          <input type="text" class="sp-txt" id="tx_btnNext" oninput="onST2('lblBtnNext',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_btnNextFs2" min="0.7" max="2.0" step="0.02" oninput="onSC('btnNextFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_btnNextFs2" min="0.4" max="4" step="0.02" oninput="onSCNum('btnNextFs','cs_btnNextFs2',0.7,2.0,this.value)">
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>เรียกซ้ำ</label>
+          <input type="text" class="sp-txt" id="tx_btnRecall" oninput="onST2('lblBtnRecall',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_btnRecallFs" min="0.6" max="1.6" step="0.02" oninput="onSC('btnRecallFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_btnRecallFs" min="0.4" max="3" step="0.02" oninput="onSCNum('btnRecallFs','cs_btnRecallFs',0.6,1.6,this.value)">
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ไม่มา</label>
+          <input type="text" class="sp-txt" id="tx_btnNoShow" oninput="onST2('lblBtnNoShow',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_btnNoShowFs" min="0.6" max="1.6" step="0.02" oninput="onSC('btnNoShowFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_btnNoShowFs" min="0.4" max="3" step="0.02" oninput="onSCNum('btnNoShowFs','cs_btnNoShowFs',0.6,1.6,this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📊 สถิติ (ป้ายกำกับ)</div>
+        <div class="sp-field">
+          <label>คิวรอ / ให้บริการแล้ว / ไม่มา</label>
+          <div style="display:flex;gap:5px;margin-bottom:5px">
+            <input type="text" class="sp-txt" id="tx_statW" oninput="onST2('lblStatW',this.value)" placeholder="คิวรอ" style="flex:1">
+            <input type="text" class="sp-txt" id="tx_statS" oninput="onST2('lblStatS',this.value)" placeholder="ให้บริการแล้ว" style="flex:1.4">
+            <input type="text" class="sp-txt" id="tx_statN" oninput="onST2('lblStatN',this.value)" placeholder="ไม่มา" style="flex:1">
+          </div>
+          <div class="sp-rrow">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_statLblFs" min="0.5" max="1.2" step="0.02" oninput="onSC('statLblFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_statLblFs" min="0.4" max="3" step="0.02" oninput="onSCNum('statLblFs','cs_statLblFs',0.5,1.2,this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📋 รายการรอ</div>
+        <div class="sp-field">
+          <label>หัวรายการรอ</label>
+          <input type="text" class="sp-txt" id="tx_wqHeader" oninput="onST2('lblWqHeader',this.value)">
+          <div class="sp-rrow" style="margin-top:5px">
+            <span style="font-size:.66rem;color:#3a5a78;min-width:36px;flex-shrink:0">ขนาด</span>
+            <input type="range" id="cs_wqHdrFs" min="0.6" max="1.6" step="0.02" oninput="onSC('wqHdrFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_wqHdrFs" min="0.4" max="3" step="0.02" oninput="onSCNum('wqHdrFs','cs_wqHdrFs',0.6,1.6,this.value)">
+          </div>
+        </div>
+      </div>
+      <button class="sp-reset" onclick="resetStyle()">↺ คืนค่าเริ่มต้น</button>
+    </div>
+
   </div>
 </div>
 
 <script>
 const sysId      = new URLSearchParams(location.search).get('sys') || 1;
 const socket     = io();
-socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+socket.on('connect',    () => { socket.emit('join_sys', Number(sysId)); hideOffline(); });
+socket.on('disconnect', () => showOffline());
+
+function showOffline() {
+  let el = document.getElementById('offlineBadge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'offlineBadge';
+    el.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;background:#c62828;color:#fff;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;pointer-events:none';
+    el.textContent = '⚠ ขาดการเชื่อมต่อ...';
+    document.body.appendChild(el);
+  }
+  el.style.display = 'block';
+}
+function hideOffline() {
+  const el = document.getElementById('offlineBadge');
+  if (el) el.style.display = 'none';
+}
 
 const _navOfficer = sessionStorage.getItem('officerName');
 if (_navOfficer) document.getElementById('navOfficer').textContent = '👤 ' + _navOfficer;
@@ -694,6 +849,52 @@ socket.on('noshow_recalled', ({ noShows: ns }) => { noShows = ns; renderNoShowHi
 socket.on('queue_reset', () => {
   typeWaiting={}; allWaiting=[]; allServed=[]; noShows=[]; lastCalled=null;
   resetCalled(); renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats();
+});
+socket.on('system_deleted', ({ sysId: deletedId }) => {
+  if (Number(deletedId) === Number(sysId)) {
+    sessionStorage.removeItem('currentSysId');
+    sessionStorage.removeItem('currentSysName');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('officerName');
+    location.href = '/login.html';
+  }
+});
+
+socket.on('sys_state', d => {
+  if (!d) return;
+  if (d.queueTypes)          queueTypes  = d.queueTypes;
+  if (d.counters)            counters    = d.counters;
+  if (d.typeWaiting)         typeWaiting = d.typeWaiting;
+  if (d.allWaiting)          allWaiting  = d.allWaiting;
+  if (d.allServed)           allServed   = d.allServed;
+  if (d.noShows)             noShows     = d.noShows;
+  if (d.lastCalledByCounter && myCounterId) {
+    const lc = d.lastCalledByCounter[myCounterId];
+    if (lc && (!lastCalled || lc.display !== lastCalled.display)) {
+      lastCalled = lc; showCalled(lc);
+    }
+  }
+  if (d.cashierSettings && Object.keys(d.cashierSettings).length) {
+    cStyle = Object.assign({}, DEF_STYLE, d.cashierSettings);
+    localStorage.setItem(SKEY, JSON.stringify(cStyle));
+    applyStyle(); restoreStyleInputs();
+  } else {
+    const _local = JSON.parse(localStorage.getItem(SKEY) || '{}');
+    if (Object.keys(_local).length) {
+      fetch(`/api/sys/${sysId}/cashier-settings`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(cStyle)
+      }).catch(() => {});
+    }
+  }
+  renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats(); renderCbar();
+});
+
+socket.on('cashier_settings_updated', s => {
+  if (!s || !Object.keys(s).length) return;
+  cStyle = Object.assign({}, DEF_STYLE, s);
+  localStorage.setItem(SKEY, JSON.stringify(cStyle));
+  applyStyle(); restoreStyleInputs();
 });
 
 // ── Load ──────────────────────────────────────────────────────────────────
@@ -796,13 +997,19 @@ function renderWaiting() {
       <div class="wq-badge" style="background:${t.color}">${t.prefix}</div>
       <div class="wq-info">
         <div class="wq-num" style="color:${t.color}">${t.display}</div>
-        ${t.patientName ? `<div class="wq-patient">👤 ${t.patientName}</div>` : ''}
-        ${(t.hn||t.qn) ? `<div class="wq-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>` : ''}
         <div class="wq-type">
           <span>${t.typeName}</span>
           ${t.returned ? `<span class="wq-ret-badge">↩ ถูกเรียกไปแล้ว${t.returnCount>1?' ×'+t.returnCount:''}</span>` : ''}
         </div>
         <div class="wq-time">ออกคิว ${t.issuedAt}${t.returnedAt?` · คืนเวลา ${t.returnedAt}`:''}</div>
+      </div>
+      <div class="wq-name-right">
+        ${(t.hn||t.qn) ? `
+        <div class="wq-hn-row">
+          ${t.hn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">HN</span><span class="wq-hn-val">${t.hn}</span></div>` : ''}
+          ${t.qn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">QN</span><span class="wq-hn-val">${t.qn}</span></div>` : ''}
+        </div>` : ''}
+        ${t.patientName ? `<div class="wq-patient">👤 ${t.patientName}${t.pttypeName?`<span class="wq-pttype">${t.pttypeName}</span>`:''}</div>` : ''}
       </div>
       <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
     </div>`).join('');
@@ -822,17 +1029,18 @@ function updateStats() {
 
 // ── Called display ────────────────────────────────────────────────────────
 function showCalled(ticket) {
+  const showDetail = cStyle.showCallDetail !== false;
   document.getElementById('calledMain').innerHTML = `
-    <div class="call-badge" style="background:${ticket.color}">${ticket.prefix}</div>
+    <div class="call-badge" style="background:${ticket.color};box-shadow:0 4px 24px ${ticket.color}88,0 0 0 3px ${ticket.color}33">${ticket.prefix}</div>
     <div style="min-width:0;flex:1">
-      <div class="call-num" style="color:${ticket.color}">${ticket.display}</div>
-      <div class="call-meta">
+      <div class="call-num" style="color:${ticket.color};text-shadow:0 0 24px ${ticket.color}66">${ticket.display}</div>
+      ${showDetail ? `<div class="call-meta">
         ${ticket.patientName ? `<div class="call-type" style="color:#90caf9;font-weight:600">👤 ${ticket.patientName}</div>` : ''}
         ${(ticket.hn||ticket.qn) ? `<div class="call-time">${ticket.hn?'HN:'+ticket.hn:''}${ticket.hn&&ticket.qn?' · ':''}${ticket.qn?'QN:'+ticket.qn:''}</div>` : ''}
         <div class="call-type">${ticket.typeName}</div>
         <div class="call-time">เรียกเวลา ${ticket.calledAt}</div>
         ${ticket.counterName ? `<div class="call-ctr">🪟 ${ticket.counterName}</div>` : ''}
-      </div>
+      </div>` : ''}
     </div>`;
   document.getElementById('btnRecall').disabled = false;
   document.getElementById('btnNoShow').disabled = !!ticket.noShow;
@@ -933,6 +1141,7 @@ function showConfirm(ticket) {
 function closeConfirm() {
   document.getElementById('confirmOverlay').classList.remove('open');
   pendingCall = null;
+  document.getElementById('spNum').focus();
 }
 function confirmCall() {
   if (!pendingCall) return;
@@ -946,7 +1155,10 @@ function confirmCall() {
   } else {
     fetch(`/api/sys/${sysId}/call-number`, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ display: call.display, counterId: myCounterId }) })
-      .then(r=>r.json()).then(d => { if (!d.success) toast(d.message, 'err'); });
+      .then(r=>r.json()).then(d => {
+        if (!d.success) toast(d.message, 'err');
+        document.getElementById('spNum').focus();
+      });
   }
 }
 
@@ -994,15 +1206,25 @@ function uncallTicket(display) {
   });
 }
 function callSpecific() {
-  const val = document.getElementById('spNum').value.trim().toUpperCase();
-  if (!val) return;
-  pendingCall = { type: 'display', display: val };
-  // Check if this ticket is in the waiting list
-  const t = allWaiting.find(x => x.display === val);
-  if (t) { showConfirm(t); }
-  else   { confirmCall(); } // call without preview if not found in local list
+  const inp = document.getElementById('spNum');
+  const raw = inp.value.trim();
+  if (!raw) return;
+  const val = raw.toUpperCase();
+  inp.value = '';
+  inp.focus();
+  // ค้นหาจาก display (A001) หรือ QN (เลขคิว HIS)
+  const t = allWaiting.find(x => x.display === val)
+         || allWaiting.find(x => x.qn && String(x.qn).trim() === raw.trim());
+  if (t) {
+    pendingCall = { type: 'display', display: t.display };
+    if (skipConfirm) { confirmCall(); } else { showConfirm(t); }
+  } else {
+    pendingCall = { type: 'display', display: val };
+    confirmCall();
+  }
 }
 document.getElementById('spNum').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+document.getElementById('spNum').addEventListener('keydown', e => { if (e.key === 'Enter') callSpecific(); });
 
 function toast(msg, type = '') {
   const t = document.getElementById('toast');
@@ -1028,13 +1250,22 @@ const DEF_STYLE = {
   wqNext:'#1565c0',
   statW:'#ffd54f', statS:'#4caf50', statN:'#ef5350',
   navTxt:'#90caf9', logoClr:'#ffd54f',
+  navFs:0.82,
   callTypeClr:'#64b5f6', callCtrClr:'#ffd54f',
-  callFs:3.4, callMetaFs:0.78,
+  callFs:4.5, callMetaFs:0.78,
   btnNextFs:0.95, statFs:1.7,
-  wqFs:1.15, wqMetaFs:0.72,
-  showStats:true, showHistory:true, showSkip:true,
+  wqFs:1.4, wqMetaFs:0.85,
+  showStats:true, showHistory:true, showSkip:true, showCallDetail:true,
+  lblLogo:'⬡ ระบบคิว', lblCbarCtr:'ช่องบริการ:', lblCalledTop:'กำลังให้บริการ',
+  lblBtnNext:'▶ เรียกคิวถัดไป', lblBtnRecall:'↺ เรียกซ้ำ', lblBtnNoShow:'✕ ไม่มา',
+  lblStatW:'คิวรอ', lblStatS:'ให้บริการแล้ว', lblStatN:'ไม่มา',
+  lblWqHeader:'📋 คิวรอเรียก',
+  logoFs:0.90, cbarLblFs:0.72, calledTopFs:0.68,
+  btnRecallFs:0.88, btnNoShowFs:0.88, statLblFs:0.68, wqHdrFs:0.82,
 };
-let cStyle = Object.assign({}, DEF_STYLE, JSON.parse(localStorage.getItem(SKEY) || '{}'));
+let _savedStyle = JSON.parse(localStorage.getItem(SKEY) || '{}');
+if (_savedStyle.callFs && _savedStyle.callFs < 4.0) _savedStyle.callFs = DEF_STYLE.callFs;
+let cStyle = Object.assign({}, DEF_STYLE, _savedStyle);
 
 function applyStyle() {
   const r = document.documentElement.style;
@@ -1061,6 +1292,7 @@ function applyStyle() {
   r.setProperty('--cs-stat-n',         cStyle.statN);
   r.setProperty('--cs-nav-txt',        cStyle.navTxt);
   r.setProperty('--cs-logo-clr',       cStyle.logoClr);
+  r.setProperty('--cs-nav-fs',         (cStyle.navFs||0.82) + 'rem');
   r.setProperty('--cs-call-type-clr',  cStyle.callTypeClr);
   r.setProperty('--cs-call-ctr-clr',   cStyle.callCtrClr);
   r.setProperty('--cs-call-fs',       cStyle.callFs + 'rem');
@@ -1069,6 +1301,24 @@ function applyStyle() {
   r.setProperty('--cs-stat-fs',       cStyle.statFs + 'rem');
   r.setProperty('--cs-wq-fs',         cStyle.wqFs + 'rem');
   r.setProperty('--cs-wq-meta-fs',    cStyle.wqMetaFs + 'rem');
+  r.setProperty('--cs-logo-fs',       (cStyle.logoFs      || 0.90) + 'rem');
+  r.setProperty('--cs-cbar-lbl-fs',   (cStyle.cbarLblFs   || 0.72) + 'rem');
+  r.setProperty('--cs-called-top-fs', (cStyle.calledTopFs || 0.68) + 'rem');
+  r.setProperty('--cs-btn-recall-fs', (cStyle.btnRecallFs || 0.88) + 'rem');
+  r.setProperty('--cs-btn-noshow-fs', (cStyle.btnNoShowFs || 0.88) + 'rem');
+  r.setProperty('--cs-stat-lbl-fs',   (cStyle.statLblFs   || 0.68) + 'rem');
+  r.setProperty('--cs-rp-title-fs',   (cStyle.wqHdrFs     || 0.82) + 'rem');
+  const setTxt = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  setTxt('navLogo',      cStyle.lblLogo      || DEF_STYLE.lblLogo);
+  setTxt('cbarLbl',      cStyle.lblCbarCtr   || DEF_STYLE.lblCbarCtr);
+  setTxt('calledTopLbl', cStyle.lblCalledTop || DEF_STYLE.lblCalledTop);
+  setTxt('btnNext',      cStyle.lblBtnNext   || DEF_STYLE.lblBtnNext);
+  setTxt('btnRecall',    cStyle.lblBtnRecall || DEF_STYLE.lblBtnRecall);
+  setTxt('btnNoShow',    cStyle.lblBtnNoShow || DEF_STYLE.lblBtnNoShow);
+  setTxt('stLblW',       cStyle.lblStatW     || DEF_STYLE.lblStatW);
+  setTxt('stLblS',       cStyle.lblStatS     || DEF_STYLE.lblStatS);
+  setTxt('stLblN',       cStyle.lblStatN     || DEF_STYLE.lblStatN);
+  setTxt('rpTitleTxt',   cStyle.lblWqHeader  || DEF_STYLE.lblWqHeader);
   const statsEl   = document.querySelector('.stats-area');
   const histEl    = document.querySelector('.history-strip');
   const skipEl    = document.querySelector('.skip-row');
@@ -1076,21 +1326,60 @@ function applyStyle() {
   if (histEl)   histEl.style.display   = cStyle.showHistory ? '' : 'none';
   if (skipEl)   skipEl.style.display   = cStyle.showSkip    ? '' : 'none';
 }
-function saveStyle() { localStorage.setItem(SKEY, JSON.stringify(cStyle)); applyStyle(); }
+let _saveStyleTimer = null;
+function saveStyle() {
+  localStorage.setItem(SKEY, JSON.stringify(cStyle));
+  applyStyle();
+  clearTimeout(_saveStyleTimer);
+  _saveStyleTimer = setTimeout(() => {
+    fetch(`/api/sys/${sysId}/cashier-settings`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(cStyle)
+    }).catch(() => {});
+  }, 400);
+}
 
 function onSC(key, val, isNum) {
   cStyle[key] = isNum ? Number(val) : val;
   saveStyle();
-  const remFmt = (v, d=2) => Number(v).toFixed(d) + 'rem';
-  if (key === 'callFs')     document.getElementById('lbl_callFs').textContent     = Number(val).toFixed(1) + 'rem';
-  if (key === 'callMetaFs') document.getElementById('lbl_callMetaFs').textContent = remFmt(val);
-  if (key === 'btnNextFs')  document.getElementById('lbl_btnNextFs').textContent  = remFmt(val);
-  if (key === 'statFs')     document.getElementById('lbl_statFs').textContent     = Number(val).toFixed(1) + 'rem';
-  if (key === 'wqFs')       document.getElementById('lbl_wqFs').textContent       = remFmt(val);
-  if (key === 'wqMetaFs')   document.getElementById('lbl_wqMetaFs').textContent   = remFmt(val);
-  if (key === 'leftW')      document.getElementById('lbl_leftW').textContent      = val + 'px';
+  const setV = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  if (key === 'navFs')      setV('lbl_navFs',      Number(val).toFixed(2));
+  if (key === 'callFs')     setV('lbl_callFs',     Number(val).toFixed(1));
+  if (key === 'callMetaFs') setV('lbl_callMetaFs', Number(val).toFixed(2));
+  if (key === 'btnNextFs') {
+    setV('lbl_btnNextFs',  Number(val).toFixed(2));
+    setV('lbl_btnNextFs2', Number(val).toFixed(2));
+    const _r1 = document.getElementById('cs_btnNextFs');  if (_r1) _r1.value = Math.min(2.0,Math.max(0.7,parseFloat(val)||0.7));
+    const _r2 = document.getElementById('cs_btnNextFs2'); if (_r2) _r2.value = Math.min(2.0,Math.max(0.7,parseFloat(val)||0.7));
+  }
+  if (key === 'statFs')     setV('lbl_statFs',     Number(val).toFixed(1));
+  if (key === 'wqFs')       setV('lbl_wqFs',       Number(val).toFixed(2));
+  if (key === 'wqMetaFs')   setV('lbl_wqMetaFs',   Number(val).toFixed(2));
+  if (key === 'leftW')      setV('lbl_leftW',      Number(val));
+  if (key === 'logoFs')      setV('lbl_logoFs',      Number(val).toFixed(2));
+  if (key === 'cbarLblFs')   setV('lbl_cbarLblFs',   Number(val).toFixed(2));
+  if (key === 'calledTopFs') setV('lbl_calledTopFs', Number(val).toFixed(2));
+  if (key === 'btnRecallFs') setV('lbl_btnRecallFs', Number(val).toFixed(2));
+  if (key === 'btnNoShowFs') setV('lbl_btnNoShowFs', Number(val).toFixed(2));
+  if (key === 'statLblFs')   setV('lbl_statLblFs',   Number(val).toFixed(2));
+  if (key === 'wqHdrFs')     setV('lbl_wqHdrFs',     Number(val).toFixed(2));
 }
-function onST(key, checked) { cStyle[key] = checked; saveStyle(); }
+function onSCNum(key, rangeId, min, max, val) {
+  cStyle[key] = Number(val);
+  saveStyle();
+  const r = document.getElementById(rangeId);
+  if (r) r.value = Math.min(max, Math.max(min, parseFloat(val) || min));
+}
+function onST(key, checked) {
+  cStyle[key] = checked;
+  saveStyle();
+  if (key === 'showCallDetail' && lastCalled) showCalled(lastCalled);
+}
+function onST2(key, val) {
+  cStyle[key] = val;
+  saveStyle();
+  applyStyle();
+}
 
 function restoreStyleInputs() {
   ['bodyBg','navBg','cbarBg','tabsBg','calledTop','calledBot','wqHdrBg','histBg',
@@ -1100,6 +1389,7 @@ function restoreStyleInputs() {
     const el = document.getElementById('cs_' + k);
     if (el) el.value = cStyle[k];
   });
+  document.getElementById('cs_navFs').value        = cStyle.navFs||0.82;
   document.getElementById('cs_callFs').value      = cStyle.callFs;
   document.getElementById('cs_callMetaFs').value  = cStyle.callMetaFs;
   document.getElementById('cs_btnNextFs').value   = cStyle.btnNextFs;
@@ -1107,16 +1397,42 @@ function restoreStyleInputs() {
   document.getElementById('cs_wqFs').value        = cStyle.wqFs;
   document.getElementById('cs_wqMetaFs').value    = cStyle.wqMetaFs;
   document.getElementById('cs_leftW').value       = cStyle.leftW;
-  document.getElementById('cs_showStats').checked   = cStyle.showStats;
-  document.getElementById('cs_showHistory').checked = cStyle.showHistory;
-  document.getElementById('cs_showSkip').checked    = cStyle.showSkip;
-  document.getElementById('lbl_callFs').textContent      = Number(cStyle.callFs).toFixed(1) + 'rem';
-  document.getElementById('lbl_callMetaFs').textContent  = Number(cStyle.callMetaFs).toFixed(2) + 'rem';
-  document.getElementById('lbl_btnNextFs').textContent   = Number(cStyle.btnNextFs).toFixed(2) + 'rem';
-  document.getElementById('lbl_statFs').textContent      = Number(cStyle.statFs).toFixed(1) + 'rem';
-  document.getElementById('lbl_wqFs').textContent        = Number(cStyle.wqFs).toFixed(2) + 'rem';
-  document.getElementById('lbl_wqMetaFs').textContent    = Number(cStyle.wqMetaFs).toFixed(2) + 'rem';
-  document.getElementById('lbl_leftW').textContent       = cStyle.leftW + 'px';
+  document.getElementById('cs_showStats').checked      = cStyle.showStats;
+  document.getElementById('cs_showHistory').checked    = cStyle.showHistory;
+  document.getElementById('cs_showSkip').checked       = cStyle.showSkip;
+  document.getElementById('cs_showCallDetail').checked = cStyle.showCallDetail !== false;
+  document.getElementById('lbl_navFs').value       = Number(cStyle.navFs||0.82).toFixed(2);
+  document.getElementById('lbl_callFs').value      = Number(cStyle.callFs).toFixed(1);
+  document.getElementById('lbl_callMetaFs').value  = Number(cStyle.callMetaFs).toFixed(2);
+  document.getElementById('lbl_btnNextFs').value   = Number(cStyle.btnNextFs).toFixed(2);
+  document.getElementById('lbl_statFs').value      = Number(cStyle.statFs).toFixed(1);
+  document.getElementById('lbl_wqFs').value        = Number(cStyle.wqFs).toFixed(2);
+  document.getElementById('lbl_wqMetaFs').value    = Number(cStyle.wqMetaFs).toFixed(2);
+  document.getElementById('lbl_leftW').value       = cStyle.leftW;
+  const setTx = (id, val) => { const e=document.getElementById(id); if(e) e.value=val||''; };
+  setTx('tx_logo',      cStyle.lblLogo);
+  setTx('tx_cbarLbl',   cStyle.lblCbarCtr);
+  setTx('tx_calledTop', cStyle.lblCalledTop);
+  setTx('tx_btnNext',   cStyle.lblBtnNext);
+  setTx('tx_btnRecall', cStyle.lblBtnRecall);
+  setTx('tx_btnNoShow', cStyle.lblBtnNoShow);
+  setTx('tx_statW',     cStyle.lblStatW);
+  setTx('tx_statS',     cStyle.lblStatS);
+  setTx('tx_statN',     cStyle.lblStatN);
+  setTx('tx_wqHeader',  cStyle.lblWqHeader);
+  const setFS = (rangeId, numId, val, dec) => {
+    const r = document.getElementById(rangeId), n = document.getElementById(numId);
+    if (r) r.value = val;
+    if (n) n.value = Number(val).toFixed(dec);
+  };
+  setFS('cs_btnNextFs2',  'lbl_btnNextFs2',  cStyle.btnNextFs   || 0.95, 2);
+  setFS('cs_logoFs',      'lbl_logoFs',      cStyle.logoFs      || 0.90, 2);
+  setFS('cs_cbarLblFs',   'lbl_cbarLblFs',   cStyle.cbarLblFs   || 0.72, 2);
+  setFS('cs_calledTopFs', 'lbl_calledTopFs', cStyle.calledTopFs || 0.68, 2);
+  setFS('cs_btnRecallFs', 'lbl_btnRecallFs', cStyle.btnRecallFs || 0.88, 2);
+  setFS('cs_btnNoShowFs', 'lbl_btnNoShowFs', cStyle.btnNoShowFs || 0.88, 2);
+  setFS('cs_statLblFs',   'lbl_statLblFs',   cStyle.statLblFs   || 0.68, 2);
+  setFS('cs_wqHdrFs',     'lbl_wqHdrFs',     cStyle.wqHdrFs     || 0.82, 2);
 }
 
 function openStylePanel()  {
@@ -1132,7 +1448,8 @@ function swSpTab(tab, el) {
   document.querySelectorAll('.sptab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.sptab-pane').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById(tab === 'general' ? 'spGeneral' : 'spColors').classList.add('active');
+  const paneId = tab === 'general' ? 'spGeneral' : tab === 'colors' ? 'spColors' : 'spText';
+  document.getElementById(paneId).classList.add('active');
 }
 function resetStyle() {
   cStyle = Object.assign({}, DEF_STYLE);
@@ -1141,6 +1458,36 @@ function resetStyle() {
 }
 
 applyStyle();
+document.getElementById('spNum').focus();
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>

@@ -46,15 +46,49 @@
       border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
       vertical-align:middle;margin-right:7px}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* Department selection modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;
+      align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px);
+      opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-overlay.show{opacity:1;pointer-events:all}
+    .modal{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:20px;
+      padding:36px 32px;width:100%;max-width:420px;transform:translateY(16px);transition:transform .25s}
+    .modal-overlay.show .modal{transform:translateY(0)}
+    .modal-title{font-size:1.15rem;font-weight:700;color:#ffd54f;margin-bottom:6px;text-align:center}
+    .modal-sub{font-size:.82rem;color:#455a64;text-align:center;margin-bottom:24px;letter-spacing:.3px}
+    .dept-list{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto}
+    .dept-list::-webkit-scrollbar{width:5px}
+    .dept-list::-webkit-scrollbar-track{background:transparent}
+    .dept-list::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:4px}
+    .dept-btn{background:#0f1923;border:1.5px solid #1e3a5f;border-radius:12px;
+      color:#cfd8dc;font-size:.95rem;font-family:inherit;padding:14px 18px;
+      text-align:left;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:10px}
+    .dept-btn:hover{border-color:#42a5f5;color:#fff;background:rgba(66,165,245,.08)}
+    .dept-btn:active{background:rgba(66,165,245,.15)}
+    .dept-icon{font-size:1.1rem;flex-shrink:0}
+    .dept-loading{text-align:center;color:#546e7a;font-size:.9rem;padding:20px 0}
+    .dept-err{color:#ef9a9a;font-size:.85rem;text-align:center;padding:10px 0}
   </style>
 </head>
 <body>
+
+<!-- Department selection modal -->
+<div class="modal-overlay" id="deptOverlay">
+  <div class="modal">
+    <div class="modal-title">เลือกห้องตรวจ</div>
+    <div class="modal-sub" id="deptWelcome">กรุณาเลือกห้องตรวจที่ต้องการใช้งาน</div>
+    <div class="dept-list" id="deptList">
+      <div class="dept-loading">กำลังโหลด...</div>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="card">
     <div class="logo">
       <span class="logo-hex">⬡</span>
       <div class="logo-title">ระบบคิว</div>
-      <div class="logo-sub">Queue Management System</div>
+      <div class="logo-sub">ระบบบริหารคิวการบริการ</div>
     </div>
 
     <div class="field">
@@ -120,7 +154,7 @@
       if (d.success) {
         sessionStorage.setItem('authToken', d.token);
         sessionStorage.setItem('officerName', d.officer.name);
-        location.href = '/';
+        fetchDepts(d.token, d.officer.name);
       } else {
         errEl.textContent = d.message;
         errEl.classList.add('show');
@@ -135,6 +169,108 @@
       btn.textContent = 'เข้าสู่ระบบ';
     });
   }
+
+  function fetchDepts(token, officerName) {
+    const overlay  = document.getElementById('deptOverlay');
+    const listEl   = document.getElementById('deptList');
+    const welcomeEl = document.getElementById('deptWelcome');
+    welcomeEl.textContent = officerName + ' — กรุณาเลือกห้องตรวจ';
+    listEl.innerHTML = '<div class="dept-loading">กำลังโหลด...</div>';
+    overlay.classList.add('show');
+
+    fetch('/api/officer/departments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(d => {
+      if (!d.success) {
+        listEl.innerHTML = '<div class="dept-err">' + escHtml(d.message || 'โหลดข้อมูลไม่สำเร็จ') + '</div>';
+        return;
+      }
+      const depts = d.departments || [];
+      if (depts.length === 0) {
+        listEl.innerHTML = '<div class="dept-err">ไม่พบห้องตรวจที่กำหนด</div>';
+        return;
+      }
+      if (depts.length === 1) {
+        selectDept(token, depts[0].depcode, depts[0].name);
+        return;
+      }
+      listEl.innerHTML = '';
+      depts.forEach(dept => {
+        const btn = document.createElement('button');
+        btn.className = 'dept-btn';
+        btn.innerHTML = '<span class="dept-icon">🏥</span>' + escHtml(dept.name);
+        btn.onclick = () => selectDept(token, dept.depcode, dept.name);
+        listEl.appendChild(btn);
+      });
+    })
+    .catch(err => {
+      listEl.innerHTML = '<div class="dept-err">เกิดข้อผิดพลาด: ' + escHtml(err.message) + '</div>';
+    });
+  }
+
+  function selectDept(token, depcode, deptName) {
+    const listEl = document.getElementById('deptList');
+    listEl.innerHTML = '<div class="dept-loading">กำลังโหลด...</div>';
+
+    fetch('/api/auth/select-dept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, depcode, deptName })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        sessionStorage.setItem('currentDepcode', d.depcode);
+        sessionStorage.setItem('currentDeptName', d.deptName);
+        location.href = '/';
+      } else {
+        listEl.innerHTML = '<div class="dept-err">' + (d.message || 'เกิดข้อผิดพลาด') + '</div>';
+      }
+    })
+    .catch(() => {
+      listEl.innerHTML = '<div class="dept-err">เกิดข้อผิดพลาด กรุณาลองใหม่</div>';
+    });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>

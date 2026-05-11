@@ -143,6 +143,13 @@
       white-space:nowrap;transition:opacity .2s}
     .pd-ref-btn:hover{opacity:.82}
     .pd-hint{font-size:.7rem;color:#3a5a78;margin-top:6px;line-height:1.5}
+    .print-mode-btns{display:flex;gap:8px;margin-top:6px}
+    .print-mode-btn{flex:1;padding:10px 12px;border-radius:10px;border:2px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.04);color:rgba(255,255,255,.55);font-size:.85rem;font-weight:600;
+      cursor:pointer;transition:all .2s;text-align:center}
+    .print-mode-btn:hover{border-color:rgba(66,165,245,.4);color:rgba(255,255,255,.8)}
+    .print-mode-btn.on{border-color:#42a5f5;background:rgba(66,165,245,.15);color:#90caf9}
+    .local-print-note{display:none}
     .pd-custom-size{display:none;margin-top:10px}
     .pd-custom-size.show{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
@@ -162,6 +169,118 @@
       border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;
       cursor:pointer;font-family:inherit;width:100%;transition:opacity .2s}
     .pd-save-btn:hover{opacity:.85}
+
+    /* ── Screen designer ── */
+    .sd-wrap{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
+    .sd-left{display:flex;flex-direction:column;gap:14px}
+    .sd-section{background:#1a2a3a;border:1px solid #1e3a5f;border-radius:14px;padding:18px}
+    .sd-sec-title{font-size:.82rem;font-weight:700;color:#90caf9;margin-bottom:14px;
+      display:flex;align-items:center;gap:7px}
+    .sd-sec-title::before{content:'';display:block;width:3px;height:14px;
+      background:#42a5f5;border-radius:2px}
+    .sd-field{margin-bottom:12px}
+    .sd-field:last-child{margin-bottom:0}
+    .sd-field label{display:block;font-size:.76rem;color:#64b5f6;margin-bottom:6px}
+    .sd-field select{width:100%;background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;
+      padding:9px 12px;color:#fff;font-size:.9rem;font-family:inherit;transition:border-color .2s}
+    .sd-field select:focus{outline:none;border-color:#42a5f5}
+    .sd-field select option{background:#0d1f33}
+    .sd-ck{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+      margin-bottom:9px;padding:2px 0}
+    .sd-ck input{width:15px;height:15px;accent-color:#42a5f5;cursor:pointer;flex-shrink:0}
+    .sd-ck span{font-size:.84rem;color:#90caf9}
+
+    /* bg presets */
+    .bg-presets{display:flex;flex-wrap:wrap;gap:8px}
+    .bg-chip{width:52px;height:52px;border-radius:12px;cursor:pointer;
+      border:3px solid transparent;transition:all .18s;position:relative;
+      display:flex;align-items:flex-end;padding:3px;overflow:hidden}
+    .bg-chip:hover{transform:scale(1.07)}
+    .bg-chip.on{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.3);transform:scale(1.05)}
+    .bg-chip-lbl{font-size:.55rem;font-weight:700;color:#fff;
+      background:rgba(0,0,0,.45);border-radius:4px;padding:1px 4px;
+      width:100%;text-align:center;position:relative;z-index:1}
+
+    /* option buttons 3-way */
+    .opt-btns{display:flex;gap:6px}
+    .opt-btn{flex:1;padding:9px 4px;background:#0f1923;border:1.5px solid #1e3a5f;
+      color:#64b5f6;border-radius:9px;font-size:.8rem;font-weight:600;
+      cursor:pointer;text-align:center;font-family:inherit;transition:all .18s}
+    .opt-btn:hover{border-color:#42a5f5;color:#fff}
+    .opt-btn.on{background:#1565c0;border-color:#42a5f5;color:#fff}
+
+    /* preview panel */
+    .sd-right{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+    .sd-preview-lbl{font-size:.72rem;color:#3a5a78;letter-spacing:2px;text-transform:uppercase}
+    .sd-preview-wrap{border-radius:16px;overflow:hidden;
+      box-shadow:0 4px 24px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08)}
+    .sd-save-btn{background:linear-gradient(135deg,#42a5f5,#1565c0);color:#fff;
+      border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;
+      cursor:pointer;font-family:inherit;width:100%;transition:opacity .2s;margin-top:4px}
+    .sd-save-btn:hover{opacity:.85}
+    .sd-hint{font-size:.7rem;color:#3a5a78;margin-top:5px;line-height:1.5}
+
+    /* ── Network pane ── */
+    .net-intro{background:rgba(66,165,245,.08);border:1px solid rgba(66,165,245,.25);
+      border-radius:12px;padding:14px 18px;font-size:.88rem;color:rgba(255,255,255,.7);
+      line-height:1.7;margin-bottom:22px}
+    .net-section-title{font-size:.78rem;font-weight:700;color:#64b5f6;
+      letter-spacing:2px;text-transform:uppercase;margin:20px 0 10px}
+    .net-url-row{display:flex;align-items:center;gap:10px;
+      background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
+      border-radius:11px;padding:11px 15px;margin-bottom:8px;transition:border-color .2s}
+    .net-url-row:hover{border-color:rgba(100,181,246,.4)}
+    .net-iface{font-size:.7rem;color:rgba(255,255,255,.35);min-width:80px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .net-url-text{font-family:'Courier New',monospace;font-size:.95rem;
+      color:#80deea;flex:1;word-break:break-all}
+    .net-copy-btn{background:rgba(66,165,245,.18);border:1px solid rgba(66,165,245,.35);
+      color:#90caf9;border-radius:8px;padding:5px 14px;font-size:.8rem;
+      cursor:pointer;white-space:nowrap;transition:background .2s;font-weight:600}
+    .net-copy-btn:hover{background:rgba(66,165,245,.32)}
+    .net-copy-btn.copied{background:rgba(76,175,80,.25);border-color:rgba(76,175,80,.4);color:#a5d6a7}
+    .net-role-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:22px}
+    .net-role-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      border-radius:14px;padding:14px 16px;transition:border-color .2s}
+    .net-role-card:hover{border-color:rgba(100,181,246,.35)}
+    .net-role-icon{font-size:1.6rem;margin-bottom:8px}
+    .net-role-title{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:4px}
+    .net-role-desc{font-size:.75rem;color:rgba(255,255,255,.45);line-height:1.5;margin-bottom:10px}
+    .net-role-path{font-family:'Courier New',monospace;font-size:.78rem;
+      color:#4dd0e1;background:rgba(0,0,0,.3);border-radius:6px;
+      padding:4px 8px;display:inline-block}
+    .net-refresh-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
+      color:rgba(255,255,255,.6);border-radius:9px;padding:8px 20px;
+      font-size:.85rem;cursor:pointer;transition:background .2s;margin-top:4px}
+    .net-refresh-btn:hover{background:rgba(255,255,255,.12)}
+    .net-localhost-note{background:rgba(255,213,79,.07);border:1px solid rgba(255,213,79,.2);
+      border-radius:10px;padding:10px 14px;font-size:.8rem;color:rgba(255,213,79,.8);
+      margin-top:14px;line-height:1.6}
+    .net-action-btn{background:linear-gradient(135deg,#1565c0,#0d47a1);
+      border:1px solid rgba(66,165,245,.4);color:#90caf9;border-radius:10px;
+      padding:9px 20px;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+    .net-action-btn:hover{opacity:.8}
+    .net-action-btn:active{opacity:.6}
+    .net-action-btn.restarting{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);pointer-events:none}
+
+    /* ── Toggle switch ── */
+    .sf-toggle{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
+    .sf-toggle input{opacity:0;width:0;height:0}
+    .sf-toggle-slider{position:absolute;inset:0;background:#1e3a5f;border-radius:22px;transition:.3s;cursor:pointer}
+    .sf-toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;
+      background:#fff;border-radius:50%;transition:.3s}
+    .sf-toggle input:checked + .sf-toggle-slider{background:#42a5f5}
+    .sf-toggle input:checked + .sf-toggle-slider::before{transform:translateX(16px)}
+
+    /* ── HIS pttype rule row ── */
+    .pttype-row{background:#0f1923;border:1px solid #1e3a5f;border-radius:10px;
+      padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap}
+    .pttype-code{font-family:'Courier New',monospace;font-size:.9rem;font-weight:700;
+      color:#80deea;background:#0d1f33;padding:3px 9px;border-radius:6px;min-width:56px;text-align:center}
+    .pttype-name{flex:1;font-size:.88rem;color:#ccc;min-width:100px}
+    .pttype-auto{font-size:.78rem;color:#90caf9;background:#1a2a3a;padding:3px 8px;border-radius:6px;
+      max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pttype-auto.none{color:#2a4060}
 
     /* ── Color picker ── */
     .cpk{width:100%}
@@ -187,6 +306,17 @@
     .cpk-sl.sl-b{accent-color:#42a5f5}
     .cpk-num{font-size:.72rem;color:#90caf9;width:26px;text-align:right;
       flex-shrink:0;font-variant-numeric:tabular-nums;font-family:'Courier New',monospace}
+
+    /* ── Layout Order (drag-drop) ── */
+    .pd-lo-item{background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;
+      padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:grab;
+      transition:background .15s;user-select:none}
+    .pd-lo-item:hover{background:#1a2a3a;border-color:#42a5f5}
+    .pd-lo-item.dragging{opacity:.5;background:#1565c0}
+    .pd-lo-item.drag-over{border-color:#42a5f5;border-style:dashed}
+    .pd-lo-drag{color:#2a4060;font-size:.9rem;flex-shrink:0}
+    .pd-lo-label{flex:1;font-size:.85rem;color:#90caf9;font-weight:500}
+    .pd-lo-icon{font-size:1rem;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -209,7 +339,10 @@
     <div class="page-tab active" onclick="switchTab('types',this)">ประเภทคิว</div>
     <div class="page-tab"        onclick="switchTab('counters',this)">ช่องบริการ</div>
     <div class="page-tab"        onclick="switchTab('ticker',this)">ข้อความวิ่ง</div>
+    <div class="page-tab"        onclick="switchTab('his',this)">🏥 HIS</div>
     <div class="page-tab"        onclick="switchTab('print',this)">🖨 แบบฟอร์มปริ้น</div>
+    <div class="page-tab"        onclick="switchTab('screen',this)">🖥 หน้าจอออกคิว</div>
+    <div class="page-tab"        onclick="switchTab('network',this)">🌐 เชื่อมต่อ</div>
   </div>
 
   <!-- Queue Types -->
@@ -225,6 +358,10 @@
           <label>Prefix</label>
           <input type="text" id="tPrefix" placeholder="A" maxlength="3"
             style="text-transform:uppercase;text-align:center;font-size:1.2rem;font-weight:700"/>
+          <label style="display:flex;align-items:center;gap:5px;margin-top:7px;cursor:pointer;font-size:.75rem;color:#90caf9;white-space:nowrap">
+            <input type="checkbox" id="tNoPrefix" onchange="onNoPrefixChange('tPrefix','tNoPrefix')" style="accent-color:#ffa726;width:14px;height:14px"/>
+            ไม่ใช้ Prefix
+          </label>
         </div>
       </div>
       <div class="field" style="margin-bottom:14px">
@@ -278,17 +415,40 @@
           </div>
         </div>
 
-        <!-- Printer -->
+        <!-- Print mode -->
         <div class="pd-section">
-          <div class="pd-sec-title">🖨 เครื่องพิมพ์</div>
+          <div class="pd-sec-title">🖨 โหมดการพิมพ์ <span style="font-size:.68rem;color:#555;font-weight:400">(ตั้งค่าเฉพาะเครื่องนี้)</span></div>
+          <div class="print-mode-btns">
+            <div class="print-mode-btn on" id="pmBtnHost" onclick="setPrintMode('host')">
+              🖥 HOST (Server)<br/><span style="font-size:.72rem;font-weight:400;opacity:.7">ปริ้นที่เครื่อง Server</span>
+            </div>
+            <div class="print-mode-btn" id="pmBtnLocal" onclick="setPrintMode('local')">
+              💻 เครื่องนี้<br/><span style="font-size:.72rem;font-weight:400;opacity:.7">เปิด dialog เลือกเครื่องพิมพ์</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Printer (HOST mode only) -->
+        <div class="pd-section" id="pdPrinterSection">
+          <div class="pd-sec-title">🖨 เครื่องพิมพ์ที่ Server</div>
           <div class="pd-printer-row">
             <select id="pdPrinter" onchange="updatePreview()">
               <option value="">— กำลังโหลด... —</option>
             </select>
             <button class="pd-ref-btn" onclick="loadPrinters()">↺ รีเฟรช</button>
           </div>
-          <div class="pd-hint">💡 เลือกเครื่องพิมพ์ที่ต้องการ ระบบจะจำไว้เพื่อแนะนำเมื่อเปิดหน้าต่างพิมพ์<br/>
-          หากต้องการพิมพ์แบบไม่ผ่าน dialog ให้ตั้ง Windows Default Printer เป็นเครื่องนี้</div>
+          <div class="pd-hint">💡 รายชื่อเครื่องพิมพ์ที่ติดตั้งบน Server — ระบบจะปริ้นโดยตรงโดยไม่ผ่าน dialog</div>
+        </div>
+        <!-- Local printer section (เครื่องนี้ mode) -->
+        <div class="pd-section" id="pdLocalPrinterSection" style="display:none">
+          <div class="pd-sec-title">🖨 เครื่องพิมพ์เครื่องนี้</div>
+          <div class="pd-printer-row">
+            <select id="pdLocalPrinter" onchange="saveLocalPrinter()">
+              <option value="">— กำลังโหลด... —</option>
+            </select>
+            <button class="pd-ref-btn" onclick="loadLocalPrinters()">↺ รีเฟรช</button>
+          </div>
+          <div class="pd-hint" id="pdLocalPrinterHint">💡 รายชื่อเครื่องพิมพ์บนเครื่องนี้ — ระบบจะปริ้นโดยตรงโดยไม่ผ่าน dialog</div>
         </div>
 
         <!-- Header -->
@@ -362,6 +522,19 @@
           <div class="pd-sec-title">⚙ ตัวเลือกการพิมพ์</div>
           <label class="pd-ck"><input type="checkbox" id="pdAutoPrint" onchange="updatePreview()"><span>พิมพ์อัตโนมัติหลังออกคิว</span></label>
           <label class="pd-ck"><input type="checkbox" id="pdShowDivider" onchange="updatePreview()"><span>แสดงเส้นคั่น</span></label>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+            <label style="font-size:.82rem;color:#2c3e50;white-space:nowrap">จำนวนสำเนา</label>
+            <input type="number" id="pdCopies" min="1" max="10" value="1"
+              style="width:64px;padding:4px 6px;border:1px solid #b0c4de;border-radius:6px;font-size:.9rem;text-align:center">
+            <span style="font-size:.78rem;color:#5a7a9a">ชุด / ครั้ง</span>
+          </div>
+        </div>
+
+        <!-- Layout Order -->
+        <div class="pd-section">
+          <div class="pd-sec-title">📐 ลำดับการแสดงผล</div>
+          <div style="font-size:.72rem;color:#3a5a78;margin-bottom:12px">💡 ลากแถวเพื่อเรียงลำดับ</div>
+          <div id="pdLayoutOrder" style="display:flex;flex-direction:column;gap:6px"></div>
         </div>
 
         <button class="pd-save-btn" onclick="savePrintCfg()">💾 บันทึกการตั้งค่า</button>
@@ -374,6 +547,329 @@
           <div id="slipPreview"></div>
         </div>
         <button class="pd-test-btn" onclick="testPrint()">🖨 ทดสอบพิมพ์</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Screen designer -->
+  <div class="tab-pane" id="pane-screen">
+    <div class="sd-wrap">
+
+      <!-- LEFT: controls -->
+      <div class="sd-left">
+
+        <!-- Header Title -->
+        <div class="sd-section">
+          <div class="sd-sec-title">📋 หัวข้อส่วนบน</div>
+          <div class="sd-field">
+            <label>ข้อความหัวข้อ (เว้นว่าง = ใช้ชื่อระบบ)</label>
+            <input type="text" id="sdHeaderTitle" placeholder="เช่น ห้องตรวจ 11" oninput="sdPreview()"/>
+          </div>
+          <div class="sd-field" style="margin-top:10px">
+            <label>ขนาดตัวอักษรหัวข้อ</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdHeaderFs" min="1.0" max="3.0" step="0.1" value="1.5"
+                oninput="document.getElementById('sdHeaderFsV').textContent=this.value+'rem';sdPreview()"/>
+              <span class="pd-range-val" id="sdHeaderFsV">1.5rem</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Background -->
+        <div class="sd-section">
+          <div class="sd-sec-title">🎨 พื้นหลัง</div>
+          <div class="sd-field">
+            <label>ธีม Preset</label>
+            <div class="bg-presets" id="bgPresets"></div>
+          </div>
+          <div class="sd-field" style="margin-top:10px">
+            <label>🎨 สีที่ 1 — บน / ซ้าย</label>
+            <div class="cpk" id="bgC1Cpk"></div>
+          </div>
+          <div class="sd-field" style="margin-top:10px">
+            <label>🎨 สีที่ 2 — กลาง</label>
+            <div class="cpk" id="bgC2Cpk"></div>
+          </div>
+          <div class="sd-field" style="margin-top:10px">
+            <label>🎨 สีที่ 3 — เข้ม / ขอบ</label>
+            <div class="cpk" id="bgC3Cpk"></div>
+          </div>
+        </div>
+
+        <!-- Accent color -->
+        <div class="sd-section">
+          <div class="sd-sec-title">✨ สีหลัก (Accent)</div>
+          <div class="sd-field">
+            <label>สีปุ่ม / ขอบ / เน้น</label>
+            <div class="cpk" id="accentCpk"></div>
+          </div>
+        </div>
+
+        <!-- Font -->
+        <div class="sd-section">
+          <div class="sd-sec-title">🔤 ฟ้อนต์</div>
+          <div class="sd-field">
+            <label>ฟ้อนต์หลัก</label>
+            <select id="sdFont" onchange="sdPreview()">
+              <option value="Kanit">Kanit (Google Fonts)</option>
+              <option value="Sarabun">Sarabun (Google Fonts)</option>
+              <option value="Prompt">Prompt (Google Fonts)</option>
+              <option value="Mitr">Mitr (Google Fonts)</option>
+              <option value="Noto Sans Thai">Noto Sans Thai (Google Fonts)</option>
+              <option value="Leelawadee UI">Leelawadee UI (Windows Built-in)</option>
+              <option value="Cordia New">Cordia New (Windows Built-in)</option>
+              <option value="Tahoma">Tahoma (Windows Built-in)</option>
+            </select>
+            <div class="sd-hint">⭐ Leelawadee UI / Cordia New / Tahoma ใช้ได้โดยไม่ต้องใช้ Internet</div>
+          </div>
+        </div>
+
+        <!-- Text sizes & colors -->
+        <div class="sd-section">
+          <div class="sd-sec-title">📝 ขนาดและสีข้อความ</div>
+
+          <div class="sd-field">
+            <label>ขนาดหัวข้อหน้า (สแกนบาร์โค้ด)</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdTitleFs" min="14" max="42" value="24"
+                oninput="document.getElementById('sdTitleFsV').textContent=this.value+'px';sdPreview()"/>
+              <span class="pd-range-val" id="sdTitleFsV">24px</span>
+            </div>
+          </div>
+          <div class="sd-field">
+            <label>สีข้อความหัวข้อ</label>
+            <div class="cpk" id="titleColorCpk"></div>
+          </div>
+
+          <div class="sd-field" style="margin-top:10px">
+            <label>ขนาดชื่อประเภทคิว (บนการ์ด)</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdCardNameFs" min="10" max="24" value="15"
+                oninput="document.getElementById('sdCardNameFsV').textContent=this.value+'px';sdPreview()"/>
+              <span class="pd-range-val" id="sdCardNameFsV">15px</span>
+            </div>
+          </div>
+          <div class="sd-field">
+            <label>สีชื่อประเภทคิว</label>
+            <div class="cpk" id="cardNameColorCpk"></div>
+          </div>
+
+          <div class="sd-field" style="margin-top:10px">
+            <label>ขนาดข้อความคิวรอ</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdWaitFs" min="9" max="20" value="12"
+                oninput="document.getElementById('sdWaitFsV').textContent=this.value+'px';sdPreview()"/>
+              <span class="pd-range-val" id="sdWaitFsV">12px</span>
+            </div>
+          </div>
+          <div class="sd-field">
+            <label>สีตัวเลขคิวรอ (ไฮไลต์)</label>
+            <div class="cpk" id="waitNumColorCpk"></div>
+          </div>
+        </div>
+
+        <!-- Bottom bar (QN/HN) -->
+        <div class="sd-section">
+          <div class="sd-sec-title">🔍 แถบค้นหา QN / HN</div>
+
+          <div class="sd-field">
+            <label>สีพื้นหลังแถบ</label>
+            <div class="cpk" id="barBgCpk"></div>
+          </div>
+          <div class="sd-field">
+            <label>ความโปร่งใสแถบ (opacity %)</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdBarBgOp" min="10" max="100" value="78"
+                oninput="document.getElementById('sdBarBgOpV').textContent=this.value+'%';sdPreview()"/>
+              <span class="pd-range-val" id="sdBarBgOpV">78%</span>
+            </div>
+          </div>
+
+          <div class="sd-field" style="margin-top:8px">
+            <label>สีป้าย QN / HN (label)</label>
+            <div class="cpk" id="barLabelColorCpk"></div>
+          </div>
+          <div class="sd-field">
+            <label>ขนาดป้าย QN / HN</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdBarLblSz" min="7" max="16" value="10"
+                oninput="document.getElementById('sdBarLblSzV').textContent=this.value+'px';sdPreview()"/>
+              <span class="pd-range-val" id="sdBarLblSzV">10px</span>
+            </div>
+          </div>
+
+          <div class="sd-field" style="margin-top:8px">
+            <label>ความทึบพื้นหลังช่องกรอก (%)</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdInputBg" min="0" max="60" value="8"
+                oninput="document.getElementById('sdInputBgV').textContent=this.value+'%';sdPreview()"/>
+              <span class="pd-range-val" id="sdInputBgV">8%</span>
+            </div>
+          </div>
+          <div class="sd-field">
+            <label>สีขอบช่องกรอก</label>
+            <div class="cpk" id="barBorderCpk"></div>
+          </div>
+
+          <div class="sd-field" style="margin-top:8px">
+            <label>สีข้อความที่พิมพ์</label>
+            <div class="cpk" id="barTextColorCpk"></div>
+          </div>
+          <div class="sd-field">
+            <label>ขนาดข้อความที่พิมพ์</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdInputFs" min="12" max="28" value="17"
+                oninput="document.getElementById('sdInputFsV').textContent=this.value+'px';sdPreview()"/>
+              <span class="pd-range-val" id="sdInputFsV">17px</span>
+            </div>
+          </div>
+
+          <div class="sd-field" style="margin-top:8px">
+            <label>สี Placeholder (ข้อความตัวอย่าง)</label>
+            <div class="cpk" id="barPHColorCpk"></div>
+          </div>
+          <div class="sd-field">
+            <label>ความทึบ Placeholder (%)</label>
+            <div class="pd-range-row">
+              <input type="range" id="sdPHOp" min="5" max="80" value="28"
+                oninput="document.getElementById('sdPHOpV').textContent=this.value+'%';sdPreview()"/>
+              <span class="pd-range-val" id="sdPHOpV">28%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layout -->
+        <div class="sd-section">
+          <div class="sd-sec-title">📐 ขนาดการ์ดประเภทคิว</div>
+          <div class="sd-field">
+            <label>ขนาดการ์ด</label>
+            <div class="opt-btns" id="sdCardSizeBtns">
+              <button class="opt-btn" data-v="compact" onclick="setSdOpt('cardSize','compact',this)">เล็ก</button>
+              <button class="opt-btn on"  data-v="normal"  onclick="setSdOpt('cardSize','normal',this)">ปกติ</button>
+              <button class="opt-btn" data-v="large"   onclick="setSdOpt('cardSize','large',this)">ใหญ่</button>
+            </div>
+          </div>
+          <div class="sd-field" style="margin-top:4px">
+            <label>สไตล์การ์ด</label>
+            <div class="opt-btns" id="sdCardStyleBtns">
+              <button class="opt-btn on"  data-v="glass"   onclick="setSdOpt('cardStyle','glass',this)">Glass</button>
+              <button class="opt-btn" data-v="solid"   onclick="setSdOpt('cardStyle','solid',this)">Solid</button>
+              <button class="opt-btn" data-v="outline" onclick="setSdOpt('cardStyle','outline',this)">Outline</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Show / hide -->
+        <div class="sd-section">
+          <div class="sd-sec-title">👁 แสดง / ซ่อน</div>
+          <label class="sd-ck"><input type="checkbox" id="sdShowScanner" onchange="sdPreview()"><span>แสดงกล้องสแกนบาร์โค้ด</span></label>
+          <label class="sd-ck"><input type="checkbox" id="sdShowToggles" onchange="sdPreview()"><span>แสดงตัวเลือก สแกนอัตโนมัติ / ปริ้นทันที</span></label>
+        </div>
+
+        <button class="sd-save-btn" onclick="saveScreenCfg()">💾 บันทึกการตั้งค่าหน้าจอ</button>
+      </div>
+
+      <!-- RIGHT: live preview -->
+      <div class="sd-right">
+        <div class="sd-preview-lbl">ตัวอย่างหน้าจอ</div>
+        <div class="sd-preview-wrap" id="sdPreviewWrap"></div>
+        <div class="sd-hint" style="text-align:center">ตัวอย่างแบบจำลอง — เปิดหน้าออกคิวเพื่อดูผลจริง</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Network / Multi-PC -->
+  <div class="tab-pane" id="pane-network">
+
+    <!-- Server Control Card -->
+    <div class="form-card" style="margin-bottom:16px">
+      <h2>🖥 เครื่อง Server หลัก</h2>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px">
+
+        <div style="display:flex;align-items:center;gap:8px">
+          <div id="srvStatusDot" style="width:10px;height:10px;border-radius:50%;
+            background:#4caf50;box-shadow:0 0 8px #4caf5088;flex-shrink:0"></div>
+          <span id="srvStatusText" style="font-size:.88rem;color:rgba(255,255,255,.75)">Server กำลังทำงาน</span>
+        </div>
+
+        <button id="btnRestartSrv" class="net-action-btn" onclick="restartServer()">
+          ▶ เปิด / รีสตาร์ท Server
+        </button>
+
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+          background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+          border-radius:10px;padding:9px 14px;transition:background .2s"
+          onmouseover="this.style.background='rgba(255,255,255,.09)'"
+          onmouseout="this.style.background='rgba(255,255,255,.05)'">
+          <input type="checkbox" id="autoStartChk" onchange="setAutoStart(this.checked)"
+            style="width:17px;height:17px;accent-color:#42a5f5;cursor:pointer"/>
+          <span style="font-size:.88rem;color:rgba(255,255,255,.8)">เปิด Server อัตโนมัติเมื่อเปิดเครื่อง</span>
+        </label>
+
+        <span id="autoStartStatus" style="font-size:.78rem;color:rgba(255,255,255,.35)"></span>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h2>🌐 เชื่อมต่อหลายเครื่อง</h2>
+      <div class="net-intro">
+        ระบบนี้ทำงานเป็น <b>Server กลาง</b> — เครื่องคอมพิวเตอร์ทุกเครื่องในเครือข่าย LAN เดียวกัน
+        สามารถเปิดเว็บเบราว์เซอร์แล้วพิมพ์ที่อยู่ด้านล่างนี้เพื่อใช้งานร่วมกันได้ทันที
+        โดยข้อมูลคิวทั้งหมดจะซิงค์แบบ <b>Real-time</b>
+      </div>
+
+      <div class="net-section-title">ที่อยู่ Server บนเครือข่าย</div>
+      <div id="netAddressList"><div style="color:rgba(255,255,255,.4);font-size:.85rem">กำลังตรวจสอบ IP...</div></div>
+      <button class="net-refresh-btn" onclick="loadNetInfo()">↻ รีเฟรช</button>
+
+      <div class="net-localhost-note">
+        ⚠️ <b>localhost</b> ใช้ได้เฉพาะเครื่อง Server เท่านั้น — เครื่องอื่นต้องใช้ <b>IP Address</b> ด้านบน
+      </div>
+
+      <div class="net-section-title">หน้าสำหรับแต่ละบทบาท</div>
+      <div class="net-role-grid">
+        <div class="net-role-card">
+          <div class="net-role-icon">🎟</div>
+          <div class="net-role-title">ออกบัตรคิว</div>
+          <div class="net-role-desc">เคาน์เตอร์รับบัตรคิว หรือ Kiosk หน้าห้อง</div>
+          <div class="net-role-path" id="netPathQueue">/queue.html?sys=1</div>
+          <button class="net-copy-btn" style="width:100%;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:.78rem"
+            onclick="netCopy(this, document.getElementById('netPathQueue').textContent.trim())">📋 คัดลอกลิงค์</button>
+        </div>
+        <div class="net-role-card">
+          <div class="net-role-icon">📢</div>
+          <div class="net-role-title">เรียกคิว (เคาน์เตอร์)</div>
+          <div class="net-role-desc">เจ้าหน้าที่ผู้ให้บริการเรียกคิวถัดไป</div>
+          <div class="net-role-path" id="netPathCashier">/cashier.html?sys=1</div>
+          <button class="net-copy-btn" style="width:100%;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:.78rem"
+            onclick="netCopy(this, document.getElementById('netPathCashier').textContent.trim())">📋 คัดลอกลิงค์</button>
+        </div>
+        <div class="net-role-card">
+          <div class="net-role-icon">📺</div>
+          <div class="net-role-title">หน้าจอแสดงผล</div>
+          <div class="net-role-desc">จอ TV / Monitor แสดงหมายเลขที่กำลังให้บริการ</div>
+          <div class="net-role-path" id="netPathDisplay">/display.html?sys=1</div>
+          <button class="net-copy-btn" style="width:100%;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:.78rem"
+            onclick="netCopy(this, document.getElementById('netPathDisplay').textContent.trim())">📋 คัดลอกลิงค์</button>
+        </div>
+        <div class="net-role-card">
+          <div class="net-role-icon">⚙️</div>
+          <div class="net-role-title">ตั้งค่าระบบ</div>
+          <div class="net-role-desc">ผู้ดูแลระบบตั้งค่าประเภทคิว ช่องบริการ</div>
+          <div class="net-role-path" id="netPathSettings">/settings.html?sys=1</div>
+          <button class="net-copy-btn" style="width:100%;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:.78rem"
+            onclick="netCopy(this, document.getElementById('netPathSettings').textContent.trim())">📋 คัดลอกลิงค์</button>
+        </div>
+      </div>
+
+      <div class="net-section-title">วิธีเชื่อมต่อจากเครื่องอื่น</div>
+      <div style="background:rgba(0,0,0,.25);border-radius:12px;padding:16px 20px;font-size:.85rem;color:rgba(255,255,255,.65);line-height:2">
+        <div><b style="color:#80deea">①</b> &nbsp;ตรวจสอบให้แน่ใจว่าเครื่องทุกเครื่องอยู่ใน <b style="color:#fff">LAN เดียวกัน</b> (Wi-Fi หรือสาย LAN)</div>
+        <div><b style="color:#80deea">②</b> &nbsp;เปิด <b style="color:#fff">เว็บเบราว์เซอร์</b> บนเครื่องที่ต้องการเชื่อมต่อ</div>
+        <div><b style="color:#80deea">③</b> &nbsp;พิมพ์ที่อยู่ Server ด้านบน แล้วต่อด้วยหน้าที่ต้องการ เช่น <span id="netExampleUrl" style="font-family:monospace;color:#4dd0e1">http://192.168.1.x:3000/queue.html?sys=1</span></div>
+        <div><b style="color:#80deea">④</b> &nbsp;ข้อมูลคิวจะ <b style="color:#fff">ซิงค์แบบ Real-time</b> ทันทีที่มีการออกหรือเรียกคิว</div>
       </div>
 
     </div>
@@ -393,6 +889,98 @@
     </div>
     <div class="item-list" id="counterList"><div class="empty-msg">กำลังโหลด...</div></div>
   </div>
+
+  <!-- HIS / Lookup config -->
+  <div class="tab-pane" id="pane-his">
+
+    <!-- Barcode section -->
+    <div class="form-card">
+      <h2>📟 ค้นหาจากบาร์โค้ด</h2>
+
+      <div class="field" style="margin-bottom:14px">
+        <label style="font-size:.78rem;color:#90caf9;margin-bottom:8px;display:block">ดึงข้อมูลจาก field</label>
+        <div style="display:flex;gap:18px">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer">
+            <input type="radio" name="barcodeField" id="bfHN" value="hn" checked
+              style="accent-color:#42a5f5;width:15px;height:15px"/>
+            <span style="font-size:.9rem">HN &nbsp;<code style="background:#0f1923;padding:2px 7px;border-radius:5px;font-size:.8rem;color:#80deea">ovst.hn</code></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer">
+            <input type="radio" name="barcodeField" id="bfQN" value="qn"
+              style="accent-color:#42a5f5;width:15px;height:15px"/>
+            <span style="font-size:.9rem">QN &nbsp;<code style="background:#0f1923;padding:2px 7px;border-radius:5px;font-size:.8rem;color:#80deea">ovst.oqueue</code></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row" style="gap:16px;margin-bottom:8px">
+        <div class="field" style="flex:1;min-width:120px">
+          <label>ตัดอักขระนำหน้า <span style="color:#546e7a;font-weight:400">(0 = ไม่ตัด)</span></label>
+          <input type="number" id="barcodePrefixLen" value="0" min="0" max="20"
+            style="background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.95rem;font-family:inherit;width:100%"/>
+          <small style="color:#546e7a;font-size:.72rem;margin-top:4px;display:block">เช่น บาร์โค้ด = "HN1234567" ตัด 2 = "1234567"</small>
+        </div>
+        <div class="field" style="flex:1;min-width:120px">
+          <label>ความยาวที่ใช้ <span style="color:#546e7a;font-weight:400">(0 = ทั้งหมด)</span></label>
+          <input type="number" id="barcodeUseLen" value="0" min="0" max="30"
+            style="background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.95rem;font-family:inherit;width:100%"/>
+          <small style="color:#546e7a;font-size:.72rem;margin-top:4px;display:block">เช่น ใช้แค่ 7 ตัว หลังตัดนำหน้าแล้ว</small>
+        </div>
+      </div>
+
+      <div id="barcodePreview" style="background:#0f1923;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#64b5f6;margin-top:4px;display:none"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+        <input type="text" id="barcodeTestInput" placeholder="ทดสอบ: พิมพ์บาร์โค้ดตัวอย่าง"
+          style="flex:1;background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.9rem;font-family:inherit"
+          oninput="previewBarcode(this.value)"/>
+      </div>
+    </div>
+
+    <!-- Treatment rights section -->
+    <div class="form-card">
+      <h2>🏷 เงื่อนไขสิทธิการรักษา</h2>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #1e3a5f">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <div class="sf-toggle" style="display:inline-flex"><input type="checkbox" id="allowAllPtypes" onchange="onAllowAllChange()"/><span class="sf-toggle-slider"></span></div>
+          <span style="font-size:.88rem">อนุญาตทุกสิทธิ (ไม่กรอง)</span>
+        </label>
+      </div>
+
+      <div id="pttypeRulesWrap">
+        <!-- Add new rule -->
+        <div style="background:#0f1923;border-radius:12px;padding:16px;margin-bottom:14px">
+          <div style="font-size:.78rem;color:#90caf9;font-weight:600;margin-bottom:10px">+ เพิ่มสิทธิการรักษา</div>
+          <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <div class="field" style="width:110px">
+              <label>รหัสสิทธิ (pttype)</label>
+              <input type="text" id="ptCode" placeholder="เช่น UC" maxlength="10"
+                style="text-transform:uppercase;background:#1a2a3a;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.95rem;font-family:inherit;width:100%"/>
+            </div>
+            <div class="field" style="flex:1;min-width:140px">
+              <label>ชื่อสิทธิ</label>
+              <input type="text" id="ptName" placeholder="เช่น บัตรทอง / ข้าราชการ" maxlength="60"
+                style="background:#1a2a3a;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.95rem;font-family:inherit;width:100%"/>
+            </div>
+            <div class="field" style="flex:1;min-width:150px">
+              <label>ประเภทคิว (อัตโนมัติ)</label>
+              <select id="ptAutoType"
+                style="width:100%;background:#1a2a3a;border:1px solid #1e3a5f;border-radius:8px;padding:9px 13px;color:#fff;font-size:.88rem;font-family:inherit">
+                <option value="">— ไม่ระบุ (เลือกเอง) —</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-add" onclick="addPttypeRule()" style="padding:8px 20px;font-size:.88rem">+ เพิ่ม</button>
+        </div>
+
+        <!-- Rules list -->
+        <div id="pttypeRuleList"><div class="empty-msg">กำลังโหลด...</div></div>
+      </div>
+
+      <button class="btn-save" onclick="saveLookupCfg()" style="width:100%;margin-top:18px;padding:12px;font-size:.95rem;border-radius:10px;background:linear-gradient(135deg,#42a5f5,#1565c0);border:none;color:#fff;font-weight:700;cursor:pointer;font-family:inherit">💾 บันทึกการตั้งค่า HIS</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Edit queue type modal -->
@@ -401,8 +989,14 @@
     <h3>แก้ไขประเภทคิว</h3>
     <div class="form-row">
       <div class="field" style="width:100%"><label>ชื่อ</label><input type="text" id="etName" maxlength="30"/></div>
-      <div class="field" style="width:100%"><label>Prefix</label>
-        <input type="text" id="etPrefix" maxlength="3" style="text-transform:uppercase;font-size:1.2rem;font-weight:700"/></div>
+      <div class="field" style="width:100%">
+        <label>Prefix</label>
+        <input type="text" id="etPrefix" maxlength="3" style="text-transform:uppercase;font-size:1.2rem;font-weight:700"/>
+        <label style="display:flex;align-items:center;gap:5px;margin-top:7px;cursor:pointer;font-size:.75rem;color:#90caf9">
+          <input type="checkbox" id="etNoPrefix" onchange="onNoPrefixChange('etPrefix','etNoPrefix')" style="accent-color:#ffa726;width:14px;height:14px"/>
+          ไม่ใช้ Prefix (ออกเลขล้วน เช่น 001, 002)
+        </label>
+      </div>
       <div class="field" style="width:100%"><label>สี</label><div class="color-row" id="etColorRow"></div></div>
     </div>
     <div class="modal-btns">
@@ -451,7 +1045,8 @@ let queueTypes = [], counters = [];
 let addTypeColor = PRESETS[0], editTypeColor = PRESETS[0];
 let editTypeId = null, editCounterId = null;
 let tickerMsgs = [], dragFrom = null;
-let printTabLoaded = false;
+let printTabLoaded  = false;
+let screenTabLoaded = false;
 
 // ── Color picker ──────────────────────────────────────────────────────────
 function hexToRgb(hex) {
@@ -540,20 +1135,47 @@ function switchTab(name, el) {
   document.getElementById('pane-' + name).classList.add('active');
   if (name === 'print' && !printTabLoaded) {
     printTabLoaded = true;
+    loadPrintMode();
     loadPrinters().then(() => loadPrintCfg());
   }
+  if (name === 'screen' && !screenTabLoaded) {
+    screenTabLoaded = true;
+    initScreenDesigner();
+  }
+  if (name === 'his' && !hisTabLoaded) {
+    hisTabLoaded = true;
+    loadLookupCfg();
+    populatePtAutoType();
+  }
+  if (name === 'network') { loadNetInfo(); loadStartupStatus(); }
 }
 
 // ── Queue Types ───────────────────────────────────────────────────────────
+function onNoPrefixChange(prefixId, checkId) {
+  const inp = document.getElementById(prefixId);
+  const chk = document.getElementById(checkId);
+  if (chk.checked) {
+    inp.value = '';
+    inp.disabled = true;
+    inp.style.opacity = '0.3';
+    inp.style.cursor  = 'not-allowed';
+  } else {
+    inp.disabled = false;
+    inp.style.opacity = '1';
+    inp.style.cursor  = '';
+    inp.focus();
+  }
+}
+
 function renderTypes() {
   const el = document.getElementById('typeList');
   if (!queueTypes.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีประเภทคิว</div>'; return; }
   el.innerHTML = queueTypes.map(t => `
     <div class="item-row">
-      <div class="item-badge" style="background:${t.color}">${t.prefix}</div>
+      <div class="item-badge" style="background:${t.color}">${t.prefix || '#'}</div>
       <div class="item-info">
         <div class="i-name">${t.name}</div>
-        <div class="i-meta">Prefix: <b>${t.prefix}</b> &nbsp;|&nbsp; ${t.color}</div>
+        <div class="i-meta">${t.prefix ? `Prefix: <b>${t.prefix}</b>` : '<b style="color:#ffa726">ไม่ใช้ Prefix</b> (ตัวเลขล้วน)'} &nbsp;|&nbsp; ${t.color}</div>
       </div>
       <div class="item-actions">
         <button class="btn-edit" onclick="openEditType(${t.id})">แก้ไข</button>
@@ -562,29 +1184,43 @@ function renderTypes() {
     </div>`).join('');
 }
 function addType() {
-  const name   = document.getElementById('tName').value.trim();
-  const prefix = document.getElementById('tPrefix').value.trim().toUpperCase();
-  if (!name)   { toast('กรุณากรอกชื่อประเภทคิว'); return; }
-  if (!prefix) { toast('กรุณากรอก Prefix'); return; }
+  const name     = document.getElementById('tName').value.trim();
+  const noPrefix = document.getElementById('tNoPrefix').checked;
+  const prefix   = noPrefix ? '' : document.getElementById('tPrefix').value.trim().toUpperCase();
+  if (!name) { toast('กรุณากรอกชื่อประเภทคิว'); return; }
+  if (!noPrefix && !prefix) { toast('กรุณากรอก Prefix หรือติ๊ก "ไม่ใช้ Prefix"'); return; }
   fetch(`/api/sys/${sysId}/queue-types`, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ name, prefix, color: addTypeColor }) })
   .then(r=>r.json()).then(d => {
-    if (d.success) { document.getElementById('tName').value=''; document.getElementById('tPrefix').value=''; toast(`เพิ่ม "${d.type.name}" สำเร็จ`); }
-    else toast(d.message);
+    if (d.success) {
+      document.getElementById('tName').value   = '';
+      document.getElementById('tPrefix').value = '';
+      document.getElementById('tNoPrefix').checked = false;
+      onNoPrefixChange('tPrefix', 'tNoPrefix');
+      toast(`เพิ่ม "${d.type.name}" สำเร็จ`);
+    } else toast(d.message);
   });
 }
 function openEditType(id) {
   const t = queueTypes.find(x => x.id === id); if (!t) return;
   editTypeId = id; editTypeColor = t.color;
   document.getElementById('etName').value   = t.name;
-  document.getElementById('etPrefix').value = t.prefix;
+  document.getElementById('etPrefix').value = t.prefix || '';
+  const noPrefix = !t.prefix;
+  document.getElementById('etNoPrefix').checked = noPrefix;
+  const etInp = document.getElementById('etPrefix');
+  etInp.disabled     = noPrefix;
+  etInp.style.opacity = noPrefix ? '0.3' : '1';
+  etInp.style.cursor  = noPrefix ? 'not-allowed' : '';
   buildColorPicker('etColorRow', editTypeColor, c => { editTypeColor = c; });
   document.getElementById('modalType').classList.add('open');
 }
 function saveType() {
-  const name   = document.getElementById('etName').value.trim();
-  const prefix = document.getElementById('etPrefix').value.trim().toUpperCase();
-  if (!name || !prefix) { toast('กรุณากรอกข้อมูลให้ครบ'); return; }
+  const name     = document.getElementById('etName').value.trim();
+  const noPrefix = document.getElementById('etNoPrefix').checked;
+  const prefix   = noPrefix ? '' : document.getElementById('etPrefix').value.trim().toUpperCase();
+  if (!name) { toast('กรุณากรอกชื่อประเภทคิว'); return; }
+  if (!noPrefix && !prefix) { toast('กรุณากรอก Prefix หรือติ๊ก "ไม่ใช้ Prefix"'); return; }
   fetch(`/api/sys/${sysId}/queue-types/${editTypeId}`, { method:'PUT', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ name, prefix, color: editTypeColor }) })
   .then(r=>r.json()).then(d => { if (d.success) { closeModal('modalType'); toast('บันทึกสำเร็จ'); } else toast(d.message); });
@@ -662,8 +1298,12 @@ function addTicker() {
 }
 function deleteTicker(i) { tickerMsgs.splice(i, 1); renderTicker(); }
 function saveTicker() {
+  const custom = {
+    headerTitle: document.getElementById('sdHeaderTitle').value.trim() || undefined,
+    headerFontSize: Number(document.getElementById('sdHeaderFs').value),
+  };
   fetch(`/api/sys/${sysId}/display-config`, { method:'PUT', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ tickerMessages: tickerMsgs }) })
+    body: JSON.stringify({ tickerMessages: tickerMsgs, custom }) })
   .then(r=>r.json()).then(d => { if (d.success) toast('บันทึกข้อความวิ่งสำเร็จ'); });
 }
 function tkDragStart(e, i) { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; }
@@ -690,6 +1330,10 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   queueTypes = d.queueTypes;
   counters   = d.counters;
   tickerMsgs = (d.displayConfig||{}).tickerMessages || [];
+  const displayCustom = (d.displayConfig||{}).custom || {};
+  document.getElementById('sdHeaderTitle').value = displayCustom.headerTitle || '';
+  document.getElementById('sdHeaderFs').value = displayCustom.headerFontSize || 1.5;
+  document.getElementById('sdHeaderFsV').textContent = (displayCustom.headerFontSize || 1.5) + 'rem';
   if (d.sysInfo) {
     document.getElementById('sysBadgeIcon').textContent = d.sysInfo.icon || '📋';
     document.getElementById('sysBadgeName').textContent = d.sysInfo.name;
@@ -706,6 +1350,16 @@ const PD_SAMPLE = {
 };
 let pdCurrentSize = '80mm';
 let pdSysName = '';
+let pdLayoutOrder = ['header', 'patientName', 'hnQn', 'queueType', 'queueNum', 'dateTime', 'footer'];
+const pdLayoutItems = {
+  'header': { label: '📋 ส่วนหัว', icon: '📋' },
+  'patientName': { label: '👤 ชื่อผู้ป่วย', icon: '👤' },
+  'hnQn': { label: '🔍 HN/QN', icon: '🔍' },
+  'queueType': { label: '🏷 ประเภทคิว', icon: '🏷' },
+  'queueNum': { label: '🔢 หมายเลขคิว', icon: '🔢' },
+  'dateTime': { label: '📅 วันที่/เวลา', icon: '📅' },
+  'footer': { label: '📝 ข้อความท้าย', icon: '📝' },
+};
 
 function loadPrintCfg() {
   fetch(`/api/sys/${sysId}/print-config`).then(r=>r.json()).then(cfg => {
@@ -730,7 +1384,7 @@ function applyPrintCfgToForm(cfg) {
   const sh = !!cfg.showHeader;
   document.getElementById('pdShowHeader').checked = sh;
   document.getElementById('pdHeaderName').value   = cfg.headerName    || '';
-  document.getElementById('pdHeaderSub').value    = cfg.headerSubtitle || 'Queue System';
+  document.getElementById('pdHeaderSub').value    = cfg.headerSubtitle || 'ระบบแสดงคิว';
   const hfs = cfg.headerFontSize || 14;
   document.getElementById('pdHeaderFs').value = hfs;
   document.getElementById('pdHeaderFsV').textContent = hfs + 'pt';
@@ -761,6 +1415,12 @@ function applyPrintCfgToForm(cfg) {
   // Options
   document.getElementById('pdAutoPrint').checked   = cfg.autoPrint   !== false;
   document.getElementById('pdShowDivider').checked = cfg.showDividerLine !== false;
+  document.getElementById('pdCopies').value        = cfg.copies >= 1 ? cfg.copies : 1;
+  // Layout Order
+  if (cfg.layoutOrder && cfg.layoutOrder.length) {
+    pdLayoutOrder = cfg.layoutOrder;
+  }
+  renderLayoutOrder();
 }
 
 function collectPrintCfg() {
@@ -785,6 +1445,8 @@ function collectPrintCfg() {
     footerText:       document.getElementById('pdFooterText').value,
     footerFontSize:   Number(document.getElementById('pdFooterFs').value),
     autoPrint:        document.getElementById('pdAutoPrint').checked,
+    copies:           Math.max(1, Number(document.getElementById('pdCopies').value) || 1),
+    layoutOrder:      pdLayoutOrder,
   };
 }
 
@@ -796,6 +1458,43 @@ function setPaperSize(size, btn, doUpdate = true) {
   const customDiv = document.getElementById('pdCustomSize');
   customDiv.classList.toggle('show', size === 'custom');
   if (doUpdate) updatePreview();
+}
+
+function renderLayoutOrder() {
+  const container = document.getElementById('pdLayoutOrder');
+  container.innerHTML = pdLayoutOrder.map((id, idx) => {
+    const item = pdLayoutItems[id];
+    return `<div class="pd-lo-item" draggable="true" 
+      ondragstart="handleLayoutDragStart(event,${idx})"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleLayoutDrop(event,${idx});this.classList.remove('drag-over')"
+      ondragend="this.classList.remove('drag-over')">
+      <span class="pd-lo-drag">⋮⋮</span>
+      <span class="pd-lo-icon">${item.icon}</span>
+      <span class="pd-lo-label">${item.label}</span>
+    </div>`;
+  }).join('');
+}
+
+let pdLayoutDragIdx = -1;
+function handleLayoutDragStart(e, idx) {
+  pdLayoutDragIdx = idx;
+  e.target.closest('.pd-lo-item').classList.add('dragging');
+}
+
+function handleLayoutDrop(e, targetIdx) {
+  e.preventDefault();
+  if (pdLayoutDragIdx === -1 || pdLayoutDragIdx === targetIdx) return;
+  
+  const item = pdLayoutOrder[pdLayoutDragIdx];
+  pdLayoutOrder.splice(pdLayoutDragIdx, 1);
+  const newIdx = pdLayoutDragIdx < targetIdx ? targetIdx - 1 : targetIdx;
+  pdLayoutOrder.splice(newIdx, 0, item);
+  pdLayoutDragIdx = -1;
+  
+  renderLayoutOrder();
+  updatePreview();
 }
 
 function togglePdSection(id, cb) {
@@ -816,45 +1515,65 @@ function updatePreview() {
 }
 
 function renderSlipHtml(cfg, d) {
-  const div = s => `<div style="${s}">`;
-  const endDiv = '</div>';
   const divider = cfg.showDividerLine
     ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
+  
+  // Section builders
+  const builders = {
+    'header': () => {
+      if (!cfg.showHeader) return '';
+      const name = cfg.headerName || d.sysName;
+      let h = `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize}pt;margin-bottom:2px">${name}</div>`;
+      if (cfg.headerSubtitle)
+        h += `<div style="text-align:center;font-size:${cfg.headerFontSize-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+      return h;
+    },
+    'patientName': () => {
+      if (!cfg.showPatientName || !d.patientName) return '';
+      return `<div style="font-size:${cfg.patientFontSize}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
+    },
+    'hnQn': () => {
+      if (!cfg.showHnQn || (!d.hn && !d.qn)) return '';
+      const parts = [d.hn ? 'HN: '+d.hn : '', d.qn ? 'QN: '+d.qn : ''].filter(Boolean).join('   ');
+      return `<div style="font-size:${cfg.patientFontSize-2}pt;color:#555;text-align:center;margin:2px 0">${parts}</div>`;
+    },
+    'queueType': () => {
+      if (!cfg.showQueueType || !d.typeName) return '';
+      return `<div style="font-size:${cfg.queueTypeFontSize}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
+    },
+    'queueNum': () => {
+      return `<div style="font-size:${cfg.queueNumFontSize}pt;font-weight:900;text-align:center;letter-spacing:4px;border:3px solid #000;padding:1px 10px;display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
+    },
+    'dateTime': () => {
+      if (!cfg.showDateTime) return '';
+      return `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
+    },
+    'footer': () => {
+      if (!cfg.showFooter || !cfg.footerText) return '';
+      return `<div style="font-size:${cfg.footerFontSize}pt;color:#555;text-align:center;margin:3px 0;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
+    }
+  };
+
+  // Build HTML by layout order
   let h = '';
-
-  if (cfg.showHeader) {
-    const name = cfg.headerName || d.sysName;
-    h += `<div style="text-align:center;font-weight:900;font-size:${cfg.headerFontSize}pt;margin-bottom:2px">${name}</div>`;
-    if (cfg.headerSubtitle)
-      h += `<div style="text-align:center;font-size:${cfg.headerFontSize-3}pt;color:#555;margin-bottom:3px">${cfg.headerSubtitle}</div>`;
+  const order = cfg.layoutOrder || pdLayoutOrder;
+  let lastWasDivider = false;
+  
+  for (const itemId of order) {
+    if (itemId === 'divider') {
+      if (!lastWasDivider) {
+        h += divider;
+        lastWasDivider = true;
+      }
+    } else if (builders[itemId]) {
+      const html = builders[itemId]();
+      if (html) {
+        h += html;
+        lastWasDivider = false;
+      }
+    }
   }
-
-  h += divider;
-
-  if (cfg.showPatientName && d.patientName)
-    h += `<div style="font-size:${cfg.patientFontSize}pt;font-weight:700;text-align:center;margin:2px 0">${d.patientName}</div>`;
-  if (cfg.showHnQn && (d.hn || d.qn)) {
-    const parts = [d.hn ? 'HN: '+d.hn : '', d.qn ? 'QN: '+d.qn : ''].filter(Boolean).join('   ');
-    h += `<div style="font-size:${cfg.patientFontSize-2}pt;color:#555;text-align:center;margin-bottom:3px">${parts}</div>`;
-  }
-
-  h += divider;
-
-  if (cfg.showQueueType && d.typeName)
-    h += `<div style="font-size:${cfg.queueTypeFontSize}pt;font-weight:600;text-align:center;margin:3px 0">${d.typeName}</div>`;
-
-  h += `<div style="font-size:${cfg.queueNumFontSize}pt;font-weight:900;text-align:center;
-    letter-spacing:4px;border:3px solid #000;padding:1px 10px;
-    display:inline-block;width:100%;box-sizing:border-box;margin:4px 0">${d.display}</div>`;
-
-  if (cfg.showDateTime)
-    h += `<div style="font-size:${cfg.dateFontSize||9}pt;color:#555;text-align:center;margin:2px 0">${d.date} · ${d.issuedAt}</div>`;
-
-  h += divider;
-
-  if (cfg.showFooter && cfg.footerText)
-    h += `<div style="font-size:${cfg.footerFontSize}pt;color:#555;text-align:center;margin-top:3px;line-height:1.6">${cfg.footerText.replace(/\n/g,'<br/>')}</div>`;
-
+  
   return h;
 }
 
@@ -875,6 +1594,50 @@ async function loadPrinters() {
   } catch {
     sel.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดรายการ</option>';
   }
+}
+
+// ── Print mode (localStorage, per machine) ────────────────────────────────
+function setPrintMode(mode) {
+  localStorage.setItem('queuePrintMode', mode);
+  document.getElementById('pmBtnHost').classList.toggle('on',  mode === 'host');
+  document.getElementById('pmBtnLocal').classList.toggle('on', mode === 'local');
+  document.getElementById('pdPrinterSection').style.display      = mode === 'host'  ? '' : 'none';
+  document.getElementById('pdLocalPrinterSection').style.display = mode === 'local' ? '' : 'none';
+  if (mode === 'local') loadLocalPrinters();
+}
+
+function loadPrintMode() {
+  const mode = localStorage.getItem('queuePrintMode') || 'host';
+  setPrintMode(mode);
+}
+
+function loadLocalPrinters() {
+  const sel  = document.getElementById('pdLocalPrinter');
+  const hint = document.getElementById('pdLocalPrinterHint');
+  sel.innerHTML = '<option value="">— กำลังโหลด... —</option>';
+  fetch('http://localhost:3001/api/printers', { signal: AbortSignal.timeout(4000) })
+    .then(r => r.json())
+    .then(d => {
+      const saved = localStorage.getItem('queueLocalPrinter') || '';
+      if (!d.printers || !d.printers.length) {
+        sel.innerHTML = '<option value="">— ไม่พบเครื่องพิมพ์ —</option>';
+        hint.textContent = '⚠️ ไม่พบเครื่องพิมพ์ — ตรวจสอบว่าเครื่องนี้ติดตั้ง ระบบแสดงคิว แล้ว';
+        return;
+      }
+      sel.innerHTML = '<option value="">— เลือกเครื่องพิมพ์ —</option>' +
+        d.printers.map(p => `<option value="${p}"${p === saved ? ' selected' : ''}>${p}</option>`).join('');
+      hint.textContent = '💡 ระบบจะปริ้นโดยตรงไปยังเครื่องพิมพ์ที่เลือก โดยไม่ผ่าน dialog';
+    })
+    .catch(() => {
+      sel.innerHTML = '<option value="">— เชื่อมต่อไม่ได้ —</option>';
+      hint.textContent = '⚠️ ไม่สามารถดึงรายชื่อเครื่องพิมพ์ได้ — กรุณารัน start-print-agent.bat บนเครื่องนี้ก่อน';
+    });
+}
+
+function saveLocalPrinter() {
+  const val = document.getElementById('pdLocalPrinter').value;
+  if (val) localStorage.setItem('queueLocalPrinter', val);
+  else     localStorage.removeItem('queueLocalPrinter');
 }
 
 function savePrintCfg() {
@@ -915,6 +1678,638 @@ function testPrint() {
 }
 
 socket.on('print_config_updated', cfg => { /* live update if needed */ });
+
+// ═══════════════════════════════════════════════════════════════
+// SCREEN DESIGNER
+// ═══════════════════════════════════════════════════════════════
+
+const BG_PRESETS = {
+  teal:   { name:'Teal',   t:'linear-gradient(135deg,#26c6da,#00838f)', c:['#29b6c8','#0097a7','#00696f'] },
+  ocean:  { name:'Ocean',  t:'linear-gradient(135deg,#1e88e5,#0d47a1)', c:['#1e88e5','#0d47a1','#0b3574'] },
+  purple: { name:'Purple', t:'linear-gradient(135deg,#9c27b0,#4a148c)', c:['#9c27b0','#6a1b9a','#4a148c'] },
+  forest: { name:'Forest', t:'linear-gradient(135deg,#43a047,#1b5e20)', c:['#43a047','#2e7d32','#1b5e20'] },
+  dark:   { name:'Dark',   t:'linear-gradient(135deg,#455a64,#1c313a)', c:['#455a64','#263238','#0d1b21'] },
+  sunset: { name:'Sunset', t:'linear-gradient(135deg,#ef6c00,#8d0000)', c:['#ef6c00','#bf360c','#7f0000'] },
+  blue:   { name:'Blue',   t:'linear-gradient(135deg,#039be5,#01579b)', c:['#039be5','#0277bd','#01579b'] },
+  rose:   { name:'Rose',   t:'linear-gradient(135deg,#d81b60,#880e4f)', c:['#d81b60','#c2185b','#880e4f'] },
+};
+
+let sdCfg = {
+  fontFamily:'Kanit', bgPreset:'teal',
+  bgC1:'#29b6c8', bgC2:'#0097a7', bgC3:'#00696f',
+  accentColor:'#00bcd4',
+  cardSize:'normal', cardStyle:'glass',
+  showScannerCard:true, showToggles:true,
+  navOpacity:45,
+  titleFontSize:24, titleColor:'#ffd54f',
+  cardNameFontSize:15, cardNameColor:'#ffffff',
+  cardWaitFontSize:12, cardWaitNumColor:'#ffd54f',
+};
+// live color state (synced with cpk widgets)
+let sdAccent       = '#00bcd4';
+let sdBgC1         = '#29b6c8';
+let sdBgC2         = '#0097a7';
+let sdBgC3         = '#00696f';
+let sdTitleColor   = '#ffd54f';
+let sdCardNameClr  = '#ffffff';
+let sdWaitNumClr   = '#ffd54f';
+let sdBarBgColor   = '#001c28';
+let sdBarLabelClr  = '#00bcd4';
+let sdBarBorderClr = '#00bcd4';
+let sdBarTextClr   = '#ffffff';
+let sdBarPHColor   = '#ffffff';
+
+function initScreenDesigner() {
+  // Preset chips
+  const wrap = document.getElementById('bgPresets');
+  wrap.innerHTML = Object.entries(BG_PRESETS).map(([k,p]) =>
+    `<div class="bg-chip${sdCfg.bgPreset===k?' on':''}" data-bg="${k}"
+       style="background:${p.t}" title="${p.name}" onclick="setBgPreset('${k}',this)">
+       <span class="bg-chip-lbl">${p.name}</span></div>`
+  ).join('');
+
+  // 3 bg color pickers
+  sdBgC1 = sdCfg.bgC1 || '#29b6c8';
+  sdBgC2 = sdCfg.bgC2 || '#0097a7';
+  sdBgC3 = sdCfg.bgC3 || '#00696f';
+  buildColorPicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
+  buildColorPicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
+  buildColorPicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
+
+  // Accent color picker
+  sdAccent = sdCfg.accentColor || '#00bcd4';
+  buildColorPicker('accentCpk', sdAccent, c => { sdAccent=c; sdPreview(); });
+
+  // Font
+  document.getElementById('sdFont').value = sdCfg.fontFamily || 'Kanit';
+
+  // Text font size sliders
+  const tfs = sdCfg.titleFontSize    || 24;
+  const cfs = sdCfg.cardNameFontSize || 15;
+  const wfs = sdCfg.cardWaitFontSize || 12;
+  document.getElementById('sdTitleFs').value    = tfs;
+  document.getElementById('sdTitleFsV').textContent = tfs + 'px';
+  document.getElementById('sdCardNameFs').value = cfs;
+  document.getElementById('sdCardNameFsV').textContent = cfs + 'px';
+  document.getElementById('sdWaitFs').value     = wfs;
+  document.getElementById('sdWaitFsV').textContent = wfs + 'px';
+
+  // Text color pickers
+  sdTitleColor  = sdCfg.titleColor       || '#ffd54f';
+  sdCardNameClr = sdCfg.cardNameColor    || '#ffffff';
+  sdWaitNumClr  = sdCfg.cardWaitNumColor || '#ffd54f';
+  buildColorPicker('titleColorCpk',    sdTitleColor,  c => { sdTitleColor=c;  sdPreview(); });
+  buildColorPicker('cardNameColorCpk', sdCardNameClr, c => { sdCardNameClr=c; sdPreview(); });
+  buildColorPicker('waitNumColorCpk',  sdWaitNumClr,  c => { sdWaitNumClr=c;  sdPreview(); });
+
+  // Bottom bar controls
+  sdBarBgColor   = sdCfg.barBgColor   || '#001c28';
+  sdBarLabelClr  = sdCfg.barLabelColor  || sdAccent;
+  sdBarBorderClr = sdCfg.barInputBorderColor || sdAccent;
+  sdBarTextClr   = sdCfg.barInputTextColor   || '#ffffff';
+  sdBarPHColor   = sdCfg.barPlaceholderColor || '#ffffff';
+  buildColorPicker('barBgCpk',       sdBarBgColor,   c => { sdBarBgColor=c;   sdPreview(); });
+  buildColorPicker('barLabelColorCpk', sdBarLabelClr,c => { sdBarLabelClr=c;  sdPreview(); });
+  buildColorPicker('barBorderCpk',   sdBarBorderClr, c => { sdBarBorderClr=c; sdPreview(); });
+  buildColorPicker('barTextColorCpk',sdBarTextClr,   c => { sdBarTextClr=c;   sdPreview(); });
+  buildColorPicker('barPHColorCpk',  sdBarPHColor,   c => { sdBarPHColor=c;   sdPreview(); });
+
+  const barBgOp = sdCfg.barBgOpacity  ?? 78;
+  const barLblSz= sdCfg.barLabelSize  || 10;
+  const inputBg = sdCfg.barInputBg    ?? 8;
+  const inputFs = sdCfg.barInputFontSize || 17;
+  const phOp    = sdCfg.barPlaceholderOpacity ?? 28;
+  document.getElementById('sdBarBgOp').value   = barBgOp; document.getElementById('sdBarBgOpV').textContent = barBgOp + '%';
+  document.getElementById('sdBarLblSz').value  = barLblSz; document.getElementById('sdBarLblSzV').textContent = barLblSz + 'px';
+  document.getElementById('sdInputBg').value   = inputBg;  document.getElementById('sdInputBgV').textContent = inputBg + '%';
+  document.getElementById('sdInputFs').value   = inputFs;  document.getElementById('sdInputFsV').textContent = inputFs + 'px';
+  document.getElementById('sdPHOp').value      = phOp;     document.getElementById('sdPHOpV').textContent = phOp + '%';
+
+  // Card size & style
+  setActiveSdOpt('sdCardSizeBtns',  sdCfg.cardSize  || 'normal');
+  setActiveSdOpt('sdCardStyleBtns', sdCfg.cardStyle || 'glass');
+
+  // Show/hide
+  document.getElementById('sdShowScanner').checked = sdCfg.showScannerCard !== false;
+  document.getElementById('sdShowToggles').checked = sdCfg.showToggles !== false;
+
+  sdPreview();
+}
+
+function clearBgPreset() {
+  sdCfg.bgPreset = '';
+  document.querySelectorAll('.bg-chip').forEach(c => c.classList.remove('on'));
+}
+
+function setBgPreset(key, el) {
+  document.querySelectorAll('.bg-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  sdCfg.bgPreset = key;
+  const [c1,c2,c3] = BG_PRESETS[key].c;
+  // push new colors into the 3 pickers by rebuilding them
+  sdBgC1=c1; sdBgC2=c2; sdBgC3=c3;
+  buildColorPicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
+  buildColorPicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
+  buildColorPicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
+  sdPreview();
+}
+
+function setSdOpt(field, val, el) {
+  setActiveSdOpt(el.parentElement.id, val);
+  sdCfg[field] = val;
+  sdPreview();
+}
+
+function setActiveSdOpt(groupId, val) {
+  document.querySelectorAll(`#${groupId} .opt-btn`).forEach(b => {
+    b.classList.toggle('on', b.dataset.v === val);
+  });
+}
+
+function sdPreview() {
+  // Collect current values
+  const headerTitle = document.getElementById('sdHeaderTitle').value.trim();
+  const headerFs    = document.getElementById('sdHeaderFs').value;
+  const c1     = sdBgC1;
+  const c2     = sdBgC2;
+  const c3     = sdBgC3;
+  const accent = sdAccent;
+  const font   = document.getElementById('sdFont').value;
+  const titleFs    = document.getElementById('sdTitleFs').value;
+  const cardNameFs = document.getElementById('sdCardNameFs').value;
+  const waitFs     = document.getElementById('sdWaitFs').value;
+  const titleClr   = sdTitleColor;
+  const cardNameClr= sdCardNameClr;
+  const waitNumClr = sdWaitNumClr;
+  const showScanner= document.getElementById('sdShowScanner').checked;
+  const showToggles= document.getElementById('sdShowToggles').checked;
+  // bottom bar
+  const barBgOp    = document.getElementById('sdBarBgOp').value;
+  const barLblSz   = document.getElementById('sdBarLblSz').value;
+  const inputBgPct = document.getElementById('sdInputBg').value;
+  const inputFs    = document.getElementById('sdInputFs').value;
+  const phOp       = document.getElementById('sdPHOp').value;
+  const barBgRgba  = hexToRgb(sdBarBgColor);
+  const barBgCss   = `rgba(${barBgRgba.r},${barBgRgba.g},${barBgRgba.b},${barBgOp/100})`;
+  const inputBgCss = `rgba(255,255,255,${inputBgPct/100})`;
+  const phRgb      = hexToRgb(sdBarPHColor);
+  const phCss      = `rgba(${phRgb.r},${phRgb.g},${phRgb.b},${phOp/100})`;
+
+  // Card size metrics
+  const szMap = {
+    compact:{ p:'12px 10px', ics:'40px' },
+    normal: { p:'22px 18px', ics:'52px' },
+    large:  { p:'30px 24px', ics:'64px' },
+  };
+  const sz = szMap[sdCfg.cardSize] || szMap.normal;
+  const csMap = {
+    glass:   `background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(8px)`,
+    solid:   `background:rgba(0,0,0,.35);border:1px solid rgba(0,0,0,.45)`,
+    outline: `background:transparent;border:2px solid rgba(255,255,255,.45)`,
+  };
+  const cs = csMap[sdCfg.cardStyle] || csMap.glass;
+
+  const sampleCards = ['ทั่วไป','พิเศษ','ด่วน'].map((n,i) => {
+    const colors=['#42a5f5','#66bb6a','#ffd54f'];
+    const pfx=['A','B','C'];
+    return `<div style="border-radius:14px;padding:${sz.p};text-align:center;min-width:66px;
+      flex:1;${cs};cursor:pointer">
+      <div style="width:${sz.ics};height:${sz.ics};border-radius:11px;background:${colors[i]};
+        margin:0 auto 7px;display:flex;align-items:center;justify-content:center;
+        font-size:1rem;font-weight:900;color:#000">${pfx[i]}</div>
+      <div style="font-size:${cardNameFs}px;font-weight:700;color:${cardNameClr}">${n}</div>
+      <div style="font-size:${waitFs}px;color:rgba(255,255,255,.45);margin-top:3px">รอ <b style="color:${waitNumClr}">0</b> คน</div>
+    </div>`;
+  }).join('');
+
+  const scannerBlock = showScanner ? `
+    <div style="background:#fff;border-radius:16px;padding:9px;margin-bottom:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);width:100%;max-width:220px">
+      <div style="background:#111;border-radius:8px;aspect-ratio:4/3;
+        display:flex;align-items:center;justify-content:center;font-size:1.4rem">📷</div>
+      <div style="background:#f5f5f5;color:#555;font-size:.6rem;padding:3px 8px;
+        border-radius:0 0 6px 6px;text-align:center">กดปุ่มด้านล่างเพื่อเริ่มสแกน</div>
+    </div>
+    <button style="background:linear-gradient(135deg,${accent},${c2});color:#fff;
+      border:none;border-radius:28px;padding:8px 24px;font-size:.78rem;font-weight:700;
+      cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);margin-bottom:8px">📷 อ่านคิวอาร์โค้ด</button>
+  ` : '';
+
+  const togglesBlock = showToggles ? `
+    <div style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:280px;margin-bottom:8px">
+      <div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12);
+        border-radius:22px;padding:6px 12px;display:flex;align-items:center;gap:9px">
+        <div style="width:32px;height:18px;background:linear-gradient(135deg,#00e676,#00c853);border-radius:18px;flex-shrink:0"></div>
+        <div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.88)">สแกนอัตโนมัติ</div>
+      </div>
+      <div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12);
+        border-radius:22px;padding:6px 12px;display:flex;align-items:center;gap:9px">
+        <div style="width:32px;height:18px;background:rgba(255,255,255,.18);border-radius:18px;flex-shrink:0"></div>
+        <div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.88)">ปริ้นทันที</div>
+      </div>
+    </div>
+  ` : '';
+
+  const html = `
+    <div style="font-family:'${font}',Kanit,sans-serif;
+      background:
+        radial-gradient(ellipse 90% 70% at 0% 0%,   ${c1}8c 0%,transparent 55%),
+        radial-gradient(ellipse 70% 55% at 100% 0%,  ${c2}72 0%,transparent 55%),
+        linear-gradient(145deg,${c1} 0%,${c2} 45%,${c3} 100%);
+      min-height:480px;display:flex;flex-direction:column;color:#fff">
+
+      <div style="background:rgba(0,0,0,.3);backdrop-filter:blur(10px);
+        padding:0 12px;height:36px;display:flex;align-items:center;gap:6px;
+        border-bottom:1px solid rgba(255,255,255,.1)">
+        <span style="font-size:${headerFs}rem;font-weight:900;color:#ffd54f">${headerTitle || '⬡ ระบบคิว'}</span>
+        <span style="background:rgba(255,255,255,.18);color:#fff;font-size:.58rem;
+          padding:2px 7px;border-radius:11px">ออกคิว</span>
+        <span style="font-size:.58rem;color:rgba(255,255,255,.45);margin-left:auto">👤 เจ้าหน้าที่</span>
+      </div>
+
+      <div style="flex:1;padding:10px;display:flex;flex-direction:column;align-items:center">
+        <div style="background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.15);
+          border-radius:18px;padding:2px 10px;font-size:.58rem;
+          color:rgba(255,255,255,.65);margin-bottom:10px">📋 ระบบคิวการเงิน</div>
+
+        ${showScanner ? `<div style="font-size:${titleFs}px;font-weight:700;color:${titleClr};
+          margin-bottom:10px;text-align:center;letter-spacing:.5px">สแกนบาร์โค้ดจากใบนำทาง</div>` : ''}
+        ${scannerBlock}
+        ${togglesBlock}
+
+        <div style="font-size:.52rem;color:rgba(255,255,255,.4);
+          letter-spacing:2px;margin-bottom:8px;text-transform:uppercase">เลือกประเภทการให้บริการ</div>
+        <div style="display:flex;gap:7px;justify-content:center;width:100%">${sampleCards}</div>
+      </div>
+
+      <div style="margin:0 8px 8px;background:${barBgCss};
+        backdrop-filter:blur(20px);border:1px solid ${sdBarBorderClr||accent+'52'};
+        border-radius:14px;padding:7px 9px;display:flex;align-items:stretch;gap:7px">
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:${barLblSz}px;color:${sdBarLabelClr||accent};letter-spacing:1.5px;font-weight:700">QN — เลขคิว</div>
+          <div style="background:${inputBgCss};border:1.5px solid ${sdBarBorderClr||accent+'44'};
+            border-radius:7px;padding:6px 9px;font-size:${inputFs}px;color:${phCss}">กรอกเลขคิว</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.1);align-self:stretch;margin:2px 0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:${barLblSz}px;color:${sdBarLabelClr||accent};letter-spacing:1.5px;font-weight:700">HN — เลขประจำตัว</div>
+          <div style="background:${inputBgCss};border:1.5px solid ${sdBarBorderClr||accent+'44'};
+            border-radius:7px;padding:6px 9px;font-size:${inputFs}px;color:${phCss}">กรอก HN</div>
+        </div>
+        <button style="background:linear-gradient(145deg,${accent},${c2});
+          border:none;color:#fff;border-radius:9px;padding:0 12px;
+          font-size:${inputFs}px;font-weight:700;cursor:pointer;flex-shrink:0">🔍</button>
+      </div>
+    </div>`;
+
+  document.getElementById('sdPreviewWrap').innerHTML = html;
+}
+
+function saveScreenCfg() {
+  Object.assign(sdCfg, {
+    fontFamily:            document.getElementById('sdFont').value,
+    bgC1:                  sdBgC1,
+    bgC2:                  sdBgC2,
+    bgC3:                  sdBgC3,
+    accentColor:           sdAccent,
+    titleFontSize:         Number(document.getElementById('sdTitleFs').value),
+    titleColor:            sdTitleColor,
+    cardNameFontSize:      Number(document.getElementById('sdCardNameFs').value),
+    cardNameColor:         sdCardNameClr,
+    cardWaitFontSize:      Number(document.getElementById('sdWaitFs').value),
+    cardWaitNumColor:      sdWaitNumClr,
+    showScannerCard:       document.getElementById('sdShowScanner').checked,
+    showToggles:           document.getElementById('sdShowToggles').checked,
+    barBgColor:            sdBarBgColor,
+    barBgOpacity:          Number(document.getElementById('sdBarBgOp').value),
+    barInputBg:            Number(document.getElementById('sdInputBg').value),
+    barInputBorderColor:   sdBarBorderClr,
+    barInputTextColor:     sdBarTextClr,
+    barInputFontSize:      Number(document.getElementById('sdInputFs').value),
+    barPlaceholderColor:   sdBarPHColor,
+    barPlaceholderOpacity: Number(document.getElementById('sdPHOp').value),
+    barLabelColor:         sdBarLabelClr,
+    barLabelSize:          Number(document.getElementById('sdBarLblSz').value),
+  });
+
+  fetch(`/api/sys/${sysId}/screen-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sdCfg),
+  })
+  .then(r => r.json())
+  .then(d => { if (d.success) {
+    // Also save custom header settings to display-config
+    const custom = {
+      headerTitle: document.getElementById('sdHeaderTitle').value.trim() || undefined,
+      headerFontSize: Number(document.getElementById('sdHeaderFs').value),
+    };
+    return fetch(`/api/sys/${sysId}/display-config`, { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ custom }) });
+  } else {
+    throw new Error('screen-config failed');
+  }})
+  .then(r => r.json())
+  .then(d => { if (d.success) toast('✓ บันทึกการตั้งค่าหน้าจอสำเร็จ'); else toast('เกิดข้อผิดพลาด'); })
+  .catch(() => toast('เกิดข้อผิดพลาดในการบันทึก'));
+}
+
+// ── Server control ────────────────────────────────────────────────────────
+function loadStartupStatus() {
+  fetch('/api/startup-status')
+    .then(r => r.json())
+    .then(d => {
+      const chk = document.getElementById('autoStartChk');
+      const st  = document.getElementById('autoStartStatus');
+      if (!chk) return;
+      chk.checked = d.autoStart;
+      st.textContent = d.autoStart ? '✓ เปิดอัตโนมัติอยู่แล้ว' : '';
+    })
+    .catch(() => {});
+}
+
+function setAutoStart(enable) {
+  const st = document.getElementById('autoStartStatus');
+  st.textContent = 'กำลังบันทึก...';
+  fetch('/api/startup/set', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enable }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        st.textContent = enable ? '✓ เปิดอัตโนมัติแล้ว' : '✓ ปิดอัตโนมัติแล้ว';
+        toast(enable ? '✓ ตั้งค่า Auto-start เรียบร้อย' : '✓ ปิด Auto-start เรียบร้อย');
+        setTimeout(() => { st.textContent = enable ? '✓ เปิดอัตโนมัติอยู่แล้ว' : ''; }, 3000);
+      } else {
+        st.textContent = 'เกิดข้อผิดพลาด';
+        document.getElementById('autoStartChk').checked = !enable;
+      }
+    })
+    .catch(() => { st.textContent = 'เกิดข้อผิดพลาด'; });
+}
+
+function restartServer() {
+  const btn = document.getElementById('btnRestartSrv');
+  const dot = document.getElementById('srvStatusDot');
+  const txt = document.getElementById('srvStatusText');
+  btn.classList.add('restarting');
+  btn.textContent = '⏳ กำลังเปิดใหม่...';
+  dot.style.background = '#ffd54f';
+  dot.style.boxShadow  = '0 0 8px #ffd54f88';
+  txt.textContent = 'กำลังรีสตาร์ท...';
+  fetch('/api/server/restart', { method: 'POST' })
+    .then(() => {
+      // Server will restart — try to reconnect after a few seconds
+      let tries = 0;
+      const check = setInterval(() => {
+        tries++;
+        fetch('/api/server-info').then(() => {
+          clearInterval(check);
+          btn.classList.remove('restarting');
+          btn.textContent = '▶ เปิด / รีสตาร์ท Server';
+          dot.style.background = '#4caf50';
+          dot.style.boxShadow  = '0 0 8px #4caf5088';
+          txt.textContent = 'Server กำลังทำงาน';
+          toast('✓ Server เปิดใหม่สำเร็จ');
+          loadNetInfo();
+        }).catch(() => {
+          if (tries > 15) {
+            clearInterval(check);
+            btn.classList.remove('restarting');
+            btn.textContent = '▶ เปิด / รีสตาร์ท Server';
+            txt.textContent = 'กรุณารีเฟรชหน้า';
+          }
+        });
+      }, 1000);
+    })
+    .catch(() => {
+      btn.classList.remove('restarting');
+      btn.textContent = '▶ เปิด / รีสตาร์ท Server';
+    });
+}
+
+// ── Network / Multi-PC ───────────────────────────────────────────────────
+function loadNetInfo() {
+  fetch('/api/server-info')
+    .then(r => r.json())
+    .then(info => {
+      const port   = info.port || 3000;
+      const list   = document.getElementById('netAddressList');
+      const sysQ   = `?sys=${sysId}`;
+
+      if (!info.ips || !info.ips.length) {
+        list.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:.85rem">ไม่พบ IP Address บน LAN (อาจเชื่อมต่อผ่าน localhost เท่านั้น)</div>';
+      } else {
+        list.innerHTML = info.ips.map(entry => {
+          const url = `http://${entry.ip}:${port}`;
+          return `<div class="net-url-row">
+            <div class="net-iface">${entry.iface}</div>
+            <div class="net-url-text">${url}</div>
+            <button class="net-copy-btn" onclick="netCopy(this,'${url}')">คัดลอก</button>
+          </div>`;
+        }).join('');
+        // Update example URL and role paths
+        const baseUrl = `http://${info.ips[0].ip}:${port}`;
+        document.getElementById('netExampleUrl').textContent = `${baseUrl}/queue.html${sysQ}`;
+        document.getElementById('netPathQueue').textContent    = baseUrl + '/queue.html'    + sysQ;
+        document.getElementById('netPathCashier').textContent  = baseUrl + '/cashier.html'  + sysQ;
+        document.getElementById('netPathDisplay').textContent  = baseUrl + '/display.html'  + sysQ;
+        document.getElementById('netPathSettings').textContent = baseUrl + '/settings.html' + sysQ;
+      }
+
+      // Also add localhost row
+      const locUrl = `http://localhost:${port}`;
+      list.innerHTML += `<div class="net-url-row" style="opacity:.5">
+        <div class="net-iface">localhost</div>
+        <div class="net-url-text">${locUrl}</div>
+        <button class="net-copy-btn" onclick="netCopy(this,'${locUrl}')">คัดลอก</button>
+      </div>`;
+    })
+    .catch(() => {
+      document.getElementById('netAddressList').innerHTML =
+        '<div style="color:#ef9a9a;font-size:.85rem">ไม่สามารถโหลดข้อมูล Server ได้</div>';
+    });
+}
+
+function netCopy(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ คัดลอกแล้ว';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'คัดลอก'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✓'; setTimeout(() => { btn.textContent = 'คัดลอก'; }, 2000);
+  });
+}
+
+// ── HIS / Lookup Config ───────────────────────────────────────────────────
+let lookupCfg = { barcodeField:'hn', barcodePrefixLen:0, barcodeUseLen:0, allowAllPtypes:true, pttypeRules:[] };
+let hisTabLoaded = false;
+
+function loadLookupCfg() {
+  fetch(`/api/sys/${sysId}/lookup-config`).then(r => r.json()).then(cfg => {
+    Object.assign(lookupCfg, cfg);
+    // Barcode
+    const bfEl = document.getElementById(cfg.barcodeField === 'qn' ? 'bfQN' : 'bfHN');
+    if (bfEl) bfEl.checked = true;
+    document.getElementById('barcodePrefixLen').value = cfg.barcodePrefixLen || 0;
+    document.getElementById('barcodeUseLen').value    = cfg.barcodeUseLen    || 0;
+    // Pttype
+    document.getElementById('allowAllPtypes').checked = cfg.allowAllPtypes !== false;
+    onAllowAllChange();
+    renderPttypeRules();
+    populatePtAutoType();
+  });
+}
+
+function previewBarcode(raw) {
+  const pre = parseInt(document.getElementById('barcodePrefixLen').value) || 0;
+  const use = parseInt(document.getElementById('barcodeUseLen').value)    || 0;
+  const el  = document.getElementById('barcodePreview');
+  if (!raw) { el.style.display = 'none'; return; }
+  let v = raw;
+  if (pre > 0) v = v.slice(pre);
+  if (use > 0) v = v.slice(0, use);
+  const field = document.querySelector('input[name="barcodeField"]:checked')?.value === 'qn' ? 'ovst.oqueue' : 'ovst.hn';
+  el.style.display = '';
+  el.textContent   = `"${raw}" → ตัด ${pre}, ใช้ ${use||'ทั้งหมด'} → ค้นหา ${field} = "${v}"`;
+}
+
+function onAllowAllChange() {
+  const all  = document.getElementById('allowAllPtypes').checked;
+  const wrap = document.getElementById('pttypeRulesWrap');
+  if (wrap) {
+    wrap.style.opacity     = all ? '.45' : '1';
+    wrap.style.pointerEvents = all ? 'none' : '';
+  }
+}
+
+function populatePtAutoType() {
+  const sel = document.getElementById('ptAutoType');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— ไม่ระบุ (เลือกเอง) —</option>' +
+    queueTypes.map(t => `<option value="${t.id}">${t.prefix} — ${t.name}</option>`).join('');
+}
+
+function renderPttypeRules() {
+  const el = document.getElementById('pttypeRuleList');
+  if (!el) return;
+  const rules = lookupCfg.pttypeRules || [];
+  if (!rules.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีสิทธิที่กำหนด (อนุญาตทุกสิทธิถ้าเปิดสวิตช์ด้านบน)</div>'; return; }
+  el.innerHTML = rules.map((r, i) => {
+    const autoName = r.autoTypeId ? (queueTypes.find(t => t.id === r.autoTypeId)?.name || r.autoTypeId) : '';
+    return `<div class="pttype-row">
+      <div class="pttype-code">${r.code || '-'}</div>
+      <div class="pttype-name">${r.name || '(ไม่ระบุชื่อ)'}</div>
+      <div class="pttype-auto ${autoName ? '' : 'none'}">${autoName ? '→ ' + autoName : '— เลือกเอง'}</div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0">
+        <div class="sf-toggle"><input type="checkbox" ${r.enabled !== false ? 'checked' : ''}
+          onchange="togglePtRule(${i},this.checked)"/><span class="sf-toggle-slider"></span></div>
+        <span style="font-size:.75rem;color:#546e7a">เปิด</span>
+      </label>
+      <button onclick="deletePtRule(${i})" class="btn-del" style="font-size:.78rem;padding:4px 10px;flex-shrink:0">ลบ</button>
+    </div>`;
+  }).join('');
+}
+
+function addPttypeRule() {
+  const code  = document.getElementById('ptCode').value.trim().toUpperCase();
+  const name  = document.getElementById('ptName').value.trim();
+  const autoT = document.getElementById('ptAutoType').value;
+  if (!code) { toast('กรุณากรอกรหัสสิทธิ (pttype)'); return; }
+  if (!lookupCfg.pttypeRules) lookupCfg.pttypeRules = [];
+  if (lookupCfg.pttypeRules.find(r => r.code === code)) { toast(`รหัส "${code}" มีอยู่แล้ว`); return; }
+  lookupCfg.pttypeRules.push({ code, name: name || code, autoTypeId: autoT ? Number(autoT) : null, enabled: true });
+  document.getElementById('ptCode').value  = '';
+  document.getElementById('ptName').value  = '';
+  document.getElementById('ptAutoType').value = '';
+  renderPttypeRules();
+}
+
+function deletePtRule(i) {
+  lookupCfg.pttypeRules.splice(i, 1);
+  renderPttypeRules();
+}
+
+function togglePtRule(i, enabled) {
+  if (lookupCfg.pttypeRules[i]) lookupCfg.pttypeRules[i].enabled = enabled;
+}
+
+function saveLookupCfg() {
+  lookupCfg.barcodeField    = document.querySelector('input[name="barcodeField"]:checked')?.value || 'hn';
+  lookupCfg.barcodePrefixLen = parseInt(document.getElementById('barcodePrefixLen').value) || 0;
+  lookupCfg.barcodeUseLen   = parseInt(document.getElementById('barcodeUseLen').value)    || 0;
+  lookupCfg.allowAllPtypes  = document.getElementById('allowAllPtypes').checked;
+  fetch(`/api/sys/${sysId}/lookup-config`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lookupCfg)
+  }).then(r => r.json()).then(d => {
+    if (d.success) toast('บันทึกการตั้งค่า HIS สำเร็จ');
+    else toast('เกิดข้อผิดพลาด');
+  });
+}
+
+// Load screen config on page load
+fetch(`/api/sys/${sysId}/screen-config`)
+  .then(r => r.json())
+  .then(cfg => {
+    Object.assign(sdCfg, cfg);
+    sdAccent      = sdCfg.accentColor      || '#00bcd4';
+    sdBgC1        = sdCfg.bgC1             || '#29b6c8';
+    sdBgC2        = sdCfg.bgC2             || '#0097a7';
+    sdBgC3        = sdCfg.bgC3             || '#00696f';
+    sdTitleColor  = sdCfg.titleColor            || '#ffd54f';
+    sdCardNameClr = sdCfg.cardNameColor         || '#ffffff';
+    sdWaitNumClr  = sdCfg.cardWaitNumColor      || '#ffd54f';
+    sdBarBgColor  = sdCfg.barBgColor            || '#001c28';
+    sdBarLabelClr = sdCfg.barLabelColor         || '';
+    sdBarBorderClr= sdCfg.barInputBorderColor   || '';
+    sdBarTextClr  = sdCfg.barInputTextColor     || '#ffffff';
+    sdBarPHColor  = sdCfg.barPlaceholderColor   || '#ffffff';
+  });
+
+// Load display config for custom settings
+fetch(`/api/sys/${sysId}/display-config`)
+  .then(r => r.json())
+  .then(d => {
+    const displayCustom = (d.displayConfig||{}).custom || {};
+    document.getElementById('sdHeaderTitle').value = displayCustom.headerTitle || '';
+    document.getElementById('sdHeaderFs').value = displayCustom.headerFontSize || 1.5;
+    document.getElementById('sdHeaderFsV').textContent = (displayCustom.headerFontSize || 1.5) + 'rem';
+  });
+</script>
+<div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">
+  <button onclick="_uiToggle()" title="ปรับสีหน้าจอ" style="width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(13,31,51,.85);color:#90caf9;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)">🎨</button>
+  <div id="_uiBox" style="display:none;position:absolute;bottom:48px;right:0;width:220px;background:#0d1f33;border:1px solid #1e3a5f;border-radius:14px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)">
+    <div style="font-size:.8rem;color:#90caf9;font-weight:700;margin-bottom:12px">🎨 ปรับสีหน้าจอ</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>☀ ความสว่าง</span><span id="_brLbl" style="color:#ffd54f;font-weight:700">1.00</span></div>
+      <input id="_brSlider" type="range" min="0.4" max="1.6" step="0.05" value="1" style="width:100%;accent-color:#ffd54f;cursor:pointer"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#ccc;margin-bottom:4px"><span>🎨 ความสด</span><span id="_stLbl" style="color:#80deea;font-weight:700">1.20</span></div>
+      <input id="_stSlider" type="range" min="0.3" max="2.5" step="0.05" value="1.2" style="width:100%;accent-color:#80deea;cursor:pointer"/>
+    </div>
+    <button onclick="_uiReset()" style="width:100%;background:rgba(255,255,255,.06);border:1px solid #1e3a5f;color:#90caf9;border-radius:8px;padding:6px;font-size:.75rem;cursor:pointer;font-family:inherit">↺ รีเซ็ต</button>
+  </div>
+</div>
+<script>
+(function(){
+  var BK='qf_brightness',SK='qf_saturation';
+  function _applyV(b,s){b=parseFloat(b)||1;s=parseFloat(s)||1.2;localStorage.setItem(BK,b);localStorage.setItem(SK,s);document.body.style.filter='brightness('+b+') saturate('+s+')';var bl=document.getElementById('_brLbl'),sl=document.getElementById('_stLbl'),bs=document.getElementById('_brSlider'),ss=document.getElementById('_stSlider');if(bl)bl.textContent=b.toFixed(2);if(bs)bs.value=b;if(sl)sl.textContent=s.toFixed(2);if(ss)ss.value=s;}
+  window._applyGlobalColor=_applyV;
+  function _applyF(){_applyV(parseFloat(localStorage.getItem(BK)||'1'),parseFloat(localStorage.getItem(SK)||'1.2'));}
+  _applyF();
+  fetch('/api/global-config').then(function(r){return r.json();}).then(function(d){if(d&&d.brightness!=null)_applyV(d.brightness,d.saturation);}).catch(function(){});
+  window._uiToggle=function(){var b=document.getElementById('_uiBox');b.style.display=b.style.display==='none'?'block':'none';};
+  window._uiReset=function(){_applyV(1,1.2);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:1,saturation:1.2})}).catch(function(){});};
+  document.addEventListener('DOMContentLoaded',function(){_applyF();document.getElementById('_brSlider').oninput=function(){var b=parseFloat(this.value),s=parseFloat(localStorage.getItem(SK)||'1.2');_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};document.getElementById('_stSlider').oninput=function(){var b=parseFloat(localStorage.getItem(BK)||'1'),s=parseFloat(this.value);_applyV(b,s);fetch('/api/global-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brightness:b,saturation:s})}).catch(function(){});};});
+})();
+if(typeof socket!=='undefined')socket.on('global_config_updated',d=>{if(window._applyGlobalColor&&d&&d.brightness!=null)window._applyGlobalColor(d.brightness,d.saturation);});
 </script>
 </body>
 </html>
