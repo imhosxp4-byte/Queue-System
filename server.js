@@ -411,8 +411,6 @@ app.post('/api/sys/:sysId/queue-types', requireSys, (req, res) => {
   const { name, prefix, color } = req.body;
   if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อประเภทคิว' });
   const p = (prefix || '').toUpperCase().trim();
-  if (p === '' && sys.queueTypes.find(t => t.prefix === ''))
-    return res.status(400).json({ success: false, message: 'มีประเภทคิวที่ไม่ใช้ Prefix อยู่แล้ว (มีได้เพียงหนึ่งประเภท)' });
   if (p !== '' && sys.queueTypes.find(t => t.prefix === p))
     return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
   const type = { id: sys.nextTypeId++, name: name.trim(), prefix: p, color: color || '#42a5f5' };
@@ -430,8 +428,6 @@ app.put('/api/sys/:sysId/queue-types/:id', requireSys, (req, res) => {
   const { name, prefix, color } = req.body;
   if (prefix !== undefined && prefix !== null) {
     const p = prefix.toUpperCase().trim();
-    if (p === '' && sys.queueTypes.find(t => t.id !== id && t.prefix === ''))
-      return res.status(400).json({ success: false, message: 'มีประเภทคิวที่ไม่ใช้ Prefix อยู่แล้ว' });
     if (p !== '' && sys.queueTypes.find(t => t.id !== id && t.prefix === p))
       return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
     sys.queueTypes[idx].prefix = p;
