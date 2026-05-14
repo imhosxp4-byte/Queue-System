@@ -22,16 +22,7 @@
       color:#fff;display:flex;flex-direction:column;overflow-x:hidden;
     }
 
-    /* decorative blobs + grid pattern */
-    body::before{
-      content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-      background:
-        radial-gradient(circle 420px at 8% 15%,  rgba(224,247,250,.18) 0%,transparent 65%),
-        radial-gradient(circle 320px at 92% 72%,  rgba(0,77,92,.28)    0%,transparent 60%),
-        radial-gradient(circle 260px at 75% 8%,   rgba(0,188,212,.15)  0%,transparent 60%),
-        radial-gradient(circle 200px at 20% 90%,  rgba(77,208,225,.12) 0%,transparent 60%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='30' y='30' text-anchor='middle' dominant-baseline='middle' fill='rgba(255,255,255,0.055)' font-size='18' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E");
-    }
+    body::before{display:none}
 
     /* ── Nav ── */
     nav{
@@ -374,9 +365,6 @@
   <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
 </nav>
 
-<button class="btn-help-kiosk" id="btnHelp" onclick="this.textContent='📞 กรุณาติดต่อเจ้าหน้าที่'" style="display:none">
-  🆘 Help / Support
-</button>
 
 <div class="main">
   <div class="sys-badge" style="display:none">
@@ -386,17 +374,9 @@
   <!-- STEP 1: Kiosk Scanner -->
   <div id="scannerStep">
 
-    <!-- Logo + Title row -->
-    <div class="kiosk-header">
-      <div class="kiosk-logo">
-        <span class="kiosk-logo-icon" id="sysIconKiosk">🏥</span>
-        <div>
-          <div class="kiosk-logo-name">โรงพยาบาล</div>
-          <div class="kiosk-logo-sys" id="sysNameKiosk">LOGO</div>
-        </div>
-      </div>
+    <!-- Title row -->
+    <div class="kiosk-header" style="justify-content:center">
       <h1 class="kiosk-title">สแกนคิวอาร์โค้ด / รับบัตรคิว</h1>
-      <div class="kiosk-header-spacer"></div>
     </div>
 
     <!-- Metallic scanner frame -->
@@ -595,9 +575,8 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   if (sysInfo) {
     document.getElementById('sysIcon').textContent      = sysInfo.icon || '📋';
     document.getElementById('sysNameLabel').textContent = sysInfo.name;
-    document.getElementById('sysIconKiosk').textContent = sysInfo.icon || '🏥';
-    document.getElementById('sysNameKiosk').textContent = sysInfo.name;
-    document.getElementById('btnHelp').style.display    = '';
+    const _ki = document.getElementById('sysIconKiosk'); if (_ki) _ki.textContent = sysInfo.icon || '🏥';
+    const _kn = document.getElementById('sysNameKiosk'); if (_kn) _kn.textContent = sysInfo.name;
     document.title = `ออกบัตรคิว — ${sysInfo.name}`;
   }
   renderCards();
