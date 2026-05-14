@@ -26,6 +26,7 @@ Name: "firewall"; Description: "เปิด Firewall อนุญาต Port 30
 [Files]
 Source: "QueueServer.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "nssm.exe"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "..\public\*"; DestDir: "{app}\public"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
 Name: "{app}\data"
