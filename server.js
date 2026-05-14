@@ -11,14 +11,22 @@ const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server);
 
-// When packaged as .exe (pkg), writable data must sit next to the exe,
-// not inside the read-only snapshot FS.
+// When packaged as .exe (pkg), NSSM sets AppDirectory to {app},
+// so process.cwd() reliably points to the install folder.
 const IS_PKG  = typeof process.pkg !== 'undefined';
-const APP_DIR = IS_PKG ? path.dirname(process.execPath) : __dirname;
+const APP_DIR = IS_PKG ? process.cwd() : __dirname;
 
-// When running as pkg exe, public/ is placed next to the exe by the installer.
-// When running as dev (node server.js), public/ is next to server.js as normal.
 const PUBLIC_DIR = path.join(APP_DIR, 'public');
+
+// Write startup log for diagnostics (pkg mode only)
+if (IS_PKG) {
+  try {
+    const log = `[${new Date().toISOString()}] cwd=${process.cwd()} execPath=${process.execPath}\n  APP_DIR=${APP_DIR}\n  PUBLIC_DIR=${PUBLIC_DIR} exists=${fs.existsSync(PUBLIC_DIR)}\n`;
+    fs.mkdirSync(path.join(APP_DIR, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(APP_DIR, 'logs', 'startup.log'), log, { flag: 'a' });
+  } catch {}
+}
+
 app.use(express.static(PUBLIC_DIR));
 app.use(express.json());
 
