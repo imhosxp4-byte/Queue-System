@@ -19,12 +19,6 @@ CloseApplications=no
 [Languages]
 Name: "thai"; MessagesFile: "compiler:Default.isl"
 
-[CustomMessages]
-thai.WelcomeLabel1=ยินดีต้อนรับสู่ตัวติดตั้ง%nระบบคิว (Queue System)
-thai.WelcomeLabel2=ตัวช่วยนี้จะติดตั้งระบบคิวลงในเครื่องของคุณ%n%nระบบจะรันเป็น Windows Service โดยอัตโนมัติ%nไม่ต้องเปิด Command Prompt%n%nกดถัดไปเพื่อดำเนินการต่อ
-thai.FinishedHeadingLabel=ติดตั้งระบบคิวเสร็จสมบูรณ์
-thai.FinishedLabelNoIcons=ระบบคิวถูกติดตั้งและเริ่มทำงานเป็น Windows Service แล้ว%n%nเปิดใช้งานได้ที่: http://localhost:3000
-
 [Tasks]
 Name: "desktopicon"; Description: "สร้าง Shortcut บน Desktop"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
 Name: "firewall"; Description: "เปิด Firewall อนุญาต Port 3000 (สำหรับเชื่อมต่อจากเครื่องอื่นใน LAN)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
@@ -44,6 +38,47 @@ Name: "{group}\ถอนการติดตั้ง"; Filename: "{uninstallex
 Name: "{commondesktop}\ระบบคิว"; Filename: "{app}\open-queue.url"; Tasks: desktopicon; Comment: "เปิดระบบคิวในเบราว์เซอร์"
 
 [Code]
+
+// ── ถอนการติดตั้งเวอร์ชันเก่าอัตโนมัติ ──────────────────────────────────
+function GetOldUninstallString(): String;
+var
+  RegKey, UninstStr: String;
+begin
+  UninstStr := '';
+  RegKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{A3F2C1D0-4E5B-6F7A-8B9C-0D1E2F3A4B5C}_is1';
+  if not RegQueryStringValue(HKLM, RegKey, 'UninstallString', UninstStr) then
+    RegQueryStringValue(HKCU, RegKey, 'UninstallString', UninstStr);
+  Result := UninstStr;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  UninstStr: String;
+  ResultCode: Integer;
+  NssmExe: String;
+begin
+  Result := '';
+
+  // หยุด service เก่าก่อน (ถ้ามี)
+  NssmExe := ExpandConstant('{autopf}') + '\QueueSystem\tools\nssm.exe';
+  if FileExists(NssmExe) then
+  begin
+    Exec(NssmExe, 'stop QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(NssmExe, 'remove QueueSystem confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(1500);
+  end;
+
+  // ถอนการติดตั้งเวอร์ชันเก่า (silent)
+  UninstStr := GetOldUninstallString();
+  if UninstStr <> '' then
+  begin
+    UninstStr := RemoveQuotes(UninstStr);
+    Exec(UninstStr, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(2000);
+  end;
+end;
+
+// ── ตรวจสอบ service ──────────────────────────────────────────────────────
 function ServiceExists(ServiceName: string): Boolean;
 var
   ResultCode: Integer;
@@ -53,24 +88,24 @@ begin
   Result := (ResultCode <> 3);
 end;
 
+// ── สร้าง URL shortcut ───────────────────────────────────────────────────
 procedure CreateUrlShortcut();
 var
-  ShortcutFile: string;
   Lines: TStringList;
 begin
-  ShortcutFile := ExpandConstant('{app}\open-queue.url');
   Lines := TStringList.Create;
   try
     Lines.Add('[InternetShortcut]');
     Lines.Add('URL=http://localhost:3000');
     Lines.Add('IconFile=' + ExpandConstant('{app}\QueueServer.exe'));
     Lines.Add('IconIndex=0');
-    Lines.SaveToFile(ShortcutFile);
+    Lines.SaveToFile(ExpandConstant('{app}\open-queue.url'));
   finally
     Lines.Free;
   end;
 end;
 
+// ── หลังติดตั้งไฟล์เสร็จ ──────────────────────────────────────────────────
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   AppDir, NssmExe: string;
@@ -81,22 +116,22 @@ begin
     AppDir  := ExpandConstant('{app}');
     NssmExe := AppDir + '\tools\nssm.exe';
 
-    // Create browser shortcut file
+    // สร้าง shortcut เบราว์เซอร์
     CreateUrlShortcut();
 
-    // Stop & remove old service if exists
+    // หยุด/ลบ service เก่าที่ยังค้างอยู่ (กรณี PrepareToInstall ไม่ครอบคลุม)
     if ServiceExists('QueueSystem') then
     begin
       Exec(NssmExe, 'stop QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec(NssmExe, 'remove QueueSystem confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      Sleep(1500);
+      Sleep(1000);
     end;
 
-    // Install service
+    // ติดตั้ง service ใหม่
     Exec(NssmExe, 'install QueueSystem "' + AppDir + '\QueueServer.exe"',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-    // Configure service
+    // ตั้งค่า service
     Exec(NssmExe, 'set QueueSystem AppDirectory "' + AppDir + '"',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec(NssmExe, 'set QueueSystem DisplayName "Queue Management System"',
@@ -125,11 +160,12 @@ begin
         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     end;
 
-    // Start service
+    // เริ่ม service
     Exec(NssmExe, 'start QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   end;
 end;
 
+// ── ถอนการติดตั้ง ────────────────────────────────────────────────────────
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   NssmExe: string;
