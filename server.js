@@ -16,7 +16,33 @@ const io     = new Server(server);
 const IS_PKG  = typeof process.pkg !== 'undefined';
 const APP_DIR = IS_PKG ? path.dirname(process.execPath) : __dirname;
 
-app.use(express.static(path.join(__dirname, 'public')));
+// pkg on Windows: path.join converts /snapshot/... to \snapshot\... (backslashes)
+// which breaks express.static. Fix: extract public/ from snapshot to disk on startup.
+function resolvePublicDir() {
+  if (!IS_PKG) return path.join(__dirname, 'public');
+
+  const diskPublic = path.join(APP_DIR, 'public');
+  // Use forward-slash concatenation to stay inside pkg VFS correctly
+  const snapPublic = __dirname.replace(/\\/g, '/') + '/public';
+
+  function copyDir(src, dst) {
+    if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true });
+    for (const entry of fs.readdirSync(src)) {
+      const s = src + '/' + entry;
+      const d = path.join(dst, entry);
+      try {
+        if (fs.statSync(s).isDirectory()) copyDir(s, d);
+        else fs.writeFileSync(d, fs.readFileSync(s));
+      } catch {}
+    }
+  }
+
+  try { copyDir(snapPublic, diskPublic); } catch {}
+  return diskPublic;
+}
+
+const PUBLIC_DIR = resolvePublicDir();
+app.use(express.static(PUBLIC_DIR));
 app.use(express.json());
 
 // ── Persist helpers ──────────────────────────────────────────────────────
