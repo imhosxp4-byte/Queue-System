@@ -19,7 +19,7 @@
       --cc-type-fs:.82rem;--cc-type-clr:#90caf9;--cc-time-clr:#aaa;
       --ns-num-fs:1.1rem;--ns-meta-fs:.68rem;--ns-times-fs:.65rem;--ns-hdr-fs:.82rem;
     }
-    body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);
+    body{font-family:var(--display-font,'Segoe UI',Tahoma,sans-serif);background:var(--bg);
       color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;
       transition:background .4s}
 
@@ -720,6 +720,18 @@
         </div>
         <div class="color-field" style="margin-top:8px"><label>ขนาดตัวอักษร (rem)</label>
           <input type="number" id="ccTickerFs" min="0.6" max="3" step="0.05" oninput="applyCustom()"/></div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">🖋 ฟ้อนต์การแสดงผล</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="ccFontFamily" onchange="applyCustom()" style="flex:1;min-width:160px;background:#0f1923;border:1px solid #1e3a5f;border-radius:8px;padding:7px 10px;color:#fff;font-size:.85rem;cursor:pointer">
+            <option value="">(ค่าเริ่มต้น Segoe UI)</option>
+          </select>
+          <button onclick="loadSystemFonts()" style="background:#1565c0;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">📥 โหลดฟ้อนต์</button>
+        </div>
+        <div id="fontPreview" style="margin-top:8px;padding:8px 12px;background:#0f1923;border-radius:8px;text-align:center;font-size:1.5rem;font-weight:700;color:#ffd54f;letter-spacing:2px;display:none">ตัวอย่าง A001</div>
+        <div style="font-size:.7rem;color:#3a5a78;margin-top:6px">ฟ้อนต์จะใช้กับตัวเลขคิว ชื่อช่อง และข้อความทั้งหมด</div>
       </div>
 
       <button class="btn-reset-custom" onclick="resetCustom()">↺ รีเซ็ตเป็นค่าธีมปัจจุบัน</button>
@@ -1645,6 +1657,23 @@ function syncCustomUI() {
   set('ccTkborder', 'tkborder', t.tkborder);
   set('ccTktxt',    'tktxt',    t.tktxt||'#ffffff');
   set('ccTickerFs', 'tickerFs', 0.95);
+  // Font family
+  const fontSel = document.getElementById('ccFontFamily');
+  if (fontSel) {
+    const ff = c.fontFamily || '';
+    if (ff && !Array.from(fontSel.options).find(o => o.value === ff)) {
+      const opt = document.createElement('option');
+      opt.value = ff; opt.textContent = ff; opt.style.fontFamily = ff;
+      fontSel.appendChild(opt);
+    }
+    fontSel.value = ff;
+  }
+  const prev = document.getElementById('fontPreview');
+  if (prev) {
+    const ff = c.fontFamily || '';
+    prev.style.fontFamily = ff || 'inherit';
+    prev.style.display = ff ? 'block' : 'none';
+  }
 }
 function applyCustom() {
   const g = (id) => document.getElementById(id)?.value;
@@ -1672,6 +1701,7 @@ function applyCustom() {
     ccTimeClr: g('ccTimeClr') || '',
     tkbg:      g('ccTkbg'), tkborder:g('ccTkborder'), tktxt:g('ccTktxt'),
     tickerFs:  parseFloat(g('ccTickerFs'))||0.95,
+    fontFamily: g('ccFontFamily') || '',
   };
   const r = document.documentElement;
   const hdrEl = document.getElementById('hdrTitle');
@@ -1697,6 +1727,16 @@ function applyCustom() {
   if (cfg.custom.tkborder) r.style.setProperty('--tkborder', cfg.custom.tkborder);
   if (cfg.custom.tktxt)    r.style.setProperty('--tktxt',    cfg.custom.tktxt);
   if (cfg.custom.tickerFs) r.style.setProperty('--ticker-fs',cfg.custom.tickerFs + 'rem');
+  if (cfg.custom.fontFamily) r.style.setProperty('--display-font', `'${cfg.custom.fontFamily}',Tahoma,sans-serif`);
+  else r.style.removeProperty('--display-font');
+  // Update font preview
+  const fontSel = document.getElementById('ccFontFamily');
+  const prev = document.getElementById('fontPreview');
+  if (prev && fontSel) {
+    const ff = fontSel.value;
+    prev.style.fontFamily = ff || 'inherit';
+    prev.style.display = ff ? 'block' : 'none';
+  }
   saveCfg();
   renderCounters(false, null);
 }
@@ -1704,7 +1744,47 @@ function resetCustom() {
   cfg.custom = {}; saveCfg();
   const hdrEl = document.getElementById('hdrTitle');
   if (hdrEl) { hdrEl.textContent = window._sysOrigName || 'ระบบแสดงคิว'; hdrEl.style.fontWeight = ''; hdrEl.style.letterSpacing = ''; }
+  document.documentElement.style.removeProperty('--display-font');
   applyTheme(activeTheme); syncCustomUI();
+}
+
+const FALLBACK_FONTS = [
+  'Angsana New','Browallia New','Cordia New','DilleniaUPC','EucrosiaUPC','FreesiaUPC',
+  'IrisUPC','JasmineUPC','KodchiangUPC','LilyUPC','Tahoma','Segoe UI','Arial',
+  'Calibri','Cambria','Comic Sans MS','Consolas','Courier New','Georgia',
+  'Impact','Palatino Linotype','Times New Roman','Trebuchet MS','Verdana',
+  'Sarabun','Noto Sans Thai','Kanit','Prompt','Mitr','Charm','Charmonman',
+  'THSarabunNew','TH SarabunPSK','TH Sarabun New'
+];
+
+async function loadSystemFonts() {
+  const sel = document.getElementById('ccFontFamily');
+  const saved = sel.value;
+  sel.innerHTML = '<option value="">(ค่าเริ่มต้น Segoe UI)</option>';
+
+  let fonts = [];
+  try {
+    if (window.queryLocalFonts) {
+      const available = await window.queryLocalFonts();
+      const seen = new Set();
+      available.forEach(f => { if (!seen.has(f.family)) { seen.add(f.family); fonts.push(f.family); } });
+      fonts.sort((a, b) => a.localeCompare(b, 'th'));
+    }
+  } catch(e) {}
+
+  if (!fonts.length) {
+    fonts = FALLBACK_FONTS.slice().sort((a, b) => a.localeCompare(b, 'th'));
+  }
+
+  fonts.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    opt.style.fontFamily = name;
+    sel.appendChild(opt);
+  });
+
+  if (saved) sel.value = saved;
+  applyCustom();
 }
 
 function restoreCustom() {
@@ -1738,6 +1818,8 @@ function restoreCustom() {
   if (c.tkborder) r.style.setProperty('--tkborder', c.tkborder);
   if (c.tktxt)    r.style.setProperty('--tktxt',    c.tktxt);
   if (c.tickerFs) r.style.setProperty('--ticker-fs',c.tickerFs + 'rem');
+  if (c.fontFamily) r.style.setProperty('--display-font', `'${c.fontFamily}',Tahoma,sans-serif`);
+  else r.style.removeProperty('--display-font');
 }
 
 // ── TTS ───────────────────────────────────────────────────────────────────

@@ -220,6 +220,115 @@
     .sd-save-btn:hover{opacity:.85}
     .sd-hint{font-size:.7rem;color:#3a5a78;margin-top:5px;line-height:1.5}
 
+    /* ── Screen designer v2 ── */
+    .scd-wrap{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+    .scd-left{display:flex;flex-direction:column;gap:14px}
+    .scd-right{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+    .scd-preview-lbl{font-size:.72rem;color:#3a5a78;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+    .scd-card{
+      background:#141f2e;border:1px solid #1e3a5f;border-radius:16px;padding:20px;
+      display:flex;flex-direction:column;gap:14px;
+    }
+    .scd-card-hdr{
+      font-size:.84rem;font-weight:700;color:#90caf9;
+      display:flex;align-items:center;gap:8px;
+      padding-bottom:12px;border-bottom:1px solid #1a2a3a;
+    }
+    .scd-card-hdr::before{content:'';display:block;width:3px;height:15px;background:#42a5f5;border-radius:2px;flex-shrink:0}
+    .scd-lbl{font-size:.74rem;color:#64b5f6;margin-bottom:5px;display:block;font-weight:600;letter-spacing:.3px}
+    .scd-field{display:flex;flex-direction:column}
+    .scd-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .scd-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .scd-opt-row{display:flex;gap:5px;flex-wrap:wrap}
+    .scd-opt{
+      flex:1;padding:8px 4px;background:#0f1923;border:1.5px solid #1e3a5f;
+      color:#64b5f6;border-radius:9px;font-size:.78rem;font-weight:600;
+      cursor:pointer;text-align:center;font-family:inherit;transition:all .18s;
+    }
+    .scd-opt:hover{border-color:#42a5f5;color:#fff}
+    .scd-opt.on{background:#1565c0;border-color:#42a5f5;color:#fff}
+    .scd-slider{width:100%;cursor:pointer;accent-color:#42a5f5;margin:4px 0 2px}
+    .scd-slider-val{font-size:.7rem;color:#64b5f6;font-family:'Courier New',monospace;text-align:right}
+    .scd-num-input{
+      width:80px;background:#0a1520;border:1px solid #1e3a5f;
+      border-radius:8px;color:#fff;font-size:.9rem;
+      padding:7px 8px;text-align:center;font-family:inherit;outline:none;
+    }
+    .scd-num-input:focus{border-color:#42a5f5}
+    .scd-text-input{
+      width:100%;background:#0a1520;border:1px solid #1e3a5f;border-radius:9px;
+      color:#fff;font-size:.9rem;padding:9px 12px;font-family:inherit;outline:none;
+    }
+    .scd-text-input:focus{border-color:#42a5f5}
+    .scd-ck-row{
+      display:flex;align-items:center;gap:9px;cursor:pointer;
+      padding:5px 0;
+    }
+    .scd-ck-row input{width:16px;height:16px;accent-color:#42a5f5;cursor:pointer;flex-shrink:0}
+    .scd-ck-row span{font-size:.84rem;color:#90caf9}
+    .scd-btn-sm{
+      background:#1565c0;color:#fff;border:none;border-radius:9px;
+      padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;
+      white-space:nowrap;font-family:inherit;transition:opacity .2s;flex-shrink:0;
+    }
+    .scd-btn-sm:hover{opacity:.82}
+    .scd-hint-text{font-size:.7rem;color:#3a5a78;margin-top:4px;line-height:1.5}
+
+    /* Typography grid */
+    .scd-typo-grid{
+      display:grid;grid-template-columns:1fr 90px 1fr;
+      gap:8px 10px;align-items:center;
+    }
+    .scd-typo-hdr{
+      font-size:.65rem;color:#3a5a78;letter-spacing:1.5px;text-transform:uppercase;
+      padding-bottom:5px;border-bottom:1px solid #1a2a3a;
+    }
+    .scd-typo-lbl{font-size:.82rem;color:rgba(255,255,255,.75)}
+
+    /* Simplified color picker (full) */
+    .scp-wrap{width:100%}
+    .scp-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .scp-btn{
+      position:relative;cursor:pointer;flex-shrink:0;
+      width:40px;height:40px;border-radius:10px;overflow:hidden;
+      border:2px solid rgba(255,255,255,.22);
+    }
+    .scp-btn input[type=color]{
+      position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+    }
+    .scp-preview{width:100%;height:100%;transition:background .15s}
+    .scp-hex{
+      flex:1;background:#0a1520;border:1px solid #1e3a5f;border-radius:7px;
+      color:#e0e0e0;font-size:.85rem;padding:8px 10px;
+      font-family:'Courier New',monospace;outline:none;letter-spacing:.5px;
+    }
+    .scp-hex:focus{border-color:#42a5f5}
+    .scp-grid{display:flex;flex-wrap:wrap;gap:5px}
+    .scp-dot{
+      width:27px;height:27px;border-radius:6px;cursor:pointer;
+      border:2px solid transparent;transition:transform .12s,border-color .12s;
+    }
+    .scp-dot:hover{transform:scale(1.15)}
+    .scp-dot.on{border-color:#fff;transform:scale(1.1);box-shadow:0 0 0 2px rgba(255,255,255,.22)}
+
+    /* Inline picker (for typography table) */
+    .scp-inline{display:flex;align-items:center;gap:6px}
+    .scp-inline-btn{
+      position:relative;cursor:pointer;flex-shrink:0;
+      width:34px;height:34px;border-radius:8px;overflow:hidden;
+      border:2px solid rgba(255,255,255,.2);
+    }
+    .scp-inline-btn input[type=color]{
+      position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+    }
+    .scp-inline-prev{width:100%;height:100%;transition:background .15s}
+    .scp-inline-hex{
+      width:78px;background:#0a1520;border:1px solid #1e3a5f;
+      border-radius:6px;color:#ccc;font-size:.75rem;
+      padding:5px 7px;font-family:'Courier New',monospace;outline:none;
+    }
+    .scp-inline-hex:focus{border-color:#42a5f5}
+
     /* ── Network pane ── */
     .net-intro{background:rgba(66,165,245,.08);border:1px solid rgba(66,165,245,.25);
       border-radius:12px;padding:14px 18px;font-size:.88rem;color:rgba(255,255,255,.7);
@@ -499,6 +608,12 @@
               <span class="pd-range-val" id="pdNumFsV">60pt</span>
             </div></div>
           <label class="pd-ck"><input type="checkbox" id="pdShowDt" onchange="updatePreview()"><span>แสดงวันที่ / เวลา</span></label>
+          <div class="pd-field"><label>ขนาดตัวอักษรวันที่</label>
+            <div class="pd-range-row">
+              <input type="range" id="pdDateFs" min="6" max="14" value="9"
+                oninput="document.getElementById('pdDateFsV').textContent=this.value+'pt';updatePreview()"/>
+              <span class="pd-range-val" id="pdDateFsV">9pt</span>
+            </div></div>
         </div>
 
         <!-- Footer -->
@@ -530,6 +645,21 @@
           </div>
         </div>
 
+        <!-- Font -->
+        <div class="pd-section">
+          <div class="pd-sec-title">🔤 ฟ้อนต์แบบฟอร์ม</div>
+          <div class="pd-field">
+            <label>ฟ้อนต์</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="pdFont" onchange="updatePreview()"
+                style="flex:1;background:#0f1923;border:1px solid #2a4060;border-radius:8px;padding:7px 10px;color:#fff;font-size:.88rem">
+                <option value="">— ค่าเริ่มต้นระบบ —</option>
+              </select>
+              <button class="pd-ref-btn" onclick="loadPdFonts()">📥 โหลดฟ้อนต์</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Layout Order -->
         <div class="pd-section">
           <div class="pd-sec-title">📐 ลำดับการแสดงผล</div>
@@ -552,229 +682,158 @@
     </div>
   </div>
 
-  <!-- Screen designer -->
+  <!-- Screen designer v2 -->
   <div class="tab-pane" id="pane-screen">
-    <div class="sd-wrap">
+    <div class="scd-wrap">
 
       <!-- LEFT: controls -->
-      <div class="sd-left">
+      <div class="scd-left">
 
-        <!-- Header Title -->
-        <div class="sd-section">
-          <div class="sd-sec-title">📋 หัวข้อส่วนบน</div>
-          <div class="sd-field">
-            <label>ข้อความหัวข้อ (เว้นว่าง = ใช้ชื่อระบบ)</label>
-            <input type="text" id="sdHeaderTitle" placeholder="เช่น ห้องตรวจ 11" oninput="sdPreview()"/>
-          </div>
-          <div class="sd-field" style="margin-top:10px">
-            <label>ขนาดตัวอักษรหัวข้อ</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdHeaderFs" min="1.0" max="3.0" step="0.1" value="1.5"
-                oninput="document.getElementById('sdHeaderFsV').textContent=this.value+'rem';sdPreview()"/>
-              <span class="pd-range-val" id="sdHeaderFsV">1.5rem</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Background -->
-        <div class="sd-section">
-          <div class="sd-sec-title">🎨 พื้นหลัง</div>
-          <div class="sd-field">
-            <label>ธีม Preset</label>
+        <!-- 1. ธีมพื้นหลัง -->
+        <div class="scd-card">
+          <div class="scd-card-hdr">🎨 ธีมพื้นหลัง</div>
+          <div class="scd-field">
+            <label class="scd-lbl">เลือกธีมสำเร็จรูป</label>
             <div class="bg-presets" id="bgPresets"></div>
           </div>
-          <div class="sd-field" style="margin-top:10px">
-            <label>🎨 สีที่ 1 — บน / ซ้าย</label>
-            <div class="cpk" id="bgC1Cpk"></div>
-          </div>
-          <div class="sd-field" style="margin-top:10px">
-            <label>🎨 สีที่ 2 — กลาง</label>
-            <div class="cpk" id="bgC2Cpk"></div>
-          </div>
-          <div class="sd-field" style="margin-top:10px">
-            <label>🎨 สีที่ 3 — เข้ม / ขอบ</label>
-            <div class="cpk" id="bgC3Cpk"></div>
-          </div>
-        </div>
-
-        <!-- Accent color -->
-        <div class="sd-section">
-          <div class="sd-sec-title">✨ สีหลัก (Accent)</div>
-          <div class="sd-field">
-            <label>สีปุ่ม / ขอบ / เน้น</label>
-            <div class="cpk" id="accentCpk"></div>
-          </div>
-        </div>
-
-        <!-- Font -->
-        <div class="sd-section">
-          <div class="sd-sec-title">🔤 ฟ้อนต์</div>
-          <div class="sd-field">
-            <label>ฟ้อนต์หลัก</label>
-            <select id="sdFont" onchange="sdPreview()">
-              <option value="Kanit">Kanit (Google Fonts)</option>
-              <option value="Sarabun">Sarabun (Google Fonts)</option>
-              <option value="Prompt">Prompt (Google Fonts)</option>
-              <option value="Mitr">Mitr (Google Fonts)</option>
-              <option value="Noto Sans Thai">Noto Sans Thai (Google Fonts)</option>
-              <option value="Leelawadee UI">Leelawadee UI (Windows Built-in)</option>
-              <option value="Cordia New">Cordia New (Windows Built-in)</option>
-              <option value="Tahoma">Tahoma (Windows Built-in)</option>
-            </select>
-            <div class="sd-hint">⭐ Leelawadee UI / Cordia New / Tahoma ใช้ได้โดยไม่ต้องใช้ Internet</div>
-          </div>
-        </div>
-
-        <!-- Text sizes & colors -->
-        <div class="sd-section">
-          <div class="sd-sec-title">📝 ขนาดและสีข้อความ</div>
-
-          <div class="sd-field">
-            <label>ขนาดหัวข้อหน้า (สแกนบาร์โค้ด)</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdTitleFs" min="14" max="42" value="24"
-                oninput="document.getElementById('sdTitleFsV').textContent=this.value+'px';sdPreview()"/>
-              <span class="pd-range-val" id="sdTitleFsV">24px</span>
+          <div class="scd-row-3">
+            <div class="scd-field">
+              <label class="scd-lbl">สีบน</label>
+              <div id="bgC1Cpk"></div>
             </div>
-          </div>
-          <div class="sd-field">
-            <label>สีข้อความหัวข้อ</label>
-            <div class="cpk" id="titleColorCpk"></div>
-          </div>
-
-          <div class="sd-field" style="margin-top:10px">
-            <label>ขนาดชื่อประเภทคิว (บนการ์ด)</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdCardNameFs" min="10" max="24" value="15"
-                oninput="document.getElementById('sdCardNameFsV').textContent=this.value+'px';sdPreview()"/>
-              <span class="pd-range-val" id="sdCardNameFsV">15px</span>
+            <div class="scd-field">
+              <label class="scd-lbl">สีกลาง</label>
+              <div id="bgC2Cpk"></div>
             </div>
-          </div>
-          <div class="sd-field">
-            <label>สีชื่อประเภทคิว</label>
-            <div class="cpk" id="cardNameColorCpk"></div>
-          </div>
-
-          <div class="sd-field" style="margin-top:10px">
-            <label>ขนาดข้อความคิวรอ</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdWaitFs" min="9" max="20" value="12"
-                oninput="document.getElementById('sdWaitFsV').textContent=this.value+'px';sdPreview()"/>
-              <span class="pd-range-val" id="sdWaitFsV">12px</span>
-            </div>
-          </div>
-          <div class="sd-field">
-            <label>สีตัวเลขคิวรอ (ไฮไลต์)</label>
-            <div class="cpk" id="waitNumColorCpk"></div>
-          </div>
-        </div>
-
-        <!-- Bottom bar (QN/HN) -->
-        <div class="sd-section">
-          <div class="sd-sec-title">🔍 แถบค้นหา QN / HN</div>
-
-          <div class="sd-field">
-            <label>สีพื้นหลังแถบ</label>
-            <div class="cpk" id="barBgCpk"></div>
-          </div>
-          <div class="sd-field">
-            <label>ความโปร่งใสแถบ (opacity %)</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdBarBgOp" min="10" max="100" value="78"
-                oninput="document.getElementById('sdBarBgOpV').textContent=this.value+'%';sdPreview()"/>
-              <span class="pd-range-val" id="sdBarBgOpV">78%</span>
-            </div>
-          </div>
-
-          <div class="sd-field" style="margin-top:8px">
-            <label>สีป้าย QN / HN (label)</label>
-            <div class="cpk" id="barLabelColorCpk"></div>
-          </div>
-          <div class="sd-field">
-            <label>ขนาดป้าย QN / HN</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdBarLblSz" min="7" max="16" value="10"
-                oninput="document.getElementById('sdBarLblSzV').textContent=this.value+'px';sdPreview()"/>
-              <span class="pd-range-val" id="sdBarLblSzV">10px</span>
-            </div>
-          </div>
-
-          <div class="sd-field" style="margin-top:8px">
-            <label>ความทึบพื้นหลังช่องกรอก (%)</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdInputBg" min="0" max="60" value="8"
-                oninput="document.getElementById('sdInputBgV').textContent=this.value+'%';sdPreview()"/>
-              <span class="pd-range-val" id="sdInputBgV">8%</span>
-            </div>
-          </div>
-          <div class="sd-field">
-            <label>สีขอบช่องกรอก</label>
-            <div class="cpk" id="barBorderCpk"></div>
-          </div>
-
-          <div class="sd-field" style="margin-top:8px">
-            <label>สีข้อความที่พิมพ์</label>
-            <div class="cpk" id="barTextColorCpk"></div>
-          </div>
-          <div class="sd-field">
-            <label>ขนาดข้อความที่พิมพ์</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdInputFs" min="12" max="28" value="17"
-                oninput="document.getElementById('sdInputFsV').textContent=this.value+'px';sdPreview()"/>
-              <span class="pd-range-val" id="sdInputFsV">17px</span>
-            </div>
-          </div>
-
-          <div class="sd-field" style="margin-top:8px">
-            <label>สี Placeholder (ข้อความตัวอย่าง)</label>
-            <div class="cpk" id="barPHColorCpk"></div>
-          </div>
-          <div class="sd-field">
-            <label>ความทึบ Placeholder (%)</label>
-            <div class="pd-range-row">
-              <input type="range" id="sdPHOp" min="5" max="80" value="28"
-                oninput="document.getElementById('sdPHOpV').textContent=this.value+'%';sdPreview()"/>
-              <span class="pd-range-val" id="sdPHOpV">28%</span>
+            <div class="scd-field">
+              <label class="scd-lbl">สีเข้ม</label>
+              <div id="bgC3Cpk"></div>
             </div>
           </div>
         </div>
 
-        <!-- Layout -->
-        <div class="sd-section">
-          <div class="sd-sec-title">📐 ขนาดการ์ดประเภทคิว</div>
-          <div class="sd-field">
-            <label>ขนาดการ์ด</label>
-            <div class="opt-btns" id="sdCardSizeBtns">
-              <button class="opt-btn" data-v="compact" onclick="setSdOpt('cardSize','compact',this)">เล็ก</button>
-              <button class="opt-btn on"  data-v="normal"  onclick="setSdOpt('cardSize','normal',this)">ปกติ</button>
-              <button class="opt-btn" data-v="large"   onclick="setSdOpt('cardSize','large',this)">ใหญ่</button>
+        <!-- 2. สีหลักและการ์ด -->
+        <div class="scd-card">
+          <div class="scd-card-hdr">✨ สีหลักและการ์ดประเภทคิว</div>
+          <div class="scd-row-2">
+            <div class="scd-field">
+              <label class="scd-lbl">สีหลัก (Accent) — ปุ่ม / ขอบ</label>
+              <div id="accentCpk"></div>
             </div>
-          </div>
-          <div class="sd-field" style="margin-top:4px">
-            <label>สไตล์การ์ด</label>
-            <div class="opt-btns" id="sdCardStyleBtns">
-              <button class="opt-btn on"  data-v="glass"   onclick="setSdOpt('cardStyle','glass',this)">Glass</button>
-              <button class="opt-btn" data-v="solid"   onclick="setSdOpt('cardStyle','solid',this)">Solid</button>
-              <button class="opt-btn" data-v="outline" onclick="setSdOpt('cardStyle','outline',this)">Outline</button>
+            <div class="scd-field">
+              <label class="scd-lbl">ขนาดการ์ด</label>
+              <div class="scd-opt-row" id="sdCardSizeBtns">
+                <button class="scd-opt" data-v="compact" onclick="setSdOpt('cardSize','compact',this)">เล็ก</button>
+                <button class="scd-opt on" data-v="normal" onclick="setSdOpt('cardSize','normal',this)">ปกติ</button>
+                <button class="scd-opt" data-v="large" onclick="setSdOpt('cardSize','large',this)">ใหญ่</button>
+              </div>
+              <label class="scd-lbl" style="margin-top:10px">สไตล์การ์ด</label>
+              <div class="scd-opt-row" id="sdCardStyleBtns">
+                <button class="scd-opt on" data-v="glass" onclick="setSdOpt('cardStyle','glass',this)">Glass</button>
+                <button class="scd-opt" data-v="solid" onclick="setSdOpt('cardStyle','solid',this)">Solid</button>
+                <button class="scd-opt" data-v="outline" onclick="setSdOpt('cardStyle','outline',this)">Outline</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Show / hide -->
-        <div class="sd-section">
-          <div class="sd-sec-title">👁 แสดง / ซ่อน</div>
-          <label class="sd-ck"><input type="checkbox" id="sdShowScanner" onchange="sdPreview()"><span>แสดงกล้องสแกนบาร์โค้ด</span></label>
-          <label class="sd-ck"><input type="checkbox" id="sdShowToggles" onchange="sdPreview()"><span>แสดงตัวเลือก สแกนอัตโนมัติ / ปริ้นทันที</span></label>
+        <!-- 3. ฟ้อนต์และข้อความ -->
+        <div class="scd-card">
+          <div class="scd-card-hdr">🔤 ฟ้อนต์และข้อความ</div>
+
+          <!-- Global font selector -->
+          <div class="scd-field">
+            <label class="scd-lbl">ฟ้อนต์หลัก (ใช้กับทั้งหน้า)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="sdFont" onchange="sdPreview()" style="flex:1;background:#0a1520;border:1px solid #1e3a5f;border-radius:9px;padding:9px 12px;color:#fff;font-size:.9rem;font-family:inherit;outline:none">
+                <option value="Kanit">Kanit</option>
+                <option value="Sarabun">Sarabun</option>
+                <option value="Prompt">Prompt</option>
+                <option value="Mitr">Mitr</option>
+                <option value="Noto Sans Thai">Noto Sans Thai</option>
+                <option value="Leelawadee UI">Leelawadee UI (Windows)</option>
+                <option value="Cordia New">Cordia New (Windows)</option>
+                <option value="Tahoma">Tahoma (Windows)</option>
+              </select>
+              <button class="scd-btn-sm" onclick="loadSdFonts()">📥 โหลดฟ้อนต์จากระบบ</button>
+            </div>
+            <div class="scd-hint-text">⭐ Leelawadee UI / Cordia New / Tahoma ใช้ได้โดยไม่ต้องใช้อินเทอร์เน็ต</div>
+          </div>
+
+          <!-- Typography table -->
+          <div>
+            <div class="scd-typo-grid">
+              <div class="scd-typo-hdr">รายการ</div>
+              <div class="scd-typo-hdr">ขนาด (px)</div>
+              <div class="scd-typo-hdr">สีข้อความ</div>
+
+              <div class="scd-typo-lbl">หัวข้อหน้า</div>
+              <input type="number" class="scd-num-input" id="sdTitleFs" min="14" max="52" value="24" oninput="sdPreview()">
+              <div id="titleColorCpk"></div>
+
+              <div class="scd-typo-lbl">ชื่อประเภทคิว</div>
+              <input type="number" class="scd-num-input" id="sdCardNameFs" min="10" max="30" value="15" oninput="sdPreview()">
+              <div id="cardNameColorCpk"></div>
+
+              <div class="scd-typo-lbl">จำนวนคิวรอ</div>
+              <input type="number" class="scd-num-input" id="sdWaitFs" min="9" max="24" value="12" oninput="sdPreview()">
+              <div id="waitNumColorCpk"></div>
+
+              <div class="scd-typo-lbl">ป้าย QN / HN</div>
+              <input type="number" class="scd-num-input" id="sdBarLblSz" min="7" max="18" value="10" oninput="sdPreview()">
+              <div id="barLabelColorCpk"></div>
+
+              <div class="scd-typo-lbl">ข้อความช่องกรอก</div>
+              <input type="number" class="scd-num-input" id="sdInputFs" min="12" max="30" value="17" oninput="sdPreview()">
+              <div id="barTextColorCpk"></div>
+            </div>
+          </div>
         </div>
+
+        <!-- 4. แถบค้นหา -->
+        <div class="scd-card">
+          <div class="scd-card-hdr">🔍 แถบค้นหา QN / HN</div>
+          <div class="scd-row-2">
+            <div class="scd-field">
+              <label class="scd-lbl">สีพื้นหลังแถบ</label>
+              <div id="barBgCpk"></div>
+              <label class="scd-lbl" style="margin-top:10px">ความโปร่งใส %</label>
+              <input type="range" class="scd-slider" id="sdBarBgOp" min="10" max="100" value="78" oninput="this.nextElementSibling.textContent=this.value+'%';sdPreview()">
+              <span class="scd-slider-val">78%</span>
+            </div>
+            <div class="scd-field">
+              <label class="scd-lbl">สีขอบช่องกรอก</label>
+              <div id="barBorderCpk"></div>
+              <label class="scd-lbl" style="margin-top:10px">ความทึบพื้นหลังช่องกรอก %</label>
+              <input type="range" class="scd-slider" id="sdInputBg" min="0" max="60" value="8" oninput="this.nextElementSibling.textContent=this.value+'%';sdPreview()">
+              <span class="scd-slider-val">8%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. อื่น ๆ -->
+        <div class="scd-card">
+          <div class="scd-card-hdr">⚙ ทั่วไป</div>
+          <div class="scd-field">
+            <label class="scd-lbl">ข้อความหัวข้อหน้าออกคิว (เว้นว่าง = ใช้ชื่อระบบ)</label>
+            <input type="text" class="scd-text-input" id="sdHeaderTitle" placeholder="เช่น ห้องตรวจ 11" oninput="sdPreview()">
+          </div>
+          <label class="scd-ck-row"><input type="checkbox" id="sdShowScanner" onchange="sdPreview()"><span>แสดงกล้องสแกนบาร์โค้ด</span></label>
+          <label class="scd-ck-row"><input type="checkbox" id="sdShowToggles" onchange="sdPreview()"><span>แสดงปุ่ม Toggle (สแกน / ปริ้น)</span></label>
+        </div>
+
+        <!-- Hidden compat inputs (used by saveScreenCfg) -->
+        <input type="hidden" id="sdHeaderFs" value="1.5">
+        <input type="hidden" id="sdPHOp" value="28">
 
         <button class="sd-save-btn" onclick="saveScreenCfg()">💾 บันทึกการตั้งค่าหน้าจอ</button>
       </div>
 
       <!-- RIGHT: live preview -->
-      <div class="sd-right">
-        <div class="sd-preview-lbl">ตัวอย่างหน้าจอ</div>
+      <div class="scd-right">
+        <div class="scd-preview-lbl">ตัวอย่างหน้าจอ</div>
         <div class="sd-preview-wrap" id="sdPreviewWrap"></div>
-        <div class="sd-hint" style="text-align:center">ตัวอย่างแบบจำลอง — เปิดหน้าออกคิวเพื่อดูผลจริง</div>
+        <div class="scd-hint-text" style="text-align:center;margin-top:8px">ตัวอย่างแบบจำลอง — เปิดหน้าออกคิวเพื่อดูผลจริง</div>
       </div>
 
     </div>
@@ -1136,7 +1195,7 @@ function switchTab(name, el) {
   if (name === 'print' && !printTabLoaded) {
     printTabLoaded = true;
     loadPrintMode();
-    loadPrinters().then(() => loadPrintCfg());
+    loadPdFonts().then(() => loadPrinters()).then(() => loadPrintCfg());
   }
   if (name === 'screen' && !screenTabLoaded) {
     screenTabLoaded = true;
@@ -1333,7 +1392,6 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   const displayCustom = (d.displayConfig||{}).custom || {};
   document.getElementById('sdHeaderTitle').value = displayCustom.headerTitle || '';
   document.getElementById('sdHeaderFs').value = displayCustom.headerFontSize || 1.5;
-  document.getElementById('sdHeaderFsV').textContent = (displayCustom.headerFontSize || 1.5) + 'rem';
   if (d.sysInfo) {
     document.getElementById('sysBadgeIcon').textContent = d.sysInfo.icon || '📋';
     document.getElementById('sysBadgeName').textContent = d.sysInfo.name;
@@ -1361,11 +1419,21 @@ const pdLayoutItems = {
   'footer': { label: '📝 ข้อความท้าย', icon: '📝' },
 };
 
+function printCfgUrl() {
+  const mode = localStorage.getItem('queuePrintMode') || 'host';
+  return mode === 'local' ? 'http://localhost:3001/api/print-config' : `/api/sys/${sysId}/print-config`;
+}
+
 function loadPrintCfg() {
-  fetch(`/api/sys/${sysId}/print-config`).then(r=>r.json()).then(cfg => {
-    applyPrintCfgToForm(cfg);
-    updatePreview();
-  });
+  fetch(printCfgUrl(), { signal: AbortSignal.timeout(4000) })
+    .then(r => r.json())
+    .then(cfg => { applyPrintCfgToForm(cfg); updatePreview(); })
+    .catch(() => {
+      // fallback to server config if agent unreachable
+      fetch(`/api/sys/${sysId}/print-config`).then(r=>r.json()).then(cfg => {
+        applyPrintCfgToForm(cfg); updatePreview();
+      });
+    });
 }
 
 function applyPrintCfgToForm(cfg) {
@@ -1416,6 +1484,17 @@ function applyPrintCfgToForm(cfg) {
   document.getElementById('pdAutoPrint').checked   = cfg.autoPrint   !== false;
   document.getElementById('pdShowDivider').checked = cfg.showDividerLine !== false;
   document.getElementById('pdCopies').value        = cfg.copies >= 1 ? cfg.copies : 1;
+  // Date font size
+  const dfs = cfg.dateFontSize || 9;
+  document.getElementById('pdDateFs').value = dfs;
+  document.getElementById('pdDateFsV').textContent = dfs + 'pt';
+  // Font family
+  const ff = cfg.fontFamily || '';
+  const pdFontSel = document.getElementById('pdFont');
+  if (ff && ![...pdFontSel.options].some(o => o.value === ff)) {
+    pdFontSel.insertAdjacentHTML('afterbegin', `<option value="${ff}">${ff}</option>`);
+  }
+  pdFontSel.value = ff;
   // Layout Order
   if (cfg.layoutOrder && cfg.layoutOrder.length) {
     pdLayoutOrder = cfg.layoutOrder;
@@ -1447,6 +1526,8 @@ function collectPrintCfg() {
     autoPrint:        document.getElementById('pdAutoPrint').checked,
     copies:           Math.max(1, Number(document.getElementById('pdCopies').value) || 1),
     layoutOrder:      pdLayoutOrder,
+    fontFamily:       document.getElementById('pdFont').value,
+    dateFontSize:     Number(document.getElementById('pdDateFs').value) || 9,
   };
 }
 
@@ -1517,7 +1598,8 @@ function updatePreview() {
 function renderSlipHtml(cfg, d) {
   const divider = cfg.showDividerLine
     ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
-  
+  const ffStyle = cfg.fontFamily ? `font-family:'${cfg.fontFamily}',sans-serif;` : '';
+
   // Section builders
   const builders = {
     'header': () => {
@@ -1558,7 +1640,7 @@ function renderSlipHtml(cfg, d) {
   let h = '';
   const order = cfg.layoutOrder || pdLayoutOrder;
   let lastWasDivider = false;
-  
+
   for (const itemId of order) {
     if (itemId === 'divider') {
       if (!lastWasDivider) {
@@ -1573,8 +1655,8 @@ function renderSlipHtml(cfg, d) {
       }
     }
   }
-  
-  return h;
+
+  return ffStyle ? `<div style="${ffStyle}">${h}</div>` : h;
 }
 
 async function loadPrinters() {
@@ -1604,6 +1686,8 @@ function setPrintMode(mode) {
   document.getElementById('pdPrinterSection').style.display      = mode === 'host'  ? '' : 'none';
   document.getElementById('pdLocalPrinterSection').style.display = mode === 'local' ? '' : 'none';
   if (mode === 'local') loadLocalPrinters();
+  // Reload config from the correct source when switching modes
+  if (typeof printTabLoaded !== 'undefined' && printTabLoaded) loadPrintCfg();
 }
 
 function loadPrintMode() {
@@ -1641,13 +1725,17 @@ function saveLocalPrinter() {
 }
 
 function savePrintCfg() {
-  const cfg = collectPrintCfg();
-  fetch(`/api/sys/${sysId}/print-config`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(cfg)
-  }).then(r=>r.json()).then(d => {
-    if (d.success) toast('✓ บันทึกแบบฟอร์มปริ้นสำเร็จ');
-  }).catch(() => toast('เกิดข้อผิดพลาด'));
+  const cfg  = collectPrintCfg();
+  const mode = localStorage.getItem('queuePrintMode') || 'host';
+  const targets = mode === 'local'
+    ? ['http://localhost:3001/api/print-config']
+    : [`/api/sys/${sysId}/print-config`];
+
+  Promise.all(targets.map(url =>
+    fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg) })
+      .then(r => r.json())
+  )).then(() => toast('✓ บันทึกแบบฟอร์มปริ้นสำเร็จ'))
+    .catch(() => toast('เกิดข้อผิดพลาด'));
 }
 
 // Print area for test print (hidden, used only by testPrint)
@@ -1719,6 +1807,164 @@ let sdBarBorderClr = '#00bcd4';
 let sdBarTextClr   = '#ffffff';
 let sdBarPHColor   = '#ffffff';
 
+// ── Screen Designer v2: simplified color pickers (no RGB sliders) ─────────
+
+const SCREEN_PALETTE = [
+  // White / black / grey
+  '#ffffff','#f5f5f5','#9e9e9e','#616161','#424242','#212121','#000000',
+  // Blue
+  '#2196f3','#1976d2','#1565c0','#0d47a1','#0288d1','#01579b',
+  // Cyan / Teal
+  '#00e5ff','#00bcd4','#0097a7','#00838f','#006064',
+  // Green
+  '#00e676','#4caf50','#388e3c','#2e7d32','#1b5e20',
+  // Yellow / Amber / Orange
+  '#ffea00','#ffc107','#ff8f00','#ff6d00','#e65100',
+  // Red / Pink
+  '#ff1744','#f44336','#d32f2f','#b71c1c',
+  '#ff4081','#e91e63','#c2185b','#880e4f',
+  // Purple / Indigo
+  '#7c4dff','#9c27b0','#7b1fa2','#6a1b9a',
+  '#3f51b5','#303f9f','#1a237e',
+  // Dark backgrounds
+  '#1a2a3a','#0d1f33','#0f1923','#001c28',
+];
+
+function buildSimplePicker(id, initHex, onChange) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el._scpChange = onChange;
+  const hex = (initHex || '#ffffff').toLowerCase();
+  el.innerHTML = `
+    <div class="scp-wrap">
+      <div class="scp-top">
+        <label class="scp-btn">
+          <input type="color" value="${hex}" oninput="_scpNative(this)">
+          <div class="scp-preview" style="background:${hex}"></div>
+        </label>
+        <input class="scp-hex" type="text" value="${hex}" maxlength="7" spellcheck="false"
+          oninput="_scpHex(this)" onblur="_scpHexBlur(this)">
+      </div>
+      <div class="scp-grid">
+        ${SCREEN_PALETTE.map(c=>`<div class="scp-dot${c.toLowerCase()===hex?' on':''}" style="background:${c}" title="${c.toLowerCase()}" onclick="_scpPick(this,'${c.toLowerCase()}')"></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function buildInlinePicker(id, initHex, onChange) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el._scpChange = onChange;
+  const hex = (initHex || '#ffffff').toLowerCase();
+  el.innerHTML = `
+    <div class="scp-inline">
+      <label class="scp-inline-btn">
+        <input type="color" value="${hex}" oninput="_scpInlineNative(this)">
+        <div class="scp-inline-prev" style="background:${hex}"></div>
+      </label>
+      <input class="scp-inline-hex" type="text" value="${hex}" maxlength="7" spellcheck="false"
+        oninput="_scpInlineHex(this)" onblur="_scpInlineHexBlur(this)">
+    </div>`;
+}
+
+function _scpNative(input) {
+  const wrap = input.closest('.scp-wrap');
+  const c = input.value.toLowerCase();
+  wrap.querySelector('.scp-preview').style.background = c;
+  wrap.querySelector('.scp-hex').value = c;
+  wrap.querySelectorAll('.scp-dot').forEach(d => d.classList.toggle('on', d.title === c));
+  const ctr = wrap.parentElement; if (ctr._scpChange) ctr._scpChange(c);
+}
+function _scpPick(dot, c) {
+  const wrap = dot.closest('.scp-wrap');
+  wrap.querySelector('.scp-preview').style.background = c;
+  wrap.querySelector('input[type=color]').value = c;
+  wrap.querySelector('.scp-hex').value = c;
+  wrap.querySelectorAll('.scp-dot').forEach(d => d.classList.toggle('on', d.title === c));
+  const ctr = wrap.parentElement; if (ctr._scpChange) ctr._scpChange(c);
+}
+function _scpHex(input) {
+  const v = input.value.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+  const c = v.toLowerCase();
+  const wrap = input.closest('.scp-wrap');
+  wrap.querySelector('.scp-preview').style.background = c;
+  wrap.querySelector('input[type=color]').value = c;
+  wrap.querySelectorAll('.scp-dot').forEach(d => d.classList.toggle('on', d.title === c));
+  const ctr = wrap.parentElement; if (ctr._scpChange) ctr._scpChange(c);
+}
+function _scpHexBlur(input) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(input.value.trim())) {
+    const s = input.closest('.scp-wrap').querySelector('.scp-preview').style.background;
+    if (/^#/.test(s)) input.value = s;
+  }
+}
+function _scpInlineNative(input) {
+  const wrap = input.closest('.scp-inline');
+  const c = input.value.toLowerCase();
+  wrap.querySelector('.scp-inline-prev').style.background = c;
+  wrap.querySelector('.scp-inline-hex').value = c;
+  const ctr = wrap.parentElement; if (ctr._scpChange) ctr._scpChange(c);
+}
+function _scpInlineHex(input) {
+  const v = input.value.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+  const c = v.toLowerCase();
+  const wrap = input.closest('.scp-inline');
+  wrap.querySelector('.scp-inline-prev').style.background = c;
+  wrap.querySelector('input[type=color]').value = c;
+  const ctr = wrap.parentElement; if (ctr._scpChange) ctr._scpChange(c);
+}
+function _scpInlineHexBlur(input) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(input.value.trim())) {
+    const s = input.closest('.scp-inline').querySelector('.scp-inline-prev').style.background;
+    if (/^#/.test(s)) input.value = s;
+  }
+}
+
+const PD_FONTS_FALLBACK = [
+  'Segoe UI','Tahoma','Arial','Calibri','Verdana',
+  'Leelawadee UI','Cordia New','Angsana New','Browallia New','TH SarabunPSK',
+  'Kanit','Sarabun','Prompt','Mitr','Noto Sans Thai','K2D',
+];
+async function loadPdFonts() {
+  const sel = document.getElementById('pdFont');
+  const cur = sel.value;
+  let families = PD_FONTS_FALLBACK;
+  if (window.queryLocalFonts) {
+    try {
+      const all = await window.queryLocalFonts();
+      const seen = new Set();
+      families = all.map(f => f.family).filter(f => !seen.has(f) && seen.add(f)).sort();
+    } catch(e) {}
+  }
+  sel.innerHTML = '<option value="">— ค่าเริ่มต้นระบบ —</option>' +
+    families.map(f => `<option value="${f}"${f===cur?' selected':''}>${f}</option>`).join('');
+  if (cur && !families.includes(cur)) sel.insertAdjacentHTML('afterbegin', `<option value="${cur}" selected>${cur}</option>`);
+}
+
+const SD_FONTS_FALLBACK = [
+  'Segoe UI','Tahoma','Arial','Calibri','Verdana',
+  'Leelawadee UI','Cordia New','Angsana New','Browallia New','TH SarabunPSK',
+  'Kanit','Sarabun','Prompt','Mitr','Noto Sans Thai','K2D',
+];
+async function loadSdFonts() {
+  const sel = document.getElementById('sdFont');
+  const cur = sel.value;
+  let families = SD_FONTS_FALLBACK;
+  if (window.queryLocalFonts) {
+    try {
+      const all = await window.queryLocalFonts();
+      const seen = new Set();
+      families = all.map(f => f.family).filter(f => !seen.has(f) && seen.add(f)).sort();
+    } catch(e) {}
+  }
+  sel.innerHTML = families.map(f => `<option value="${f}"${f===cur?' selected':''}>${f}</option>`).join('');
+  if (cur && !families.includes(cur)) sel.insertAdjacentHTML('afterbegin', `<option value="${cur}" selected>${cur}</option>`);
+}
+
+// ── Screen Designer init & helpers ────────────────────────────────────────
+
 function initScreenDesigner() {
   // Preset chips
   const wrap = document.getElementById('bgPresets');
@@ -1728,68 +1974,60 @@ function initScreenDesigner() {
        <span class="bg-chip-lbl">${p.name}</span></div>`
   ).join('');
 
-  // 3 bg color pickers
+  // 3 bg color pickers (native color input + swatch palette)
   sdBgC1 = sdCfg.bgC1 || '#29b6c8';
   sdBgC2 = sdCfg.bgC2 || '#0097a7';
   sdBgC3 = sdCfg.bgC3 || '#00696f';
-  buildColorPicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
-  buildColorPicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
-  buildColorPicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
 
   // Accent color picker
   sdAccent = sdCfg.accentColor || '#00bcd4';
-  buildColorPicker('accentCpk', sdAccent, c => { sdAccent=c; sdPreview(); });
+  buildSimplePicker('accentCpk', sdAccent, c => { sdAccent=c; sdPreview(); });
 
-  // Font
+  // Font selector
   document.getElementById('sdFont').value = sdCfg.fontFamily || 'Kanit';
 
-  // Text font size sliders
-  const tfs = sdCfg.titleFontSize    || 24;
-  const cfs = sdCfg.cardNameFontSize || 15;
-  const wfs = sdCfg.cardWaitFontSize || 12;
-  document.getElementById('sdTitleFs').value    = tfs;
-  document.getElementById('sdTitleFsV').textContent = tfs + 'px';
-  document.getElementById('sdCardNameFs').value = cfs;
-  document.getElementById('sdCardNameFsV').textContent = cfs + 'px';
-  document.getElementById('sdWaitFs').value     = wfs;
-  document.getElementById('sdWaitFsV').textContent = wfs + 'px';
+  // Typography number inputs (no slider value-display span needed)
+  document.getElementById('sdTitleFs').value    = sdCfg.titleFontSize    || 24;
+  document.getElementById('sdCardNameFs').value = sdCfg.cardNameFontSize || 15;
+  document.getElementById('sdWaitFs').value     = sdCfg.cardWaitFontSize || 12;
+  document.getElementById('sdBarLblSz').value   = sdCfg.barLabelSize     || 10;
+  document.getElementById('sdInputFs').value    = sdCfg.barInputFontSize || 17;
 
-  // Text color pickers
+  // Inline color pickers in typography table
   sdTitleColor  = sdCfg.titleColor       || '#ffd54f';
   sdCardNameClr = sdCfg.cardNameColor    || '#ffffff';
   sdWaitNumClr  = sdCfg.cardWaitNumColor || '#ffd54f';
-  buildColorPicker('titleColorCpk',    sdTitleColor,  c => { sdTitleColor=c;  sdPreview(); });
-  buildColorPicker('cardNameColorCpk', sdCardNameClr, c => { sdCardNameClr=c; sdPreview(); });
-  buildColorPicker('waitNumColorCpk',  sdWaitNumClr,  c => { sdWaitNumClr=c;  sdPreview(); });
+  sdBarLabelClr  = sdCfg.barLabelColor   || sdAccent;
+  sdBarTextClr   = sdCfg.barInputTextColor || '#ffffff';
+  buildInlinePicker('titleColorCpk',    sdTitleColor,  c => { sdTitleColor=c;  sdPreview(); });
+  buildInlinePicker('cardNameColorCpk', sdCardNameClr, c => { sdCardNameClr=c; sdPreview(); });
+  buildInlinePicker('waitNumColorCpk',  sdWaitNumClr,  c => { sdWaitNumClr=c;  sdPreview(); });
+  buildInlinePicker('barLabelColorCpk', sdBarLabelClr, c => { sdBarLabelClr=c; sdPreview(); });
+  buildInlinePicker('barTextColorCpk',  sdBarTextClr,  c => { sdBarTextClr=c;  sdPreview(); });
 
-  // Bottom bar controls
-  sdBarBgColor   = sdCfg.barBgColor   || '#001c28';
-  sdBarLabelClr  = sdCfg.barLabelColor  || sdAccent;
-  sdBarBorderClr = sdCfg.barInputBorderColor || sdAccent;
-  sdBarTextClr   = sdCfg.barInputTextColor   || '#ffffff';
-  sdBarPHColor   = sdCfg.barPlaceholderColor || '#ffffff';
-  buildColorPicker('barBgCpk',       sdBarBgColor,   c => { sdBarBgColor=c;   sdPreview(); });
-  buildColorPicker('barLabelColorCpk', sdBarLabelClr,c => { sdBarLabelClr=c;  sdPreview(); });
-  buildColorPicker('barBorderCpk',   sdBarBorderClr, c => { sdBarBorderClr=c; sdPreview(); });
-  buildColorPicker('barTextColorCpk',sdBarTextClr,   c => { sdBarTextClr=c;   sdPreview(); });
-  buildColorPicker('barPHColorCpk',  sdBarPHColor,   c => { sdBarPHColor=c;   sdPreview(); });
+  // Bar section full pickers
+  sdBarBgColor   = sdCfg.barBgColor          || '#001c28';
+  sdBarBorderClr = sdCfg.barInputBorderColor  || sdAccent;
+  sdBarPHColor   = sdCfg.barPlaceholderColor  || '#ffffff';
+  buildSimplePicker('barBgCpk',     sdBarBgColor,   c => { sdBarBgColor=c;   sdPreview(); });
+  buildSimplePicker('barBorderCpk', sdBarBorderClr, c => { sdBarBorderClr=c; sdPreview(); });
 
-  const barBgOp = sdCfg.barBgOpacity  ?? 78;
-  const barLblSz= sdCfg.barLabelSize  || 10;
-  const inputBg = sdCfg.barInputBg    ?? 8;
-  const inputFs = sdCfg.barInputFontSize || 17;
-  const phOp    = sdCfg.barPlaceholderOpacity ?? 28;
-  document.getElementById('sdBarBgOp').value   = barBgOp; document.getElementById('sdBarBgOpV').textContent = barBgOp + '%';
-  document.getElementById('sdBarLblSz').value  = barLblSz; document.getElementById('sdBarLblSzV').textContent = barLblSz + 'px';
-  document.getElementById('sdInputBg').value   = inputBg;  document.getElementById('sdInputBgV').textContent = inputBg + '%';
-  document.getElementById('sdInputFs').value   = inputFs;  document.getElementById('sdInputFsV').textContent = inputFs + 'px';
-  document.getElementById('sdPHOp').value      = phOp;     document.getElementById('sdPHOpV').textContent = phOp + '%';
+  // Sliders — update the sibling span display
+  const barBgOp = sdCfg.barBgOpacity ?? 78;
+  const inputBg = sdCfg.barInputBg   ?? 8;
+  const elBgOp  = document.getElementById('sdBarBgOp');
+  const elInpBg = document.getElementById('sdInputBg');
+  if (elBgOp)  { elBgOp.value  = barBgOp; if (elBgOp.nextElementSibling)  elBgOp.nextElementSibling.textContent  = barBgOp + '%'; }
+  if (elInpBg) { elInpBg.value = inputBg; if (elInpBg.nextElementSibling) elInpBg.nextElementSibling.textContent = inputBg + '%'; }
 
   // Card size & style
   setActiveSdOpt('sdCardSizeBtns',  sdCfg.cardSize  || 'normal');
   setActiveSdOpt('sdCardStyleBtns', sdCfg.cardStyle || 'glass');
 
-  // Show/hide
+  // Show/hide checkboxes
   document.getElementById('sdShowScanner').checked = sdCfg.showScannerCard !== false;
   document.getElementById('sdShowToggles').checked = sdCfg.showToggles !== false;
 
@@ -1806,11 +2044,10 @@ function setBgPreset(key, el) {
   el.classList.add('on');
   sdCfg.bgPreset = key;
   const [c1,c2,c3] = BG_PRESETS[key].c;
-  // push new colors into the 3 pickers by rebuilding them
   sdBgC1=c1; sdBgC2=c2; sdBgC3=c3;
-  buildColorPicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
-  buildColorPicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
-  buildColorPicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC1Cpk', sdBgC1, c => { sdBgC1=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC2Cpk', sdBgC2, c => { sdBgC2=c; clearBgPreset(); sdPreview(); });
+  buildSimplePicker('bgC3Cpk', sdBgC3, c => { sdBgC3=c; clearBgPreset(); sdPreview(); });
   sdPreview();
 }
 
@@ -1821,7 +2058,7 @@ function setSdOpt(field, val, el) {
 }
 
 function setActiveSdOpt(groupId, val) {
-  document.querySelectorAll(`#${groupId} .opt-btn`).forEach(b => {
+  document.querySelectorAll(`#${groupId} .scd-opt,#${groupId} .opt-btn`).forEach(b => {
     b.classList.toggle('on', b.dataset.v === val);
   });
 }
@@ -2279,7 +2516,7 @@ fetch(`/api/sys/${sysId}/display-config`)
     const displayCustom = (d.displayConfig||{}).custom || {};
     document.getElementById('sdHeaderTitle').value = displayCustom.headerTitle || '';
     document.getElementById('sdHeaderFs').value = displayCustom.headerFontSize || 1.5;
-    document.getElementById('sdHeaderFsV').textContent = (displayCustom.headerFontSize || 1.5) + 'rem';
+    const sdHeaderFsV = document.getElementById('sdHeaderFsV'); if (sdHeaderFsV) sdHeaderFsV.textContent = (displayCustom.headerFontSize || 1.5) + 'rem';
   });
 </script>
 <div id="_uiPnl" style="position:fixed;bottom:16px;right:16px;z-index:10000;font-family:'Segoe UI',Tahoma,sans-serif">

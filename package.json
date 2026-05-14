@@ -4,12 +4,16 @@
   "description": "ระบบคิวการเงิน",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:agent": "pkg print-agent.js --target node20-win-x64 --output dist/QueuePrintAgent.exe --compress GZip"
   },
   "dependencies": {
     "express": "^4.18.2",
     "mysql2": "^3.22.3",
     "pg": "^8.20.0",
     "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.16.1"
   }
 }

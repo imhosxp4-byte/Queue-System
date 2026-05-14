@@ -4,3 +4,4 @@ data/
 .env
 .DS_Store
 Thumbs.db
+dist/QueuePrintAgent.exe

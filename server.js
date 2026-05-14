@@ -1011,7 +1011,23 @@ app.post('/api/patient-lookup', async (req, res) => {
   const { type, value, sysId: reqSysId } = req.body;
   if (!value || !value.toString().trim()) return res.json({ success: false, message: 'กรุณาระบุข้อมูล' });
   const cfg = loadDbConfig();
-  if (!cfg.host) return res.json({ success: false, message: 'ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล' });
+  if (!cfg.host) {
+    const val = value.toString().trim();
+    return res.json({
+      success: true,
+      patient: {
+        hn:         (type === 'hn' || type === 'barcode') ? val : null,
+        qn:         type === 'qn' ? val : null,
+        vn:         null,
+        name:       '',
+        pttype:     null,
+        pttypeName: null,
+        autoTypeId: null,
+        vstdate:    null,
+        vsttime:    null,
+      }
+    });
+  }
 
   // Apply per-system barcode config
   const lc = (reqSysId && sysData[reqSysId]) ? sysData[reqSysId].lookupConfig : null;

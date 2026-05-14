@@ -9,8 +9,42 @@ const os   = require('os');
 const fs   = require('fs');
 const path = require('path');
 
-const PORT = 3001;
+const PORT    = 3001;
+// When packaged as .exe (pkg), __dirname points inside the snapshot FS.
+// Use process.execPath dir so config file sits next to the .exe on disk.
+const APP_DIR     = typeof process.pkg !== 'undefined' ? path.dirname(process.execPath) : __dirname;
+const CONFIG_FILE = path.join(APP_DIR, 'local-print-config.json');
 
+// ── Local print config ────────────────────────────────────────────────────
+const DEFAULT_CONFIG = {
+  paperSize: '80mm', customWidth: 80, customHeight: 200,
+  showHeader: true, headerName: '', headerSubtitle: '', headerFontSize: 14,
+  showDividerLine: true,
+  showPatientName: true, showHnQn: true, patientFontSize: 11,
+  showQueueType: true, queueTypeFontSize: 11,
+  queueNumFontSize: 60,
+  showDateTime: true, dateFontSize: 9,
+  showFooter: false, footerText: '', footerFontSize: 8,
+  autoPrint: true, copies: 1,
+  fontFamily: '',
+  layoutOrder: ['header','patientName','hnQn','queueType','queueNum','dateTime','footer'],
+};
+
+function loadConfig() {
+  try {
+    return Object.assign({}, DEFAULT_CONFIG, JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')));
+  } catch {
+    return Object.assign({}, DEFAULT_CONFIG);
+  }
+}
+
+function saveConfig(cfg) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+}
+
+let localCfg = loadConfig();
+
+// ── Helpers ───────────────────────────────────────────────────────────────
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -39,6 +73,7 @@ function getPrinters(cb) {
     });
 }
 
+// ── Build print lines (same layout logic as server) ───────────────────────
 function buildLines(cfg, ticket) {
   const lines = [];
   const c = (x, d) => x !== undefined && x !== null ? x : d;
@@ -90,62 +125,73 @@ function buildLines(cfg, ticket) {
   return lines;
 }
 
-function runPrint(printerName, paperMm, copies, lines, cb) {
+// ── Print via PowerShell GDI+ ─────────────────────────────────────────────
+function runPrint(printerName, paperMm, copies, fontFamily, lines, cb) {
   const ts       = Date.now();
   const dataFile = path.join(os.tmpdir(), `qpa_data_${ts}.json`);
   const ps1File  = path.join(os.tmpdir(), `qpa_print_${ts}.ps1`);
-  fs.writeFileSync(dataFile, JSON.stringify({ printerName, paperMm, copies: Math.max(1, copies || 1), lines }), 'utf8');
+  const safeFont = (fontFamily || 'Segoe UI').replace(/['"]/g, '');
+  fs.writeFileSync(dataFile, JSON.stringify({ printerName, paperMm, copies: Math.max(1, copies || 1), fontFamily: safeFont, lines }), 'utf8');
   const esc = dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''");
   const ps = `
 Add-Type -AssemblyName System.Drawing
 $script:d = Get-Content '${esc}' -Raw -Encoding utf8 | ConvertFrom-Json
 $pw100 = [int]($script:d.paperMm / 25.4 * 100)
-$pd = New-Object System.Drawing.Printing.PrintDocument
-$pd.PrinterSettings.PrinterName = $script:d.printerName
-$pd.PrinterSettings.Copies = [int16]([Math]::Max(1,$script:d.copies))
-$pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
-$pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
-$pd.add_PrintPage({
-  param($s,$e)
-  $g=$e.Graphics; $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
-  [float]$pw=$script:d.paperMm-6.0; [float]$m=3.0; [float]$y=$m
-  foreach($line in $script:d.lines){
-    if($line.t -eq 'div'){
-      $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
-      $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
-      $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
-    }else{
-      [float]$smm=$line.fs/72.0*25.4
-      $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
-      $font=New-Object System.Drawing.Font('Segoe UI',$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
-      $brush=[System.Drawing.Brushes]::($line.color)
-      if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
-      $fmt=New-Object System.Drawing.StringFormat
-      $fmt.Alignment=[System.Drawing.StringAlignment]::Center
-      $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
-      [float]$lh=$smm*1.5
-      if($line.t -eq 'num'){
-        $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
-        $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+$script:fontName = if($script:d.fontFamily -and $script:d.fontFamily -ne ''){$script:d.fontFamily}else{'Segoe UI'}
+
+function DoPrint {
+  $pd = New-Object System.Drawing.Printing.PrintDocument
+  $pd.PrinterSettings.PrinterName = $script:d.printerName
+  $pd.PrinterSettings.Copies = [int16]1
+  $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
+  $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
+  $pd.add_PrintPage({
+    param($s,$e)
+    $g=$e.Graphics; $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
+    [float]$pw=$script:d.paperMm-6.0; [float]$m=3.0; [float]$y=$m
+    foreach($line in $script:d.lines){
+      if($line.t -eq 'div'){
+        $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
+        $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+        $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
+      }else{
+        [float]$smm=$line.fs/72.0*25.4
+        $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
+        $font=New-Object System.Drawing.Font($script:fontName,$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
+        $brush=[System.Drawing.Brushes]::($line.color)
+        if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
+        $fmt=New-Object System.Drawing.StringFormat
+        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+        [float]$lh=$smm*1.5
+        if($line.t -eq 'num'){
+          $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
+          $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+        }
+        $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
+        $g.DrawString($line.text,$font,$brush,$rect,$fmt)
+        $y+=$lh+[float]1.5
       }
-      $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
-      $g.DrawString($line.text,$font,$brush,$rect,$fmt)
-      $y+=$lh+[float]1.5
     }
-  }
-})
-$pd.Print()
+  })
+  $pd.Print()
+}
+
+for($i=0; $i -lt [int]$script:d.copies; $i++){
+  DoPrint
+  if($i -lt ([int]$script:d.copies - 1)){ Start-Sleep -Milliseconds 300 }
+}
 `;
   fs.writeFileSync(ps1File, ps, 'utf8');
   exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1File}"`,
-    { timeout: 15000, windowsHide: true }, (err, stdout, stderr) => {
+    { timeout: 30000, windowsHide: true }, (err, stdout, stderr) => {
       try { fs.unlinkSync(ps1File); } catch {}
       try { fs.unlinkSync(dataFile); } catch {}
       cb(err, stderr);
     });
 }
 
-// ── HTTP Server ──────────────────────────────────────────────────────────
+// ── HTTP Server ───────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
   cors(res);
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -156,18 +202,36 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // GET /api/print-config — return local config
+  if (req.method === 'GET' && req.url === '/api/print-config') {
+    sendJson(res, localCfg);
+    return;
+  }
+
+  // POST /api/print-config — save local config
+  if (req.method === 'POST' && req.url === '/api/print-config') {
+    readBody(req).then(body => {
+      Object.assign(localCfg, body);
+      saveConfig(localCfg);
+      sendJson(res, { success: true, printConfig: localCfg });
+    });
+    return;
+  }
+
   // POST /api/local-print
   if (req.method === 'POST' && req.url === '/api/local-print') {
     readBody(req).then(body => {
       const { printerName, ticket, cfg } = body;
       if (!printerName) { sendJson(res, { success: false, message: 'ไม่ได้ระบุเครื่องพิมพ์' }); return; }
-      const paperMm = (cfg?.paperSize === '58mm') ? 58
-                    : (cfg?.paperSize === 'a4')   ? 210
-                    : (cfg?.paperSize === 'custom') ? (Number(cfg?.customWidth) || 80)
+      const useCfg = Object.assign({}, localCfg, cfg || {});
+      const paperMm = (useCfg.paperSize === '58mm') ? 58
+                    : (useCfg.paperSize === 'a4')    ? 210
+                    : (useCfg.paperSize === 'custom') ? (Number(useCfg.customWidth) || 80)
                     : 80;
-      const lines = buildLines(cfg || {}, ticket || {});
-      const copies = Math.max(1, Number(cfg?.copies) || 1);
-      runPrint(printerName, paperMm, copies, lines, (err, stderr) => {
+      const lines   = buildLines(useCfg, ticket || {});
+      const copies  = Math.max(1, Number(useCfg.copies) || 1);
+      const font    = useCfg.fontFamily || '';
+      runPrint(printerName, paperMm, copies, font, lines, (err, stderr) => {
         if (err) sendJson(res, { success: false, message: (stderr || err.message).trim() });
         else     sendJson(res, { success: true });
       });
@@ -186,5 +250,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Queue Print Agent  http://localhost:${PORT}`);
+  console.log(`Config: ${CONFIG_FILE}`);
   console.log('พร้อมรับคำสั่งปริ้นจากเครื่องอื่น — กด Ctrl+C เพื่อหยุด');
 });

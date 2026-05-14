@@ -57,105 +57,146 @@
     .main{
       flex:1;position:relative;z-index:1;
       display:flex;flex-direction:column;align-items:center;
-      padding:20px 16px 108px;
+      padding:12px 16px 108px;
     }
 
-    .sys-badge{
-      display:inline-flex;align-items:center;gap:6px;
-      background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.15);
-      border-radius:20px;padding:3px 13px;
-      font-size:.78rem;color:rgba(255,255,255,.75);margin-bottom:14px;
+    /* ── KIOSK SCANNER STEP ── */
+    #scannerStep{
+      width:100%;max-width:860px;
+      display:flex;flex-direction:column;align-items:center;
     }
 
-    /* ── SCANNER STEP ── */
-    #scannerStep{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
-
-    .scan-title{
-      font-size:1.5rem;font-weight:700;color:#ffd54f;
-      text-align:center;margin-bottom:18px;letter-spacing:.5px;
-      text-shadow:0 2px 14px rgba(0,0,0,.2);
+    /* Header row: logo + title */
+    .kiosk-header{
+      display:flex;align-items:center;width:100%;margin-bottom:14px;gap:16px;
     }
-
-    .scanner-card{
-      width:100%;background:#fff;border-radius:24px;padding:14px;
-      box-shadow:0 18px 50px rgba(0,0,0,.32),0 4px 12px rgba(0,0,0,.14);
-      margin-bottom:18px;
+    .kiosk-logo{
+      display:flex;align-items:center;gap:10px;flex-shrink:0;
+      background:rgba(0,0,0,.28);border:1.5px solid rgba(255,255,255,.15);
+      border-radius:14px;padding:10px 16px;min-width:150px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 3px 12px rgba(0,0,0,.3);
     }
-
-    .video-wrap{
-      position:relative;width:100%;aspect-ratio:4/3;
-      background:#111;border-radius:14px;overflow:hidden;
+    .kiosk-logo-icon{font-size:2rem;line-height:1;flex-shrink:0}
+    .kiosk-logo-name{font-size:.68rem;color:rgba(255,255,255,.45);font-weight:400}
+    .kiosk-logo-sys{font-size:.92rem;color:#fff;font-weight:700}
+    .kiosk-title{
+      flex:1;text-align:center;
+      font-size:1.9rem;font-weight:900;color:#fff;
+      text-shadow:0 2px 20px rgba(0,0,0,.35);letter-spacing:.5px;
     }
+    .kiosk-header-spacer{flex-shrink:0;min-width:150px}
 
+    /* Metallic scanner frame */
+    .kiosk-scanner-frame{
+      position:relative;width:100%;max-width:680px;
+      background:#0b1820;border-radius:18px;
+      overflow:visible;margin-bottom:16px;
+      box-shadow:
+        0 0 0 2px #1e3a50,
+        0 0 0 6px #080f14,
+        0 16px 60px rgba(0,0,0,.8),
+        inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    /* Corner rivets */
+    .kiosk-scanner-frame::before{
+      content:'';position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:18px;
+      background:
+        radial-gradient(circle 7px at 14px 14px,#2e4a5e 50%,transparent 50%),
+        radial-gradient(circle 7px at calc(100% - 14px) 14px,#2e4a5e 50%,transparent 50%),
+        radial-gradient(circle 7px at 14px calc(100% - 36px),#2e4a5e 50%,transparent 50%),
+        radial-gradient(circle 7px at calc(100% - 14px) calc(100% - 36px),#2e4a5e 50%,transparent 50%);
+    }
+    .kiosk-scanner-inner{
+      position:relative;width:100%;aspect-ratio:16/8;
+      background:#050d12;border-radius:18px 18px 0 0;overflow:hidden;
+    }
     #scanVideo{width:100%;height:100%;object-fit:cover;display:block}
 
     .scan-line{
-      position:absolute;left:8%;right:8%;height:3px;
-      background:linear-gradient(90deg,transparent,#f44336 20%,#ff1744 50%,#f44336 80%,transparent);
-      box-shadow:0 0 10px #f44336,0 0 4px rgba(244,67,54,.5);
+      position:absolute;left:0;right:0;height:3px;
+      background:linear-gradient(90deg,transparent,#00e676 20%,#6effa4 50%,#00e676 80%,transparent);
+      box-shadow:0 0 14px #00e676,0 0 6px rgba(0,230,118,.6);
       border-radius:2px;
       animation:scanMove 2.2s ease-in-out infinite;
       display:none;
     }
-    @keyframes scanMove{0%{top:12%}50%{top:78%}100%{top:12%}}
+    @keyframes scanMove{0%{top:12%}50%{top:82%}100%{top:12%}}
 
     .no-camera{
       position:absolute;inset:0;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:8px;
-      background:#1a1a1a;color:rgba(255,255,255,.4);
+      align-items:center;justify-content:center;gap:10px;
+      background:linear-gradient(180deg,#050d12,#0a1820);
+      color:rgba(255,255,255,.35);
     }
-    .no-camera .nc-icon{font-size:2.8rem}
-    .no-camera span{font-size:.82rem}
+    .no-camera .nc-icon{font-size:4rem}
+    .no-camera span{font-size:.82rem;text-align:center;padding:0 20px}
     .no-camera.hidden{display:none}
 
-    .scan-status-bar{
-      background:#f5f5f5;color:#555;
-      font-size:.72rem;padding:6px 12px;
-      border-radius:0 0 12px 12px;text-align:center;
-      letter-spacing:.3px;min-height:28px;display:flex;align-items:center;justify-content:center;
+    .kiosk-scan-statusbar{
+      background:#0d1e2a;border-top:1px solid #1a3040;
+      font-size:.78rem;color:rgba(255,255,255,.38);
+      text-align:center;padding:8px 20px;min-height:32px;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:0 0 18px 18px;
     }
 
-    /* อ่านบาร์โค้ด button */
-    .btn-scan-toggle{
-      background:linear-gradient(135deg,#00acc1,#007c91);
-      color:#fff;border:none;border-radius:40px;
-      padding:13px 44px;font-size:1rem;font-weight:700;
-      cursor:pointer;font-family:'Kanit',sans-serif;letter-spacing:.5px;
-      box-shadow:0 6px 22px rgba(0,100,120,.42);
-      transition:all .22s;display:flex;align-items:center;gap:9px;
+    /* ── KIOSK TOGGLE PILLS ── */
+    .kiosk-toggle-row{
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+      width:100%;max-width:680px;margin-bottom:0;
     }
-    .btn-scan-toggle:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,100,120,.55)}
-    .btn-scan-toggle:active{transform:translateY(0)}
-    .btn-scan-toggle.stop{
-      background:linear-gradient(135deg,#ef5350,#c62828);
-      box-shadow:0 6px 22px rgba(200,0,0,.38);
+    .kiosk-pill{
+      flex:1;min-width:170px;max-width:240px;
+      display:flex;align-items:center;gap:10px;
+      background:rgba(0,0,0,.30);
+      border:1.5px solid rgba(255,255,255,.13);
+      border-radius:14px;padding:12px 15px;
+      cursor:pointer;user-select:none;transition:all .2s;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 3px 12px rgba(0,0,0,.35);
     }
-    .btn-scan-toggle .btn-icon{font-size:1.15rem}
-
-    /* Auto-scan toggle */
-    .auto-scan-wrap{
-      display:flex;align-items:center;gap:12px;margin-top:14px;
-      background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12);
-      border-radius:30px;padding:9px 20px;cursor:pointer;user-select:none;
-      transition:border-color .2s;
+    .kiosk-pill:hover{border-color:rgba(255,255,255,.24);background:rgba(0,0,0,.42)}
+    .kp-icon{font-size:1.35rem;flex-shrink:0}
+    .kp-text{flex:1;min-width:0}
+    .kp-label{font-size:.84rem;font-weight:700;color:rgba(255,255,255,.88);display:block;white-space:nowrap}
+    .kp-sw{
+      position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;
     }
-    .auto-scan-wrap:hover{border-color:rgba(255,255,255,.25)}
-    .toggle-sw{position:relative;width:44px;height:25px;flex-shrink:0}
-    .toggle-sw input{opacity:0;width:0;height:0;position:absolute}
-    .toggle-knob{
-      position:absolute;inset:0;background:rgba(255,255,255,.18);
-      border-radius:25px;transition:background .25s;
+    .kp-sw input{opacity:0;width:0;height:0;position:absolute}
+    .kp-knob{
+      position:relative;width:48px;height:25px;
+      background:rgba(255,255,255,.14);border-radius:25px;transition:background .25s;
     }
-    .toggle-knob::before{
+    .kp-knob::before{
       content:'';position:absolute;width:19px;height:19px;border-radius:50%;
       background:#fff;top:3px;left:3px;
-      transition:transform .25s;box-shadow:0 2px 5px rgba(0,0,0,.35);
+      transition:transform .25s;box-shadow:0 2px 5px rgba(0,0,0,.4);
     }
-    .toggle-sw input:checked + .toggle-knob{background:linear-gradient(135deg,#00e676,#00c853)}
-    .toggle-sw input:checked + .toggle-knob::before{transform:translateX(19px)}
-    .auto-scan-lbl{display:flex;flex-direction:column;gap:1px}
-    .auto-scan-lbl b{font-size:.86rem;font-weight:700;color:rgba(255,255,255,.9)}
-    .auto-scan-lbl small{font-size:.68rem;color:rgba(255,255,255,.42);font-weight:400}
+    .kp-sw input:checked + .kp-knob{background:linear-gradient(135deg,#00e676,#00c853)}
+    .kp-sw input:checked + .kp-knob::before{transform:translateX(23px)}
+    .kp-onlbl{
+      font-size:.58rem;font-weight:700;letter-spacing:.8px;
+      color:rgba(255,255,255,.25);transition:color .25s;
+    }
+    .kp-sw input:checked ~ .kp-onlbl{color:#00e676}
+
+    /* ── Help button ── */
+    .btn-help-kiosk{
+      position:fixed;bottom:16px;left:16px;z-index:51;
+      display:flex;align-items:center;gap:8px;
+      background:rgba(0,0,0,.45);border:1.5px solid rgba(255,255,255,.18);
+      color:rgba(255,255,255,.7);border-radius:30px;
+      padding:8px 18px;font-size:.78rem;font-weight:700;
+      cursor:pointer;font-family:'Kanit',sans-serif;
+      backdrop-filter:blur(10px);transition:all .2s;
+      box-shadow:0 4px 16px rgba(0,0,0,.4);
+    }
+    .btn-help-kiosk:hover{border-color:rgba(255,255,255,.35);color:#fff}
+
+    /* legacy selectors kept for applyScreenConfig compatibility */
+    .scan-title{display:none}
+    .btn-scan-toggle{display:none!important}
+    .auto-scan-wrap{display:none!important}
+    .scanner-card{display:none!important}
 
     /* ── BOTTOM BAR ── */
     .bottom-bar{
@@ -333,55 +374,81 @@
   <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
 </nav>
 
+<button class="btn-help-kiosk" id="btnHelp" onclick="this.textContent='📞 กรุณาติดต่อเจ้าหน้าที่'" style="display:none">
+  🆘 Help / Support
+</button>
+
 <div class="main">
-  <div class="sys-badge">
+  <div class="sys-badge" style="display:none">
     <span id="sysIcon">📋</span>&nbsp;<span id="sysNameLabel">กำลังโหลด...</span>
   </div>
 
-  <!-- STEP 1: Scanner -->
+  <!-- STEP 1: Kiosk Scanner -->
   <div id="scannerStep">
-    <div class="scan-title">สแกนบาร์โค้ดจากใบนำทาง</div>
 
-    <div class="scanner-card">
-      <div class="video-wrap">
+    <!-- Logo + Title row -->
+    <div class="kiosk-header">
+      <div class="kiosk-logo">
+        <span class="kiosk-logo-icon" id="sysIconKiosk">🏥</span>
+        <div>
+          <div class="kiosk-logo-name">โรงพยาบาล</div>
+          <div class="kiosk-logo-sys" id="sysNameKiosk">LOGO</div>
+        </div>
+      </div>
+      <h1 class="kiosk-title">สแกนคิวอาร์โค้ด / รับบัตรคิว</h1>
+      <div class="kiosk-header-spacer"></div>
+    </div>
+
+    <!-- Metallic scanner frame -->
+    <div class="kiosk-scanner-frame">
+      <div class="kiosk-scanner-inner">
         <video id="scanVideo" playsinline muted></video>
         <div class="scan-line" id="scanLine"></div>
         <div class="no-camera" id="noCameraDiv">
           <span class="nc-icon">📷</span>
-          <span id="noCameraText">กดปุ่มด้านล่างเพื่อเปิดกล้อง</span>
-          <span style="font-size:.72rem;color:rgba(255,255,255,.3)">หรือใส่ HN / QN ด้านล่าง</span>
+          <span id="noCameraText">ทาปุ่ม "สแกนคิวบาร์โค้ด" เพื่อเปิดกล้อง</span>
+          <span style="font-size:.72rem;opacity:.6">หรือยิงบาร์โค้ด HN จากใบนำทาง / กรอก HN ด้านล่าง</span>
         </div>
       </div>
-      <div class="scan-status-bar" id="scanStatusBar">กดปุ่มด้านล่างเพื่อเริ่มสแกน</div>
+      <div class="kiosk-scan-statusbar" id="scanStatusBar">พร้อมรับบัตรคิว — ยิงบาร์โค้ด HN หรือกรอกข้อมูลด้านล่าง</div>
     </div>
 
-    <button class="btn-scan-toggle" id="btnScanToggle" onclick="toggleScanner()">
-      <span class="btn-icon" id="scanBtnIcon">📷</span>
-      <span id="scanBtnText">อ่านคิวอาร์โค้ด</span>
-    </button>
+    <!-- Toggle pill row -->
+    <div class="kiosk-toggle-row">
+      <label class="kiosk-pill" for="chkAutoScan">
+        <span class="kp-icon">📷</span>
+        <div class="kp-text"><span class="kp-label">สแกนคิวบาร์โค้ด</span></div>
+        <div class="kp-sw">
+          <input type="checkbox" id="chkAutoScan" onchange="onAutoScanChange()"/>
+          <div class="kp-knob"></div>
+          <span class="kp-onlbl">on</span>
+        </div>
+      </label>
 
-    <label class="auto-scan-wrap" for="chkAutoScan">
-      <div class="toggle-sw">
-        <input type="checkbox" id="chkAutoScan" onchange="onAutoScanChange()"/>
-        <div class="toggle-knob"></div>
-      </div>
-      <div class="auto-scan-lbl">
-        <b>สแกนอัตโนมัติ</b>
-        <small>เปิดกล้องทันที ไม่ต้องกดปุ่ม</small>
-      </div>
-    </label>
+      <label class="kiosk-pill" for="chkSkipResult">
+        <span class="kp-icon">🖨</span>
+        <div class="kp-text"><span class="kp-label">ปริ้นทันที</span></div>
+        <div class="kp-sw">
+          <input type="checkbox" id="chkSkipResult" onchange="onSkipResultChange()"/>
+          <div class="kp-knob"></div>
+          <span class="kp-onlbl">on</span>
+        </div>
+      </label>
 
-    <label class="auto-scan-wrap" for="chkSkipResult">
-      <div class="toggle-sw">
-        <input type="checkbox" id="chkSkipResult" onchange="onSkipResultChange()"/>
-        <div class="toggle-knob"></div>
-      </div>
-      <div class="auto-scan-lbl">
-        <b>ปริ้นทันที</b>
-        <small>ข้ามหน้ายืนยัน พิมพ์แล้วกลับทันที</small>
-      </div>
-    </label>
+      <label class="kiosk-pill" for="chkPrintEnabled">
+        <span class="kp-icon">🎫</span>
+        <div class="kp-text"><span class="kp-label">พิมพ์บัตรคิว</span></div>
+        <div class="kp-sw">
+          <input type="checkbox" id="chkPrintEnabled" onchange="onPrintEnabledChange()"/>
+          <div class="kp-knob"></div>
+          <span class="kp-onlbl">on</span>
+        </div>
+      </label>
+    </div>
   </div>
+
+  <!-- Hidden legacy button kept for setScanBtnState() compat -->
+  <button id="btnScanToggle" style="display:none" onclick="toggleScanner()"></button>
 
   <!-- STEP 2: Patient + type -->
   <div id="typeStep">
@@ -469,6 +536,14 @@ function onSkipResultChange() {
   localStorage.setItem('skipResult', chkSkipResult.checked ? '1' : '0');
 }
 
+// ── Print enabled toggle ──────────────────────────────────────────────────
+const chkPrintEnabled = document.getElementById('chkPrintEnabled');
+chkPrintEnabled.checked = localStorage.getItem('printEnabled') !== '0'; // default ON
+
+function onPrintEnabledChange() {
+  localStorage.setItem('printEnabled', chkPrintEnabled.checked ? '1' : '0');
+}
+
 // ── Nav ───────────────────────────────────────────────────────────────────
 const _n = sessionStorage.getItem('officerName');
 if (_n) document.getElementById('navOfficer').textContent = '👤 ' + _n;
@@ -491,7 +566,9 @@ function doLogout() {
 
 // ── Socket ────────────────────────────────────────────────────────────────
 socket.on('screen_config_updated',  cfg => { screenConfig = cfg; applyScreenConfig(cfg); });
-socket.on('print_config_updated',   cfg => { printConfig  = cfg; });
+socket.on('print_config_updated', cfg => {
+  if ((localStorage.getItem('queuePrintMode') || 'host') !== 'local') printConfig = cfg;
+});
 socket.on('types_updated', t  => { queueTypes = t; renderCards(); });
 socket.on('queue_issued',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
 socket.on('queue_called',  ({typeWaiting:tw}) => { typeWaiting = tw; renderCards(); });
@@ -507,13 +584,54 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   typeWaiting = d.typeWaiting;
   printConfig  = d.printConfig  || {};
   screenConfig = d.screenConfig || {};
+  // If local mode, overlay with agent's own config (per-machine settings)
+  if ((localStorage.getItem('queuePrintMode') || 'host') === 'local') {
+    fetch('http://localhost:3001/api/print-config', { signal: AbortSignal.timeout(3000) })
+      .then(r => r.json())
+      .then(cfg => { Object.assign(printConfig, cfg); })
+      .catch(() => {});
+  }
   applyScreenConfig(screenConfig);
   if (sysInfo) {
     document.getElementById('sysIcon').textContent      = sysInfo.icon || '📋';
     document.getElementById('sysNameLabel').textContent = sysInfo.name;
+    document.getElementById('sysIconKiosk').textContent = sysInfo.icon || '🏥';
+    document.getElementById('sysNameKiosk').textContent = sysInfo.name;
+    document.getElementById('btnHelp').style.display    = '';
     document.title = `ออกบัตรคิว — ${sysInfo.name}`;
   }
   renderCards();
+});
+
+// ── Hardware barcode scanner (keyboard wedge) ─────────────────────────────
+// Barcode gun sends keystrokes very fast then Enter — capture globally
+let _hwBuf = '', _hwTimer = null;
+document.addEventListener('keydown', function(e) {
+  const tag = document.activeElement?.tagName;
+  // Only intercept when on scanner step and not typing in an input/textarea
+  const onScanStep = document.getElementById('scannerStep').style.display !== 'none';
+  if (!onScanStep) return;
+  if (tag === 'TEXTAREA' || (tag === 'INPUT' && document.activeElement !== hnEl && document.activeElement !== qnEl)) return;
+
+  if (e.key === 'Enter') {
+    const val = _hwBuf.trim();
+    _hwBuf = ''; clearTimeout(_hwTimer);
+    // Min 3 chars = likely a barcode; also if focus was NOT on our inputs treat as barcode
+    if (val.length >= 3 && document.activeElement !== hnEl && document.activeElement !== qnEl) {
+      e.preventDefault();
+      hnEl.value = val; qnEl.value = ''; syncFields();
+      _fromBarcode = true; doLookup();
+    }
+    return;
+  }
+  // Accumulate only if focus is NOT already in our input fields
+  if (document.activeElement !== hnEl && document.activeElement !== qnEl) {
+    if (e.key.length === 1) {
+      _hwBuf += e.key;
+      clearTimeout(_hwTimer);
+      _hwTimer = setTimeout(() => { _hwBuf = ''; }, 120);
+    }
+  }
 });
 
 // ── Barcode Scanner ───────────────────────────────────────────────────────
@@ -585,9 +703,9 @@ function setScanBtnState(active) {
   const btn  = document.getElementById('btnScanToggle');
   const icon = document.getElementById('scanBtnIcon');
   const txt  = document.getElementById('scanBtnText');
-  btn.classList.toggle('stop', active);
-  icon.textContent = active ? '⏹' : '📷';
-  txt.textContent  = active ? 'หยุดสแกน' : 'อ่านคิวอาร์โค้ด';
+  if (btn)  btn.classList.toggle('stop', active);
+  if (icon) icon.textContent = active ? '⏹' : '📷';
+  if (txt)  txt.textContent  = active ? 'หยุดสแกน' : 'อ่านคิวอาร์โค้ด';
 }
 
 function setStatus(msg, color) {
@@ -648,25 +766,31 @@ function doLookup() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ type, value, sysId: Number(sysId) })
   })
-  .then(r => r.json())
+  .then(r => {
+    if (!r.ok && r.status !== 200) console.warn('HTTP', r.status);
+    return r.json();
+  })
   .then(d => {
     if (d.success) {
       currentPatient = d.patient;
-      document.getElementById('ptName').textContent = d.patient.name;
-      document.getElementById('ptHN').textContent   = d.patient.hn;
-      document.getElementById('ptQN').textContent   = d.patient.qn;
-      // Show สิทธิการรักษา badge
+      const elName    = document.getElementById('ptName');
+      const elHN      = document.getElementById('ptHN');
+      const elQN      = document.getElementById('ptQN');
       const pttypeTag = document.getElementById('ptPttypeTag');
       const pttypeEl  = document.getElementById('ptPttype');
-      if (d.patient.pttypeName || d.patient.pttype) {
-        pttypeEl.textContent = d.patient.pttypeName || d.patient.pttype;
-        pttypeTag.style.display = '';
-      } else {
-        pttypeTag.style.display = 'none';
+      if (elName) elName.textContent = d.patient.name || '';
+      if (elHN)   elHN.textContent   = d.patient.hn   || '-';
+      if (elQN)   elQN.textContent   = d.patient.qn   || '-';
+      if (pttypeTag && pttypeEl) {
+        if (d.patient.pttypeName || d.patient.pttype) {
+          pttypeEl.textContent    = d.patient.pttypeName || d.patient.pttype;
+          pttypeTag.style.display = '';
+        } else {
+          pttypeTag.style.display = 'none';
+        }
       }
       stopScanner();
       showStep('type');
-      // Auto-select queue type if pttype rule matched
       if (d.patient.autoTypeId) {
         setTimeout(() => getQueue(d.patient.autoTypeId), 180);
       }
@@ -675,8 +799,9 @@ function doLookup() {
       setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
     }
   })
-  .catch(() => {
-    setStatus('✗ เกิดข้อผิดพลาดในการค้นหา', '#c62828');
+  .catch((err) => {
+    console.error('[lookup]', err);
+    setStatus('✗ ' + (err?.message || 'เกิดข้อผิดพลาดในการค้นหา'), '#c62828');
     setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
   })
   .finally(() => {
@@ -698,11 +823,13 @@ function backToScanner() {
   hnEl.value = ''; qnEl.value = '';
   hnEl.classList.remove('active-field','dim');
   qnEl.classList.remove('active-field','dim');
-  setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน');
+  setStatus('พร้อมรับบัตรคิว — ยิงบาร์โค้ด HN หรือกรอกข้อมูลด้านล่าง');
   const pttypeTag = document.getElementById('ptPttypeTag');
   if (pttypeTag) pttypeTag.style.display = 'none';
   showStep('scanner');
   if (chkAutoScan.checked) setTimeout(() => startScanner(), 400);
+  // Auto-focus HN for hardware barcode scanner
+  setTimeout(() => hnEl.focus(), 300);
 }
 
 // ── Cards ─────────────────────────────────────────────────────────────────
@@ -859,21 +986,19 @@ function applyScreenConfig(cfg) {
     .toggle-sw input:checked + .toggle-knob { background:linear-gradient(135deg,#00e676,#00c853) !important; }
   `;
 
-  // Show / hide sections
-  const scannerCard = document.querySelector('.scanner-card');
-  const btnScan     = document.getElementById('btnScanToggle');
-  if (scannerCard) scannerCard.style.display = cfg.showScannerCard !== false ? '' : 'none';
-  if (btnScan)     btnScan.style.display     = cfg.showScannerCard !== false ? '' : 'none';
+  // Show / hide scanner frame
+  const scanFrame = document.querySelector('.kiosk-scanner-frame');
+  if (scanFrame) scanFrame.style.display = cfg.showScannerCard !== false ? '' : 'none';
 
-  document.querySelectorAll('.auto-scan-wrap').forEach(el => {
-    el.style.display = cfg.showToggles !== false ? '' : 'none';
-  });
+  const toggleRow = document.querySelector('.kiosk-toggle-row');
+  if (toggleRow) toggleRow.style.display = cfg.showToggles !== false ? '' : 'none';
 }
 
 // ── renderSlipHtml — uses cfg.layoutOrder to match settings preview exactly ──
 function renderSlipHtml(cfg, d) {
   const divider = cfg.showDividerLine
     ? `<div style="border-top:1px dashed #888;margin:5px 0"></div>` : '';
+  const ffStyle = cfg.fontFamily ? `font-family:'${cfg.fontFamily}',sans-serif;` : '';
 
   const DEFAULT_ORDER = ['header','patientName','hnQn','queueType','queueNum','dateTime','footer'];
 
@@ -922,11 +1047,12 @@ function renderSlipHtml(cfg, d) {
       if (html) { h += html; lastWasDivider = false; }
     }
   }
-  return h;
+  return ffStyle ? `<div style="${ffStyle}">${h}</div>` : h;
 }
 
 // ── Print ─────────────────────────────────────────────────────────────────
 function doPrint(ticket) {
+  if (!chkPrintEnabled.checked) return;
   if (!printConfig.autoPrint) return;
   const data = {
     sysName:     sysInfo?.name || 'ระบบคิว',
@@ -1000,7 +1126,7 @@ function getQueue(typeId) {
       vsttime:     currentPatient?.vsttime     || null,
     })
   }).then(r => r.json()).then(d => {
-    if (!d.success) { alert(d.message); return; }
+    if (!d.success) { setStatus('✗ ' + (d.message || 'เกิดข้อผิดพลาด'), '#c62828'); setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000); showStep('scanner'); return; }
     const t = d.ticket;
 
     if (chkSkipResult.checked) {
@@ -1019,10 +1145,15 @@ function getQueue(typeId) {
       document.getElementById('resultOverlay').classList.add('show');
       doPrint(t);
     }
+  }).catch(() => {
+    setStatus('✗ เกิดข้อผิดพลาดในการออกคิว', '#c62828');
+    setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000);
+    showStep('scanner');
   });
 }
 
 function closeResult() {
+  document.getElementById('resultOverlay').classList.remove('show');
   backToScanner();
 }
 </script>
