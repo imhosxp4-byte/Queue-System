@@ -11,11 +11,16 @@ const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server);
 
+// When packaged as .exe (pkg), writable data must sit next to the exe,
+// not inside the read-only snapshot FS.
+const IS_PKG  = typeof process.pkg !== 'undefined';
+const APP_DIR = IS_PKG ? path.dirname(process.execPath) : __dirname;
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 // ── Persist helpers ──────────────────────────────────────────────────────
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = path.join(APP_DIR, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 function sysDir(sysId) {

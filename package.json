@@ -5,7 +5,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build:agent": "pkg print-agent.js --target node20-win-x64 --output dist/QueuePrintAgent.exe --compress GZip"
+    "build:agent": "pkg print-agent.js --target node20-win-x64 --output dist/QueuePrintAgent.exe --compress GZip",
+    "build:server": "pkg server.js --target node20-win-x64 --output dist/QueueServer.exe --compress GZip"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ]
   },
   "dependencies": {
     "express": "^4.18.2",
