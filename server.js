@@ -1069,14 +1069,12 @@ app.post('/api/patient-lookup', async (req, res) => {
 
   // ── IPD mode: query ipt (inpatient) table ─────────────────────────────────
   if (mode === 'ipd') {
-    const ipdField = (type === 'hn' || type === 'barcode') ? 'hn' : 'an';
+    // Search ipt by AN or HN regardless of which field the user typed into
     try {
       let row = null;
       if (cfg.type === 'mysql') {
         const mysql = require('mysql2/promise');
         const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
-        const col   = ipdField === 'hn' ? 'i.hn' : 'i.an';
-        const order = ipdField === 'hn' ? ' ORDER BY i.an DESC' : '';
         const [rows] = await conn.execute(
           `SELECT i.hn, i.an,
              CONCAT(IFNULL(pt.pname,''), IFNULL(pt.fname,''), ' ', IFNULL(pt.lname,'')) AS patient_name,
@@ -1084,8 +1082,9 @@ app.post('/api/patient-lookup', async (req, res) => {
            FROM ipt i
            LEFT JOIN patient pt ON pt.hn = i.hn
            LEFT JOIN pttype  p  ON p.pttype = i.pttype
-           WHERE i.confirm_discharge <> 'Y' AND ${col} = ?${order} LIMIT 1`,
-          [val]
+           WHERE i.confirm_discharge <> 'Y' AND (i.an = ? OR i.hn = ?)
+           ORDER BY CASE WHEN i.an = ? THEN 0 ELSE 1 END, i.an DESC LIMIT 1`,
+          [val, val, val]
         );
         await conn.end();
         row = rows[0] || null;
@@ -1093,8 +1092,6 @@ app.post('/api/patient-lookup', async (req, res) => {
         const { Client } = require('pg');
         const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
         await client.connect();
-        const col   = ipdField === 'hn' ? 'i.hn' : 'i.an';
-        const order = ipdField === 'hn' ? ' ORDER BY i.an DESC' : '';
         const result = await client.query(
           `SELECT i.hn, i.an,
              COALESCE(pt.pname,'') || COALESCE(pt.fname,'') || ' ' || COALESCE(pt.lname,'') AS patient_name,
@@ -1102,13 +1099,14 @@ app.post('/api/patient-lookup', async (req, res) => {
            FROM ipt i
            LEFT JOIN patient pt ON pt.hn = i.hn
            LEFT JOIN pttype  p  ON p.pttype = i.pttype
-           WHERE i.confirm_discharge <> 'Y' AND ${col} = $1${order} LIMIT 1`,
+           WHERE i.confirm_discharge <> 'Y' AND (i.an = $1 OR i.hn = $1)
+           ORDER BY CASE WHEN i.an = $1 THEN 0 ELSE 1 END, i.an DESC LIMIT 1`,
           [val]
         );
         await client.end();
         row = result.rows[0] || null;
       }
-      if (!row) return res.json({ success: false, message: ipdField === 'hn' ? 'ไม่พบผู้ป่วยในที่ยังไม่จำหน่ายสำหรับ HN นี้' : 'ไม่พบ AN นี้ในระบบ' });
+      if (!row) return res.json({ success: false, message: 'ไม่พบผู้ป่วยในที่ยังไม่จำหน่าย (AN/HN: ' + val + ')' });
       return res.json({
         success: true,
         patient: {
