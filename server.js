@@ -1082,7 +1082,7 @@ app.post('/api/patient-lookup', async (req, res) => {
            FROM ipt i
            LEFT JOIN patient pt ON pt.hn = i.hn
            LEFT JOIN pttype  p  ON p.pttype = i.pttype
-           WHERE IFNULL(i.confirm_discharge,'') <> 'Y' AND (i.an = ? OR i.hn = ?)
+           WHERE (i.confirm_discharge <> 'Y' OR i.confirm_discharge IS NULL) AND (i.an = ? OR i.hn = ?)
            ORDER BY CASE WHEN i.an = ? THEN 0 ELSE 1 END, i.an DESC LIMIT 1`,
           [val, val, val]
         );
@@ -1099,7 +1099,7 @@ app.post('/api/patient-lookup', async (req, res) => {
            FROM ipt i
            LEFT JOIN patient pt ON pt.hn = i.hn
            LEFT JOIN pttype  p  ON p.pttype = i.pttype
-           WHERE (i.confirm_discharge IS NULL OR i.confirm_discharge <> 'Y') AND (i.an = $1 OR i.hn = $1)
+           WHERE (i.confirm_discharge <> 'Y' OR i.confirm_discharge IS NULL) AND (i.an = $1 OR i.hn = $1)
            ORDER BY CASE WHEN i.an = $1 THEN 0 ELSE 1 END, i.an DESC LIMIT 1`,
           [val]
         );
