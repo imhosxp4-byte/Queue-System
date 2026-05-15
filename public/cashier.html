@@ -366,6 +366,22 @@
       border-radius:18px;padding:4px 13px;font-size:.78rem;cursor:pointer;font-family:inherit;
       transition:all .2s;white-space:nowrap;margin-left:8px}
     .btn-logout:hover{background:rgba(239,83,80,.25);color:#fff;border-color:#ef5350}
+    .nav-ipd-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;
+      background:rgba(46,125,50,.18);border:1px solid rgba(129,199,132,.35);
+      border-radius:20px;padding:3px 10px 3px 8px;font-size:.78rem;
+      color:rgba(255,255,255,.75);white-space:nowrap;transition:all .2s;user-select:none;margin-left:10px}
+    .nav-ipd-toggle:hover{background:rgba(46,125,50,.32)}
+    .nav-ipd-toggle.active{background:rgba(46,125,50,.42);border-color:rgba(129,199,132,.7);color:#a5d6a7}
+    .nav-ipd-lbl{font-weight:700;font-size:.75rem}
+    .nav-ipd-sw{position:relative;flex-shrink:0}
+    .nav-ipd-sw input{opacity:0;width:0;height:0;position:absolute}
+    .nav-ipd-knob{position:relative;width:32px;height:17px;
+      background:rgba(255,255,255,.18);border-radius:17px;transition:background .25s}
+    .nav-ipd-knob::before{content:'';position:absolute;width:13px;height:13px;
+      border-radius:50%;background:#fff;top:2px;left:2px;
+      transition:transform .25s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+    .nav-ipd-sw input:checked + .nav-ipd-knob{background:linear-gradient(135deg,#00e676,#00c853)}
+    .nav-ipd-sw input:checked + .nav-ipd-knob::before{transform:translateX(15px)}
   </style>
 </head>
 <body>
@@ -377,6 +393,14 @@
   <a href="#" id="navDisplay" target="_blank">แสดงคิว</a>
   <a href="#" id="navSettings">ตั้งค่า</a>
   <span class="nav-officer" id="navOfficer"></span>
+  <label class="nav-ipd-toggle" for="chkIpd" id="navIpdToggle" title="สวิทช์โหมดผู้ป่วยใน (IPD)">
+    <span>🛏</span>
+    <span class="nav-ipd-lbl">ผู้ป่วยใน (IPD)</span>
+    <div class="nav-ipd-sw">
+      <input type="checkbox" id="chkIpd" onchange="onModeToggle()"/>
+      <div class="nav-ipd-knob"></div>
+    </div>
+  </label>
   <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
   <button class="btn-gear" onclick="openStylePanel()" title="ตั้งค่าการแสดงผล">⚙</button>
 </nav>
@@ -766,7 +790,8 @@
 
 <script>
 const sysId      = new URLSearchParams(location.search).get('sys') || 1;
-const cashierMode = new URLSearchParams(location.search).get('mode') || null; // 'ipd', 'opd', or null (all)
+const _urlMode   = new URLSearchParams(location.search).get('mode');
+let cashierMode  = _urlMode || localStorage.getItem('cashierMode_' + sysId) || 'opd';
 const socket     = io();
 socket.on('connect',    () => { socket.emit('join_sys', Number(sysId)); hideOffline(); });
 socket.on('disconnect', () => showOffline());
@@ -805,11 +830,24 @@ function doLogout() {
   document.getElementById(id).href = `/${pages[i]}?sys=${sysId}${modeStr}`;
 });
 
-// Show IPD badge if in IPD mode
-if (cashierMode === 'ipd') {
-  document.getElementById('ipdBadge').style.display = '';
-  document.title = `เรียกคิว (IPD)`;
+function applyMode() {
+  const isIpd = cashierMode === 'ipd';
+  const chk = document.getElementById('chkIpd');
+  if (chk) chk.checked = isIpd;
+  const navToggle = document.getElementById('navIpdToggle');
+  if (navToggle) navToggle.classList.toggle('active', isIpd);
+  const badge = document.getElementById('ipdBadge');
+  if (badge) badge.style.display = isIpd ? '' : 'none';
+  document.title = isIpd ? 'เรียกคิว (IPD)' : 'เรียกคิว';
 }
+function onModeToggle() {
+  const chk = document.getElementById('chkIpd');
+  cashierMode = chk.checked ? 'ipd' : 'opd';
+  localStorage.setItem('cashierMode_' + sysId, cashierMode);
+  applyMode();
+  renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist(); updateStats();
+}
+applyMode();
 
 let queueTypes   = [];
 let counters     = [];
@@ -959,9 +997,9 @@ function pickCtr(id)   {
 
 // ── Type tabs ─────────────────────────────────────────────────────────────
 function renderTabs() {
-  const bar   = document.getElementById('typeTabs');
-  const total = Object.values(typeWaiting).reduce((s, v) => s + v, 0);
-  document.getElementById('cnt-all').textContent = total;
+  const bar      = document.getElementById('typeTabs');
+  const modeList = allWaiting.filter(t => (t.mode || 'opd') === cashierMode);
+  document.getElementById('cnt-all').textContent = modeList.length;
   bar.querySelectorAll('[data-type]').forEach(e => e.remove());
   queueTypes.forEach(t => {
     let tab = bar.querySelector(`[data-id="${t.id}"]`);
@@ -974,8 +1012,9 @@ function renderTabs() {
     const isA = String(activeTab) === String(t.id);
     tab.classList.toggle('active', isA);
     tab.style.borderBottomColor = isA ? t.color : 'transparent';
+    const typeCnt = modeList.filter(w => w.typeId == t.id).length;
     tab.innerHTML = `<div class="tpfx" style="background:${t.color}">${t.prefix}</div>
-      ${t.name} <span class="tbcnt">${typeWaiting[t.id]||0}</span>`;
+      ${t.name} <span class="tbcnt">${typeCnt}</span>`;
   });
   bar.querySelector('[data-id="all"]').classList.toggle('active', activeTab === 'all');
 }
@@ -990,8 +1029,8 @@ function selectTab(id, el) {
 
 // ── Waiting list ──────────────────────────────────────────────────────────
 function getFilteredWaiting() {
-  let list = activeTab === 'all' ? allWaiting : allWaiting.filter(t => t.typeId == activeTab);
-  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
+  let list = allWaiting.filter(t => (t.mode || 'opd') === cashierMode);
+  if (activeTab !== 'all') list = list.filter(t => t.typeId == activeTab);
   return list;
 }
 function renderWaiting() {
@@ -1032,12 +1071,10 @@ function renderWaiting() {
 // ── Stats ─────────────────────────────────────────────────────────────────
 function updateStats() {
   const waiting = getFilteredWaiting().length;
-  let servedList = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
-  let nsList     = activeTab === 'all' ? noShows   : noShows.filter(t => t.typeId == activeTab);
-  if (cashierMode) {
-    servedList = servedList.filter(t => (t.mode || 'opd') === cashierMode);
-    nsList     = nsList.filter(t => (t.mode || 'opd') === cashierMode);
-  }
+  let servedList = (activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab))
+                    .filter(t => (t.mode || 'opd') === cashierMode);
+  let nsList     = (activeTab === 'all' ? noShows   : noShows.filter(t => t.typeId == activeTab))
+                    .filter(t => (t.mode || 'opd') === cashierMode);
   document.getElementById('stW').textContent = waiting;
   document.getElementById('stS').textContent = servedList.length;
   document.getElementById('stN').textContent = nsList.length;
@@ -1080,8 +1117,8 @@ function swHist(pane, el) {
 }
 
 function renderCalledHist() {
-  let list = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
-  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
+  let list = (activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab))
+              .filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneCalled');
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ยังไม่มีประวัติ</div>'; return; }
   el.innerHTML = `
@@ -1110,8 +1147,8 @@ function renderCalledHist() {
 }
 
 function renderNoShowHist() {
-  let list = activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab);
-  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
+  let list = (activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab))
+              .filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneNoShow');
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ไม่มีรายการ</div>'; return; }
   el.innerHTML = `
@@ -1140,20 +1177,11 @@ function renderNoShowHist() {
 }
 
 // ── Call with confirm ─────────────────────────────────────────────────────
-async function callNext() {
-  if (cashierMode) {
-    // mode-filtered: call by display to ensure correct ticket is dequeued
-    const filtered = getFilteredWaiting();
-    if (!filtered.length) { toast('ไม่มีคิวรอ', 'err'); return; }
-    pendingCall = { type: 'display', display: filtered[0].display };
-    if (skipConfirm) { confirmCall(); } else { showConfirm(filtered[0]); }
-    return;
-  }
-  const typeParam = activeTab !== 'all' ? `?typeId=${activeTab}` : '';
-  const d = await fetch(`/api/sys/${sysId}/peek-next${typeParam}`).then(r => r.json());
-  if (!d.ticket) { toast('ไม่มีคิวรอ', 'err'); return; }
-  pendingCall = { type: 'next', typeId: activeTab !== 'all' ? activeTab : null };
-  if (skipConfirm) { confirmCall(); } else { showConfirm(d.ticket); }
+function callNext() {
+  const filtered = getFilteredWaiting();
+  if (!filtered.length) { toast('ไม่มีคิวรอ', 'err'); return; }
+  pendingCall = { type: 'display', display: filtered[0].display };
+  if (skipConfirm) { confirmCall(); } else { showConfirm(filtered[0]); }
 }
 
 function callByDisplay(display, ticketJson) {
