@@ -539,7 +539,7 @@ app.get('/api/sys/:sysId/peek-next', requireSys, (req, res) => {
 // ── Queue Operations ──────────────────────────────────────────────────────
 app.post('/api/sys/:sysId/get-serial', requireSys, (req, res) => {
   const { sys, sysId } = req;
-  const { typeId, hn, qn, patientName, pttypeName, vn, vstdate, vsttime } = req.body;
+  const { typeId, hn, qn, patientName, pttypeName, vn, vstdate, vsttime, mode, an } = req.body;
   const type = sys.queueTypes.find(t => t.id === Number(typeId));
   if (!type) return res.status(400).json({ success: false, message: 'ระบุประเภทคิวไม่ถูกต้อง' });
   initTypeState(sys, type.id);
@@ -555,11 +555,13 @@ app.post('/api/sys/:sysId/get-serial', requireSys, (req, res) => {
     issuedTs:    Date.now(),
     hn:          hn          || null,
     qn:          qn          || null,
-    vn:          vn          || null,
+    vn:          (mode === 'ipd' && an) ? an : (vn || null),
     patientName: patientName || null,
     pttypeName:  pttypeName  || null,
     vstdate:     vstdate     || null,
     vsttime:     vsttime     || null,
+    mode:        mode        || 'opd',
+    an:          (mode === 'ipd') ? (an || null) : null,
   };
   s.waiting.push(ticket);
   saveQueueState(sysId, sys);
@@ -1024,11 +1026,23 @@ function resetSys(sysId, sys) {
 
 // ── Patient lookup ────────────────────────────────────────────────────────
 app.post('/api/patient-lookup', async (req, res) => {
-  const { type, value, sysId: reqSysId } = req.body;
+  const { type, value, sysId: reqSysId, mode } = req.body;
   if (!value || !value.toString().trim()) return res.json({ success: false, message: 'กรุณาระบุข้อมูล' });
   const cfg = loadDbConfig();
   if (!cfg.host) {
     const val = value.toString().trim();
+    if (mode === 'ipd') {
+      return res.json({
+        success: true,
+        patient: {
+          hn: (type === 'hn' || type === 'barcode') ? val : null,
+          an: type === 'an' ? val : null,
+          qn: null, vn: type === 'an' ? val : null, name: '',
+          pttype: null, pttypeName: null, autoTypeId: null,
+          vstdate: null, vsttime: null, mode: 'ipd',
+        }
+      });
+    }
     return res.json({
       success: true,
       patient: {
@@ -1052,6 +1066,71 @@ app.post('/api/patient-lookup', async (req, res) => {
     if (lc.barcodePrefixLen > 0) val = val.slice(lc.barcodePrefixLen);
     if (lc.barcodeUseLen   > 0) val = val.slice(0, lc.barcodeUseLen);
   }
+
+  // ── IPD mode: query ipt (inpatient) table ─────────────────────────────────
+  if (mode === 'ipd') {
+    const ipdField = (type === 'hn' || type === 'barcode') ? 'hn' : 'an';
+    try {
+      let row = null;
+      if (cfg.type === 'mysql') {
+        const mysql = require('mysql2/promise');
+        const conn  = await mysql.createConnection({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectTimeout: 5000 });
+        const col   = ipdField === 'hn' ? 'i.hn' : 'i.an';
+        const order = ipdField === 'hn' ? ' ORDER BY i.an DESC' : '';
+        const [rows] = await conn.execute(
+          `SELECT i.hn, i.an,
+             CONCAT(IFNULL(pt.pname,''), IFNULL(pt.fname,''), ' ', IFNULL(pt.lname,'')) AS patient_name,
+             p.name AS pttype_name, i.pttype
+           FROM ipt i
+           LEFT JOIN patient pt ON pt.hn = i.hn
+           LEFT JOIN pttype  p  ON p.pttype = i.pttype
+           WHERE i.confirm_discharge <> 'Y' AND ${col} = ?${order} LIMIT 1`,
+          [val]
+        );
+        await conn.end();
+        row = rows[0] || null;
+      } else {
+        const { Client } = require('pg');
+        const client = new Client({ host: cfg.host, port: Number(cfg.port), database: cfg.database, user: cfg.username, password: cfg.password, connectionTimeoutMillis: 5000 });
+        await client.connect();
+        const col   = ipdField === 'hn' ? 'i.hn' : 'i.an';
+        const order = ipdField === 'hn' ? ' ORDER BY i.an DESC' : '';
+        const result = await client.query(
+          `SELECT i.hn, i.an,
+             COALESCE(pt.pname,'') || COALESCE(pt.fname,'') || ' ' || COALESCE(pt.lname,'') AS patient_name,
+             p.name AS pttype_name, i.pttype
+           FROM ipt i
+           LEFT JOIN patient pt ON pt.hn = i.hn
+           LEFT JOIN pttype  p  ON p.pttype = i.pttype
+           WHERE i.confirm_discharge <> 'Y' AND ${col} = $1${order} LIMIT 1`,
+          [val]
+        );
+        await client.end();
+        row = result.rows[0] || null;
+      }
+      if (!row) return res.json({ success: false, message: ipdField === 'hn' ? 'ไม่พบผู้ป่วยในที่ยังไม่จำหน่ายสำหรับ HN นี้' : 'ไม่พบ AN นี้ในระบบ' });
+      return res.json({
+        success: true,
+        patient: {
+          hn:         row.hn,
+          an:         row.an,
+          qn:         null,
+          vn:         row.an,
+          name:       (row.patient_name || '').trim() || '(ไม่ระบุชื่อ)',
+          pttype:     (row.pttype || '').trim() || null,
+          pttypeName: (row.pttype_name || '').trim() || null,
+          autoTypeId: null,
+          vstdate:    null,
+          vsttime:    null,
+          mode:       'ipd',
+        }
+      });
+    } catch (err) {
+      return res.json({ success: false, message: 'เกิดข้อผิดพลาด: ' + err.message });
+    }
+  }
+
+  // ── OPD mode (existing): query ovst with today's date ─────────────────────
   // Determine search column: use lookupConfig.barcodeField when type is 'barcode', else use explicit type
   const searchField = (type === 'barcode' && lc) ? (lc.barcodeField || 'hn')
                     : (type === 'hn' ? 'hn' : 'qn');

@@ -424,6 +424,16 @@
           <span class="kp-onlbl">on</span>
         </div>
       </label>
+
+      <label class="kiosk-pill" for="chkIpd" style="border-color:rgba(129,199,132,.25)">
+        <span class="kp-icon">🛏</span>
+        <div class="kp-text"><span class="kp-label">ผู้ป่วยใน (IPD)</span></div>
+        <div class="kp-sw">
+          <input type="checkbox" id="chkIpd" onchange="onIpdChange()"/>
+          <div class="kp-knob"></div>
+          <span class="kp-onlbl">on</span>
+        </div>
+      </label>
     </div>
   </div>
 
@@ -438,7 +448,7 @@
         <div class="pt-name" id="ptName">-</div>
         <div class="pt-tags">
           <div class="pt-tag">HN: <b id="ptHN">-</b></div>
-          <div class="pt-tag">QN: <b id="ptQN">-</b></div>
+          <div class="pt-tag"><span id="ptQnLabel">QN</span>: <b id="ptQN">-</b></div>
           <div class="pt-tag" id="ptPttypeTag" style="display:none;background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.3);color:#ffd54f">สิทธิ: <b id="ptPttype">-</b></div>
         </div>
       </div>
@@ -467,7 +477,7 @@
 <!-- Floating bottom bar -->
 <div class="bottom-bar">
   <div class="bar-field">
-    <div class="bar-field-lbl">🔢 &nbsp;QN — เลขคิว</div>
+    <div class="bar-field-lbl" id="qnFieldLbl">🔢 &nbsp;QN — เลขคิว</div>
     <input class="bar-input" id="qnInput" type="text" placeholder="กรอกเลขคิว" autocomplete="off" inputmode="numeric"/>
   </div>
   <div class="bar-sep"></div>
@@ -523,6 +533,34 @@ chkPrintEnabled.checked = localStorage.getItem('printEnabled') !== '0'; // defau
 function onPrintEnabledChange() {
   localStorage.setItem('printEnabled', chkPrintEnabled.checked ? '1' : '0');
 }
+
+// ── IPD (inpatient) mode toggle ───────────────────────────────────────────
+const chkIpd = document.getElementById('chkIpd');
+chkIpd.checked = localStorage.getItem('ipdMode') === '1';
+
+function onIpdChange() {
+  localStorage.setItem('ipdMode', chkIpd.checked ? '1' : '0');
+  applyIpdMode();
+  backToScanner();
+}
+
+function applyIpdMode() {
+  const ipd = chkIpd.checked;
+  const lbl  = document.getElementById('qnFieldLbl');
+  const inp  = document.getElementById('qnInput');
+  const ptLbl = document.getElementById('ptQnLabel');
+  if (lbl)   lbl.innerHTML = ipd ? '🛏 &nbsp;AN — เลขที่นอน' : '🔢 &nbsp;QN — เลขคิว';
+  if (inp) { inp.placeholder = ipd ? 'กรอก AN' : 'กรอกเลขคิว'; inp.inputMode = 'text'; }
+  if (ptLbl) ptLbl.textContent = ipd ? 'AN' : 'QN';
+  const navCashier = document.getElementById('navCashier');
+  if (navCashier) navCashier.href = `/cashier.html?sys=${sysId}${ipd ? '&mode=ipd' : ''}`;
+  // tint kiosk scanner frame border for visual cue
+  const frame = document.querySelector('.kiosk-scanner-frame');
+  if (frame) frame.style.boxShadow = ipd
+    ? '0 0 0 2px #2e7d32, 0 0 0 6px #080f14, 0 16px 60px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.04)'
+    : '';
+}
+applyIpdMode();
 
 // ── Nav ───────────────────────────────────────────────────────────────────
 const _n = sessionStorage.getItem('officerName');
@@ -734,16 +772,27 @@ function doLookup() {
     return;
   }
 
+  const isIpd     = chkIpd.checked;
   const isBarcode = _fromBarcode; _fromBarcode = false;
-  const type  = isBarcode ? 'barcode' : (hn ? 'hn' : 'qn');
-  const value = hn || qn;
+  let type, value;
+  if (isIpd) {
+    // IPD: HN field = HN, QN/AN field = AN
+    type  = hn ? 'hn' : 'an';
+    value = hn || qn;
+  } else {
+    type  = isBarcode ? 'barcode' : (hn ? 'hn' : 'qn');
+    value = hn || qn;
+  }
 
   btn.disabled = true;
   btn.innerHTML = `<span style="display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></span>`;
 
+  const lookupBody = { type, value, sysId: Number(sysId) };
+  if (isIpd) lookupBody.mode = 'ipd';
+
   fetch('/api/patient-lookup', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ type, value, sysId: Number(sysId) })
+    body: JSON.stringify(lookupBody)
   })
   .then(r => {
     if (!r.ok && r.status !== 200) console.warn('HTTP', r.status);
@@ -759,7 +808,11 @@ function doLookup() {
       const pttypeEl  = document.getElementById('ptPttype');
       if (elName) elName.textContent = d.patient.name || '';
       if (elHN)   elHN.textContent   = d.patient.hn   || '-';
-      if (elQN)   elQN.textContent   = d.patient.qn   || '-';
+      // IPD: show AN; OPD: show QN
+      const isIpdResult = d.patient.mode === 'ipd';
+      if (elQN)   elQN.textContent   = isIpdResult ? (d.patient.an || '-') : (d.patient.qn || '-');
+      const ptLbl2 = document.getElementById('ptQnLabel');
+      if (ptLbl2) ptLbl2.textContent = isIpdResult ? 'AN' : 'QN';
       if (pttypeTag && pttypeEl) {
         if (d.patient.pttypeName || d.patient.pttype) {
           pttypeEl.textContent    = d.patient.pttypeName || d.patient.pttype;
@@ -1092,6 +1145,7 @@ function browserPrint(data) {
 
 // ── Issue ticket ──────────────────────────────────────────────────────────
 function getQueue(typeId) {
+  const isIpdQ = chkIpd.checked;
   fetch(`/api/sys/${sysId}/get-serial`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
@@ -1103,6 +1157,8 @@ function getQueue(typeId) {
       pttypeName:  currentPatient?.pttypeName  || null,
       vstdate:     currentPatient?.vstdate     || null,
       vsttime:     currentPatient?.vsttime     || null,
+      mode:        isIpdQ ? 'ipd' : 'opd',
+      an:          isIpdQ ? (currentPatient?.an || null) : null,
     })
   }).then(r => r.json()).then(d => {
     if (!d.success) { setStatus('✗ ' + (d.message || 'เกิดข้อผิดพลาด'), '#c62828'); setTimeout(() => setStatus('กดปุ่มด้านล่างเพื่อเริ่มสแกน'), 3000); showStep('scanner'); return; }

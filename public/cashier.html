@@ -387,6 +387,7 @@
     <option value="">— เลือกช่องบริการ —</option>
   </select>
   <div class="cbar-dot" id="cbarDot"></div>
+  <div id="ipdBadge" style="display:none;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#a5d6a7;border-radius:10px;padding:3px 14px;font-size:.8rem;font-weight:700;margin-left:8px;white-space:nowrap">🛏 ผู้ป่วยใน (IPD)</div>
 </div>
 
 <div class="type-tabs" id="typeTabs">
@@ -765,6 +766,7 @@
 
 <script>
 const sysId      = new URLSearchParams(location.search).get('sys') || 1;
+const cashierMode = new URLSearchParams(location.search).get('mode') || null; // 'ipd', 'opd', or null (all)
 const socket     = io();
 socket.on('connect',    () => { socket.emit('join_sys', Number(sysId)); hideOffline(); });
 socket.on('disconnect', () => showOffline());
@@ -796,11 +798,18 @@ function doLogout() {
   location.href = '/login.html';
 }
 
-// Update nav links
+// Update nav links (propagate IPD mode to queue and cashier links)
 ['navQueue','navCashier','navDisplay','navSettings'].forEach((id,i) => {
   const pages = ['queue.html','cashier.html','display.html','settings.html'];
-  document.getElementById(id).href = `/${pages[i]}?sys=${sysId}`;
+  const modeStr = cashierMode && (i < 2) ? `&mode=${cashierMode}` : '';
+  document.getElementById(id).href = `/${pages[i]}?sys=${sysId}${modeStr}`;
 });
+
+// Show IPD badge if in IPD mode
+if (cashierMode === 'ipd') {
+  document.getElementById('ipdBadge').style.display = '';
+  document.title = `เรียกคิว (IPD)`;
+}
 
 let queueTypes   = [];
 let counters     = [];
@@ -981,7 +990,9 @@ function selectTab(id, el) {
 
 // ── Waiting list ──────────────────────────────────────────────────────────
 function getFilteredWaiting() {
-  return activeTab === 'all' ? allWaiting : allWaiting.filter(t => t.typeId == activeTab);
+  let list = activeTab === 'all' ? allWaiting : allWaiting.filter(t => t.typeId == activeTab);
+  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
+  return list;
 }
 function renderWaiting() {
   const list = getFilteredWaiting();
@@ -1004,12 +1015,15 @@ function renderWaiting() {
         <div class="wq-time">ออกคิว ${t.issuedAt}${t.returnedAt?` · คืนเวลา ${t.returnedAt}`:''}</div>
       </div>
       <div class="wq-name-right">
-        ${(t.hn||t.qn) ? `
+        ${(t.hn||t.qn||t.vn) ? `
         <div class="wq-hn-row">
           ${t.hn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">HN</span><span class="wq-hn-val">${t.hn}</span></div>` : ''}
-          ${t.qn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">QN</span><span class="wq-hn-val">${t.qn}</span></div>` : ''}
+          ${t.mode === 'ipd'
+            ? (t.vn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">AN</span><span class="wq-hn-val">${t.vn}</span></div>` : '')
+            : (t.qn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">QN</span><span class="wq-hn-val">${t.qn}</span></div>` : '')}
         </div>` : ''}
         ${t.patientName ? `<div class="wq-patient">👤 ${t.patientName}${t.pttypeName?`<span class="wq-pttype">${t.pttypeName}</span>`:''}</div>` : ''}
+        ${t.mode === 'ipd' ? `<div style="font-size:.62rem;color:#a5d6a7;margin-top:2px">🛏 ผู้ป่วยใน</div>` : ''}
       </div>
       <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
     </div>`).join('');
@@ -1017,14 +1031,18 @@ function renderWaiting() {
 
 // ── Stats ─────────────────────────────────────────────────────────────────
 function updateStats() {
-  const waiting = activeTab === 'all' ? Object.values(typeWaiting).reduce((s,v)=>s+v,0) : (typeWaiting[activeTab]||0);
-  const served  = (activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab)).length;
-  const ns      = (activeTab === 'all' ? noShows   : noShows.filter(t => t.typeId == activeTab)).length;
+  const waiting = getFilteredWaiting().length;
+  let servedList = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
+  let nsList     = activeTab === 'all' ? noShows   : noShows.filter(t => t.typeId == activeTab);
+  if (cashierMode) {
+    servedList = servedList.filter(t => (t.mode || 'opd') === cashierMode);
+    nsList     = nsList.filter(t => (t.mode || 'opd') === cashierMode);
+  }
   document.getElementById('stW').textContent = waiting;
-  document.getElementById('stS').textContent = served;
-  document.getElementById('stN').textContent = ns;
-  document.getElementById('hcC').textContent = allServed.length;
-  document.getElementById('hcN').textContent = noShows.length;
+  document.getElementById('stS').textContent = servedList.length;
+  document.getElementById('stN').textContent = nsList.length;
+  document.getElementById('hcC').textContent = servedList.length;
+  document.getElementById('hcN').textContent = nsList.length;
 }
 
 // ── Called display ────────────────────────────────────────────────────────
@@ -1036,7 +1054,9 @@ function showCalled(ticket) {
       <div class="call-num" style="color:${ticket.color};text-shadow:0 0 24px ${ticket.color}66">${ticket.display}</div>
       ${showDetail ? `<div class="call-meta">
         ${ticket.patientName ? `<div class="call-type" style="color:#90caf9;font-weight:600">👤 ${ticket.patientName}</div>` : ''}
-        ${(ticket.hn||ticket.qn) ? `<div class="call-time">${ticket.hn?'HN:'+ticket.hn:''}${ticket.hn&&ticket.qn?' · ':''}${ticket.qn?'QN:'+ticket.qn:''}</div>` : ''}
+        ${ticket.mode === 'ipd'
+          ? ((ticket.hn||ticket.vn) ? `<div class="call-time">${ticket.hn?'HN:'+ticket.hn:''}${ticket.hn&&ticket.vn?' · ':''}${ticket.vn?'AN:'+ticket.vn:''}</div>` : '')
+          : ((ticket.hn||ticket.qn) ? `<div class="call-time">${ticket.hn?'HN:'+ticket.hn:''}${ticket.hn&&ticket.qn?' · ':''}${ticket.qn?'QN:'+ticket.qn:''}</div>` : '')}
         <div class="call-type">${ticket.typeName}</div>
         <div class="call-time">เรียกเวลา ${ticket.calledAt}</div>
         ${ticket.counterName ? `<div class="call-ctr">🪟 ${ticket.counterName}</div>` : ''}
@@ -1060,7 +1080,8 @@ function swHist(pane, el) {
 }
 
 function renderCalledHist() {
-  const list = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
+  let list = activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab);
+  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneCalled');
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ยังไม่มีประวัติ</div>'; return; }
   el.innerHTML = `
@@ -1076,7 +1097,9 @@ function renderCalledHist() {
         <div class="h-meta">
           <div class="h-meta-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
           ${t.patientName?`<div class="h-meta-pt">👤 ${t.patientName}</div>`:''}
-          ${(t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:''}
+          ${t.mode === 'ipd'
+            ? ((t.hn||t.vn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.vn?' · ':''}${t.vn?'AN:'+t.vn:''}</div>`:'')
+            : ((t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:'')}
         </div>
         <div class="h-time">${t.calledAt}</div>
         <div class="action-btns">
@@ -1087,7 +1110,8 @@ function renderCalledHist() {
 }
 
 function renderNoShowHist() {
-  const list = activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab);
+  let list = activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab);
+  if (cashierMode) list = list.filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneNoShow');
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ไม่มีรายการ</div>'; return; }
   el.innerHTML = `
@@ -1103,7 +1127,9 @@ function renderNoShowHist() {
         <div class="h-meta">
           <div class="h-meta-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
           ${t.patientName?`<div class="h-meta-pt">👤 ${t.patientName}</div>`:''}
-          ${(t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:''}
+          ${t.mode === 'ipd'
+            ? ((t.hn||t.vn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.vn?' · ':''}${t.vn?'AN:'+t.vn:''}</div>`:'')
+            : ((t.hn||t.qn)?`<div class="h-meta-hn">${t.hn?'HN:'+t.hn:''}${t.hn&&t.qn?' · ':''}${t.qn?'QN:'+t.qn:''}</div>`:'')}
         </div>
         <div class="h-time">${t.calledAt}</div>
         <div class="h-time-ns">${t.noShowAt}</div>
@@ -1115,6 +1141,14 @@ function renderNoShowHist() {
 
 // ── Call with confirm ─────────────────────────────────────────────────────
 async function callNext() {
+  if (cashierMode) {
+    // mode-filtered: call by display to ensure correct ticket is dequeued
+    const filtered = getFilteredWaiting();
+    if (!filtered.length) { toast('ไม่มีคิวรอ', 'err'); return; }
+    pendingCall = { type: 'display', display: filtered[0].display };
+    if (skipConfirm) { confirmCall(); } else { showConfirm(filtered[0]); }
+    return;
+  }
   const typeParam = activeTab !== 'all' ? `?typeId=${activeTab}` : '';
   const d = await fetch(`/api/sys/${sysId}/peek-next${typeParam}`).then(r => r.json());
   if (!d.ticket) { toast('ไม่มีคิวรอ', 'err'); return; }
