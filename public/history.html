@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>ประวัติการเรียกคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Segoe UI',Tahoma,sans-serif;
+      min-height:100vh;
+      background:linear-gradient(145deg,#e0f7fa 0%,#b3e5fc 35%,#e3f2fd 70%,#dbeafe 100%);
+      color:#1a3a5c;
+    }
+
+    /* ── NAV ── */
+    nav{
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.80);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(147,197,253,.55);
+      padding:0 20px;height:54px;
+      display:flex;align-items:center;gap:10px;
+      box-shadow:0 2px 12px rgba(59,130,246,.10);
+    }
+    .btn-back{
+      display:flex;align-items:center;gap:6px;
+      background:rgba(59,130,246,.12);border:1.5px solid rgba(59,130,246,.35);
+      color:#1d4ed8;border-radius:20px;padding:6px 16px;
+      font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;
+      transition:all .2s;white-space:nowrap;text-decoration:none;
+    }
+    .btn-back:hover{background:rgba(59,130,246,.22);transform:translateX(-2px)}
+    .nav-title{font-size:1rem;font-weight:800;color:#1e3a5f;white-space:nowrap}
+    .nav-mode-badge{
+      display:none;align-items:center;gap:5px;
+      background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);
+      color:#2e7d32;border-radius:10px;padding:3px 12px;
+      font-size:.78rem;font-weight:700;
+    }
+    .nav-mode-badge.show{display:flex}
+    .nav-stats{
+      margin-left:auto;display:flex;align-items:center;gap:18px;
+    }
+    .ns-item{display:flex;flex-direction:column;align-items:center}
+    .ns-val{font-size:1.35rem;font-weight:800;line-height:1}
+    .ns-lbl{font-size:.62rem;color:#5a7ea0;letter-spacing:.6px;text-transform:uppercase}
+    .ns-val-s{color:#16a34a}
+    .ns-val-n{color:#dc2626}
+
+    /* ── MODE TOGGLE ── */
+    .mode-bar{
+      background:rgba(255,255,255,.60);
+      border-bottom:1px solid rgba(147,197,253,.4);
+      padding:8px 20px;display:flex;align-items:center;gap:10px;
+      font-size:.82rem;color:#4a7096;
+    }
+    .mode-btn{
+      display:flex;align-items:center;gap:5px;
+      padding:5px 14px;border-radius:16px;cursor:pointer;
+      border:1.5px solid rgba(59,130,246,.25);
+      background:rgba(255,255,255,.5);color:#4a7096;
+      font-size:.78rem;font-weight:600;transition:all .2s;
+    }
+    .mode-btn.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+    .mode-btn:hover:not(.active){background:rgba(59,130,246,.12)}
+
+    /* ── TABS ── */
+    .tabs{
+      background:rgba(255,255,255,.65);
+      border-bottom:2px solid rgba(147,197,253,.5);
+      padding:0 20px;display:flex;gap:4px;
+    }
+    .tab{
+      padding:11px 20px;font-size:.85rem;font-weight:700;
+      color:#5a7ea0;cursor:pointer;border-bottom:3px solid transparent;
+      transition:all .2s;display:flex;align-items:center;gap:7px;white-space:nowrap;
+      margin-bottom:-2px;
+    }
+    .tab:hover{color:#1e3a5f}
+    .tab.active{color:#1d4ed8;border-bottom-color:#1d4ed8}
+    .tab.ns.active{color:#dc2626;border-bottom-color:#dc2626}
+    .tab-cnt{
+      background:rgba(59,130,246,.15);border-radius:10px;
+      padding:1px 8px;font-size:.72rem;min-width:22px;text-align:center;
+    }
+    .tab.active .tab-cnt{background:rgba(29,78,216,.15);color:#1d4ed8}
+    .tab.ns.active .tab-cnt{background:rgba(220,38,38,.12);color:#dc2626}
+
+    /* ── PANES ── */
+    .pane{display:none;padding:16px 20px;max-width:1100px;margin:0 auto}
+    .pane.active{display:block}
+
+    /* ── EMPTY STATE ── */
+    .empty-state{
+      text-align:center;padding:60px 20px;
+    }
+    .empty-icon{font-size:3.5rem;opacity:.35;margin-bottom:12px}
+    .empty-txt{font-size:.9rem;color:#7a9bb5}
+
+    /* ── HISTORY TABLE ── */
+    .h-table{width:100%}
+    .h-thead{
+      display:grid;padding:8px 14px;
+      font-size:.65rem;color:#7a9bb5;
+      letter-spacing:1.2px;text-transform:uppercase;
+      border-bottom:1px solid rgba(147,197,253,.4);
+      margin-bottom:6px;
+    }
+    .h-row{
+      display:grid;align-items:center;
+      padding:10px 14px;margin-bottom:6px;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(147,197,253,.35);
+      border-radius:12px;gap:6px;
+      transition:all .18s;
+      box-shadow:0 1px 4px rgba(59,130,246,.06);
+    }
+    .h-row:hover{
+      background:rgba(255,255,255,.90);
+      border-color:rgba(59,130,246,.4);
+      box-shadow:0 3px 12px rgba(59,130,246,.12);
+    }
+    .h-row.latest{border-color:rgba(59,130,246,.55);background:rgba(219,234,254,.5)}
+    .h-row.ns-item{
+      background:rgba(254,242,242,.65);
+      border-color:rgba(248,113,113,.3);
+    }
+    .h-row.ns-item:hover{border-color:rgba(220,38,38,.4)}
+
+    /* Called columns: badge+num | patient | time | actions */
+    .thead-called{grid-template-columns:140px 1fr 85px 170px}
+    .row-called  {grid-template-columns:140px 1fr 85px 170px}
+    /* No-show columns: badge+num | patient | called | noshow | actions */
+    .thead-ns    {grid-template-columns:140px 1fr 80px 80px 100px}
+    .row-ns      {grid-template-columns:140px 1fr 80px 80px 100px}
+
+    .h-cell{display:flex;align-items:center;gap:8px;overflow:hidden;min-width:0}
+    .h-badge{
+      width:30px;height:30px;border-radius:7px;display:flex;align-items:center;
+      justify-content:center;font-size:.78rem;font-weight:900;color:#000;flex-shrink:0;
+    }
+    .h-num{font-size:1.1rem;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+    .h-ns-num{color:#dc2626}
+    .h-meta{overflow:hidden;min-width:0}
+    .h-type{font-size:.72rem;color:#5a7ea0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .h-pt{font-size:.88rem;color:#1e3a5f;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .h-hn{font-size:.7rem;color:#7a9bb5;margin-top:1px;white-space:nowrap}
+    .h-time{font-size:.72rem;color:#5a7ea0;white-space:nowrap}
+    .h-time-ns{font-size:.72rem;color:#dc2626;white-space:nowrap}
+
+    .action-btns{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+    .btn-recall-hist{
+      border:none;background:rgba(29,78,216,.12);border:1px solid rgba(29,78,216,.3);
+      color:#1d4ed8;border-radius:7px;padding:4px 10px;font-size:.72rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .18s;
+    }
+    .btn-recall-hist:hover{background:rgba(29,78,216,.22)}
+    .btn-uncall{
+      border:none;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);
+      color:#b45309;border-radius:7px;padding:4px 10px;font-size:.72rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .18s;
+    }
+    .btn-uncall:hover{background:rgba(245,158,11,.25)}
+    .btn-recall-ns{
+      border:none;background:linear-gradient(135deg,#1d4ed8,#1e40af);
+      color:#fff;border-radius:7px;padding:4px 12px;font-size:.72rem;
+      font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;
+    }
+    .btn-recall-ns:hover{opacity:.85}
+
+    /* ── TOAST ── */
+    .toast{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#1e3a5f;color:#fff;border-radius:12px;padding:10px 22px;
+      font-size:.85rem;font-weight:600;pointer-events:none;
+      transition:transform .3s,opacity .3s;opacity:0;z-index:999;white-space:nowrap;
+    }
+    .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+    .toast.ok{background:#166534}
+    .toast.err{background:#991b1b}
+
+    /* responsive */
+    @media(max-width:700px){
+      .thead-called,.row-called{grid-template-columns:120px 1fr 70px}
+      .row-called>*:nth-child(4){display:none}
+      .thead-called>*:nth-child(4){display:none}
+      .thead-ns,.row-ns{grid-template-columns:120px 1fr 70px 80px}
+      .row-ns>*:nth-child(3){display:none}
+      .thead-ns>*:nth-child(3){display:none}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="btn-back" id="btnBack" href="#">← กลับหน้าหลัก</a>
+  <span class="nav-title">📋 ประวัติการเรียกคิว</span>
+  <div class="nav-mode-badge" id="ipdBadge">🛏 ผู้ป่วยใน (IPD)</div>
+  <div class="nav-stats">
+    <div class="ns-item">
+      <div class="ns-val ns-val-s" id="stS">0</div>
+      <div class="ns-lbl">เรียกแล้ว</div>
+    </div>
+    <div class="ns-item">
+      <div class="ns-val ns-val-n" id="stN">0</div>
+      <div class="ns-lbl">ไม่มา</div>
+    </div>
+  </div>
+</nav>
+
+<!-- mode toggle -->
+<div class="mode-bar">
+  <span style="font-size:.75rem;color:#7a9bb5">โหมด:</span>
+  <button class="mode-btn" id="btnOpd" onclick="setMode('opd')">🏥 ผู้ป่วยนอก (OPD)</button>
+  <button class="mode-btn" id="btnIpd" onclick="setMode('ipd')">🛏 ผู้ป่วยใน (IPD)</button>
+</div>
+
+<!-- tabs -->
+<div class="tabs">
+  <div class="tab active" id="tabCalled" onclick="swTab('called',this)">
+    📋 ประวัติเรียกคิว <span class="tab-cnt" id="hcC">0</span>
+  </div>
+  <div class="tab ns" id="tabNoShow" onclick="swTab('noshow',this)">
+    ✕ เรียกแล้วไม่มา <span class="tab-cnt" id="hcN">0</span>
+  </div>
+</div>
+
+<!-- content panes -->
+<div class="pane active" id="paneCalled"></div>
+<div class="pane"        id="paneNoShow"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const params      = new URLSearchParams(location.search);
+const sysId       = params.get('sys') || 1;
+const _urlMode    = params.get('mode');
+let   cashierMode = _urlMode || localStorage.getItem('cashierMode_' + sysId) || 'opd';
+let   myCounterId = Number(localStorage.getItem('myCounterId_' + sysId)) || null;
+
+let allServed = [];
+let noShows   = [];
+let curTab    = 'called';
+
+// ── Socket ──────────────────────────────────────────────────────────────────
+const socket = io();
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+socket.on('queue_called', d => {
+  if (d.allServed) allServed = d.allServed;
+  if (d.noShows)   noShows   = d.noShows || noShows;
+  renderAll();
+});
+socket.on('queue_uncalled', d => {
+  if (d.allServed) allServed = d.allServed;
+  renderCalledHist(); updateStats();
+});
+socket.on('queue_noshow', d => {
+  if (d.allServed) allServed = d.allServed;
+  if (d.noShows)   noShows   = d.noShows;
+  renderAll();
+});
+socket.on('noshow_recalled', d => {
+  if (d.noShows) noShows = d.noShows;
+  renderNoShowHist(); updateStats();
+});
+socket.on('queue_reset', () => {
+  allServed = []; noShows = [];
+  renderAll();
+});
+
+// ── Load initial data ────────────────────────────────────────────────────────
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  allServed = d.allServed || [];
+  noShows   = d.noShows   || [];
+  renderAll();
+});
+
+// ── Nav back link ────────────────────────────────────────────────────────────
+function updateBackLink() {
+  const isIpd = cashierMode === 'ipd';
+  document.getElementById('btnBack').href = `/cashier.html?sys=${sysId}${isIpd?'&mode=ipd':''}`;
+}
+
+// ── Mode ─────────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  cashierMode = mode;
+  localStorage.setItem('cashierMode_' + sysId, cashierMode);
+  applyMode(); renderAll();
+}
+function applyMode() {
+  const isIpd = cashierMode === 'ipd';
+  document.getElementById('btnOpd').classList.toggle('active', !isIpd);
+  document.getElementById('btnIpd').classList.toggle('active',  isIpd);
+  const badge = document.getElementById('ipdBadge');
+  badge.classList.toggle('show', isIpd);
+  document.title = isIpd ? 'ประวัติ (IPD)' : 'ประวัติการเรียกคิว';
+  updateBackLink();
+}
+applyMode();
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function swTab(tab, el) {
+  curTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('paneCalled').classList.toggle('active', tab === 'called');
+  document.getElementById('paneNoShow').classList.toggle('active', tab === 'noshow');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const s = allServed.filter(t => (t.mode||'opd') === cashierMode);
+  const n = noShows.filter(t   => (t.mode||'opd') === cashierMode);
+  document.getElementById('stS').textContent  = s.length;
+  document.getElementById('stN').textContent  = n.length;
+  document.getElementById('hcC').textContent  = s.length;
+  document.getElementById('hcN').textContent  = n.length;
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function renderAll() { renderCalledHist(); renderNoShowHist(); updateStats(); }
+
+function patientMeta(t) {
+  const isIpd = t.mode === 'ipd';
+  const ids = isIpd
+    ? [(t.hn?'HN:'+t.hn:''), (t.vn?'AN:'+t.vn:'')].filter(Boolean).join(' · ')
+    : [(t.hn?'HN:'+t.hn:''), (t.qn?'QN:'+t.qn:'')].filter(Boolean).join(' · ');
+  return `
+    ${t.patientName ? `<div class="h-pt">👤 ${t.patientName}</div>` : ''}
+    ${ids ? `<div class="h-hn">${ids}</div>` : ''}
+  `;
+}
+
+function renderCalledHist() {
+  const list = allServed.filter(t => (t.mode||'opd') === cashierMode);
+  const el   = document.getElementById('paneCalled');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-txt">ยังไม่มีประวัติการเรียกคิว</div></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="h-thead thead-called">
+      <span>หมายเลขคิว</span><span>ผู้ป่วย / ประเภท</span><span>เวลาเรียก</span><span>จัดการ</span>
+    </div>` +
+    list.map((t, i) => `
+      <div class="h-row row-called${i===0?' latest':''}">
+        <div class="h-cell">
+          <div class="h-badge" style="background:${t.color}">${t.prefix||'#'}</div>
+          <span class="h-num" style="color:${t.color}">${t.display}</span>
+        </div>
+        <div class="h-meta">
+          <div class="h-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+          ${patientMeta(t)}
+        </div>
+        <div class="h-time">${t.calledAt}</div>
+        <div class="action-btns">
+          <button class="btn-recall-hist" onclick="recallServed('${t.display}')">↺ เรียกซ้ำ</button>
+          <button class="btn-uncall"      onclick="uncallTicket('${t.display}')">↩ คืนคิว</button>
+        </div>
+      </div>`).join('');
+}
+
+function renderNoShowHist() {
+  const list = noShows.filter(t => (t.mode||'opd') === cashierMode);
+  const el   = document.getElementById('paneNoShow');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">ไม่มีรายการเรียกแล้วไม่มา</div></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="h-thead thead-ns">
+      <span>หมายเลขคิว</span><span>ผู้ป่วย / ประเภท</span><span>เวลาเรียก</span><span>เวลาไม่มา</span><span>จัดการ</span>
+    </div>` +
+    list.map(t => `
+      <div class="h-row row-ns ns-item">
+        <div class="h-cell">
+          <div class="h-badge" style="background:${t.color}">${t.prefix||'#'}</div>
+          <span class="h-num h-ns-num">${t.display}</span>
+        </div>
+        <div class="h-meta">
+          <div class="h-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+          ${patientMeta(t)}
+        </div>
+        <div class="h-time">${t.calledAt}</div>
+        <div class="h-time-ns">${t.noShowAt||'-'}</div>
+        <div>
+          <button class="btn-recall-ns" onclick="recallNoShow('${t.display}')">↺ เรียกซ้ำ</button>
+        </div>
+      </div>`).join('');
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function recallNoShow(display) {
+  fetch(`/api/sys/${sysId}/recall-noshow`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId })
+  }).then(r=>r.json()).then(d => d.success ? toast(`เรียกคิว ${display} อีกครั้ง`,'ok') : toast(d.message,'err'));
+}
+function recallServed(display) {
+  fetch(`/api/sys/${sysId}/recall-served`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId })
+  }).then(r=>r.json()).then(d => d.success ? toast(`เรียกซ้ำ ${display}`,'ok') : toast(d.message,'err'));
+}
+function uncallTicket(display) {
+  fetch(`/api/sys/${sysId}/uncall`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display })
+  }).then(r=>r.json()).then(d => d.success ? toast(`คืนคิว ${display} กลับรายการรอแล้ว`,'ok') : toast(d.message,'err'));
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (type?' '+type:'');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

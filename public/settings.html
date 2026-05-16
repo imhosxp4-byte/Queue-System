@@ -477,6 +477,19 @@
         <label>สี</label>
         <div id="tColorRow" style="margin-top:6px"></div>
       </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>ใช้สำหรับ</label>
+        <div style="display:flex;gap:18px;margin-top:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.84rem;color:#90caf9">
+            <input type="checkbox" id="tForOpd" checked style="accent-color:#42a5f5;width:16px;height:16px"/>
+            🏥 ผู้ป่วยนอก (OPD)
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.84rem;color:#a5d6a7">
+            <input type="checkbox" id="tForIpd" style="accent-color:#4caf50;width:16px;height:16px"/>
+            🛏 ผู้ป่วยใน (IPD)
+          </label>
+        </div>
+      </div>
       <button class="btn-add" onclick="addType()">+ เพิ่ม</button>
     </div>
     <div class="item-list" id="typeList"><div class="empty-msg">กำลังโหลด...</div></div>
@@ -1057,6 +1070,19 @@
         </label>
       </div>
       <div class="field" style="width:100%"><label>สี</label><div class="color-row" id="etColorRow"></div></div>
+      <div class="field" style="width:100%">
+        <label>ใช้สำหรับ</label>
+        <div style="display:flex;gap:18px;margin-top:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.84rem;color:#90caf9">
+            <input type="checkbox" id="etForOpd" style="accent-color:#42a5f5;width:16px;height:16px"/>
+            🏥 ผู้ป่วยนอก (OPD)
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.84rem;color:#a5d6a7">
+            <input type="checkbox" id="etForIpd" style="accent-color:#4caf50;width:16px;height:16px"/>
+            🛏 ผู้ป่วยใน (IPD)
+          </label>
+        </div>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal('modalType')">ยกเลิก</button>
@@ -1229,18 +1255,24 @@ function onNoPrefixChange(prefixId, checkId) {
 function renderTypes() {
   const el = document.getElementById('typeList');
   if (!queueTypes.length) { el.innerHTML = '<div class="empty-msg">ยังไม่มีประเภทคิว</div>'; return; }
-  el.innerHTML = queueTypes.map(t => `
+  el.innerHTML = queueTypes.map(t => {
+    const fm = t.forMode || 'both';
+    const modeBadge = fm === 'opd'  ? `<span style="background:rgba(66,165,245,.18);border:1px solid rgba(66,165,245,.4);color:#90caf9;border-radius:6px;padding:1px 8px;font-size:.7rem;font-weight:700">🏥 OPD</span>`
+                    : fm === 'ipd'  ? `<span style="background:rgba(76,175,80,.18);border:1px solid rgba(76,175,80,.4);color:#a5d6a7;border-radius:6px;padding:1px 8px;font-size:.7rem;font-weight:700">🛏 IPD</span>`
+                    : `<span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#7e8c99;border-radius:6px;padding:1px 8px;font-size:.7rem">OPD+IPD</span>`;
+    return `
     <div class="item-row">
       <div class="item-badge" style="background:${t.color}">${t.prefix || '#'}</div>
       <div class="item-info">
-        <div class="i-name">${t.name}</div>
+        <div class="i-name">${t.name} &nbsp;${modeBadge}</div>
         <div class="i-meta">${t.prefix ? `Prefix: <b>${t.prefix}</b>` : '<b style="color:#ffa726">ไม่ใช้ Prefix</b> (ตัวเลขล้วน)'} &nbsp;|&nbsp; ${t.color}</div>
       </div>
       <div class="item-actions">
         <button class="btn-edit" onclick="openEditType(${t.id})">แก้ไข</button>
         <button class="btn-del"  onclick="deleteType(${t.id},'${t.name}')">ลบ</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function addType() {
   const name     = document.getElementById('tName').value.trim();
@@ -1248,8 +1280,11 @@ function addType() {
   const prefix   = noPrefix ? '' : document.getElementById('tPrefix').value.trim().toUpperCase();
   if (!name) { toast('กรุณากรอกชื่อประเภทคิว'); return; }
   if (!noPrefix && !prefix) { toast('กรุณากรอก Prefix หรือติ๊ก "ไม่ใช้ Prefix"'); return; }
+  const forOpd = document.getElementById('tForOpd').checked;
+  const forIpd = document.getElementById('tForIpd').checked;
+  const forMode = (forOpd && forIpd) ? 'both' : forOpd ? 'opd' : forIpd ? 'ipd' : 'both';
   fetch(`/api/sys/${sysId}/queue-types`, { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ name, prefix, color: addTypeColor }) })
+    body: JSON.stringify({ name, prefix, color: addTypeColor, forMode }) })
   .then(r=>r.json()).then(d => {
     if (d.success) {
       document.getElementById('tName').value   = '';
@@ -1272,6 +1307,8 @@ function openEditType(id) {
   etInp.style.opacity = noPrefix ? '0.3' : '1';
   etInp.style.cursor  = noPrefix ? 'not-allowed' : '';
   buildColorPicker('etColorRow', editTypeColor, c => { editTypeColor = c; });
+  document.getElementById('etForOpd').checked = !t.forMode || t.forMode === 'opd' || t.forMode === 'both';
+  document.getElementById('etForIpd').checked = !t.forMode || t.forMode === 'ipd' || t.forMode === 'both';
   document.getElementById('modalType').classList.add('open');
 }
 function saveType() {
@@ -1280,8 +1317,11 @@ function saveType() {
   const prefix   = noPrefix ? '' : document.getElementById('etPrefix').value.trim().toUpperCase();
   if (!name) { toast('กรุณากรอกชื่อประเภทคิว'); return; }
   if (!noPrefix && !prefix) { toast('กรุณากรอก Prefix หรือติ๊ก "ไม่ใช้ Prefix"'); return; }
+  const forOpd = document.getElementById('etForOpd').checked;
+  const forIpd = document.getElementById('etForIpd').checked;
+  const forMode = (forOpd && forIpd) ? 'both' : forOpd ? 'opd' : forIpd ? 'ipd' : 'both';
   fetch(`/api/sys/${sysId}/queue-types/${editTypeId}`, { method:'PUT', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ name, prefix, color: editTypeColor }) })
+    body: JSON.stringify({ name, prefix, color: editTypeColor, forMode }) })
   .then(r=>r.json()).then(d => { if (d.success) { closeModal('modalType'); toast('บันทึกสำเร็จ'); } else toast(d.message); });
 }
 function deleteType(id, name) {

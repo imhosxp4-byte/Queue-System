@@ -23,6 +23,9 @@
       --cs-stat-w:#ffd54f;--cs-stat-s:#4caf50;--cs-stat-n:#ef5350;
       --cs-nav-txt:#90caf9;--cs-logo-clr:#ffd54f;
       --cs-nav-fs:.82rem;
+      --wq-cols:100px 120px 110px 1fr 180px 130px 90px 80px;
+      --wq-th-fs:.72rem;--wq-patient-fs:1.0rem;--wq-hn-fs:1.0rem;
+      --wq-thead-bg:#1e40af;--wq-thead-clr:#ffffff;
       --cs-call-type-clr:#64b5f6;--cs-call-ctr-clr:#ffd54f;
       --cs-call-fs:4.5rem;
       --cs-call-meta-fs:.78rem;
@@ -77,7 +80,7 @@
 
     /* ── MAIN LAYOUT ── */
     .layout{flex:1;display:grid;grid-template-columns:var(--cs-left-w,420px) 1fr;
-      grid-template-rows:1fr auto;gap:0;overflow:hidden;min-height:0}
+      grid-template-rows:1fr;gap:0;overflow:hidden;min-height:0}
 
     /* ── LEFT PANEL ── */
     .left-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #1a2e45}
@@ -140,47 +143,96 @@
       font-size:.78rem;font-weight:700}
     .rp-type-filter{font-size:.72rem;color:#3a5a78}
 
-    .waiting-list{flex:1;overflow-y:auto;padding:10px 12px}
-    .waiting-list::-webkit-scrollbar{width:4px}
-    .waiting-list::-webkit-scrollbar-track{background:#091524}
-    .waiting-list::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+    .waiting-list{flex:1;overflow-y:auto;padding:0}
+    .waiting-list::-webkit-scrollbar{width:5px}
+    .waiting-list::-webkit-scrollbar-track{background:#f1f5f9}
+    .waiting-list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
 
-    .wq-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
-      background:#0d1a28;border:1px solid #1a2e45;border-radius:11px;
-      margin-bottom:7px;transition:all .2s}
-    .wq-item:hover{background:#12243a;border-color:#2a4a6a}
-    .wq-item.wq-next{border-color:var(--cs-wq-next,#1565c0);background:#0b1e38}
-    .wq-item.wq-ret{border-left:3px solid rgba(255,152,0,.5);background:#0d1b26}
-    .wq-item.wq-next.wq-ret{border-left:3px solid #ff9800}
-    .wq-pos{font-size:.65rem;font-weight:700;color:#2a4060;min-width:22px;
-      text-align:center;flex-shrink:0;line-height:1.2}
-    .wq-next .wq-pos{color:#ffd54f;font-size:.72rem}
-    .wq-badge{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
-      justify-content:center;font-size:.82rem;font-weight:900;color:#000;flex-shrink:0}
-    .wq-num{font-size:var(--cs-wq-fs,1.15rem);font-weight:800;letter-spacing:1px}
-    .wq-info{flex:1;min-width:0}
-    .wq-type{font-size:var(--cs-wq-meta-fs,.72rem);color:#3a5a78;margin-top:1px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-    .wq-ret-badge{background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.4);
-      color:#ff9800;border-radius:5px;padding:1px 6px;font-size:.6rem;font-weight:700;white-space:nowrap}
-    .wq-time{font-size:var(--cs-wq-meta-fs,.72rem);color:#2a4060;margin-top:1px}
-    .btn-call-item{padding:5px 13px;border-radius:7px;border:none;
-      background:linear-gradient(135deg,var(--cs-btn-ci1,#1976d2),var(--cs-btn-ci2,#0d47a1));color:#fff;
-      font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;
-      font-family:inherit;transition:opacity .2s,transform .12s}
-    .btn-call-item:hover{opacity:.85;transform:scale(1.04)}
-    .wq-empty{text-align:center;color:#1a2e45;padding:40px 16px;font-size:.88rem}
+    /* ── Queue table ── */
+    .wq-thead,.wq-item{
+      display:grid;grid-template-columns:var(--wq-cols);
+      gap:0;align-items:stretch}
+
+    /* Header */
+    .wq-thead{background:var(--wq-thead-bg,#1e40af);
+      flex-shrink:0;border-bottom:2px solid rgba(0,0,0,.14)}
+    .wq-th{font-size:var(--wq-th-fs,.72rem);font-weight:700;color:var(--wq-thead-clr,#fff);
+      letter-spacing:.6px;text-align:center;padding:12px 6px;white-space:nowrap;
+      display:flex;align-items:center;justify-content:center;
+      border-right:1px solid rgba(255,255,255,.12);text-transform:uppercase}
+    .wq-th:last-child{border-right:none}
+
+    /* Row */
+    .wq-item{background:#fff;border-bottom:1px solid #e2e8f0;
+      border-radius:0;margin-bottom:0;overflow:hidden;transition:background .15s}
+    .wq-item:nth-child(even){background:#f8fafc}
+    .wq-item:hover{background:#eff6ff}
+    .wq-item.wq-next{background:#dbeafe;border-left:5px solid #2563eb}
+    .wq-item.wq-ret{border-left:5px solid #f97316}
+    .wq-item.wq-next.wq-ret{background:#fff7ed;border-left:5px solid #f97316}
+
+    /* Cell base */
+    .wq-item > *{
+      padding:9px 8px;
+      border-right:1px solid #e2e8f0;
+      overflow:hidden;min-width:0;
+      display:flex;align-items:center;justify-content:center;
+      min-height:56px}
+    .wq-item > *:last-child{border-right:none}
+
+    /* Col 1: queue number */
+    .wq-num-cell{gap:6px;justify-content:center}
+    .wq-badge{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;
+      justify-content:center;font-size:.7rem;font-weight:900;color:#fff;flex-shrink:0;
+      box-shadow:0 2px 6px rgba(0,0,0,.22)}
+    .wq-num{font-size:var(--cs-wq-fs,1.25rem);font-weight:900;letter-spacing:1px;line-height:1}
+
+    /* Col 2-3: type / time */
+    .wq-type-cell{flex-direction:column;align-items:center;justify-content:center;gap:4px}
+    .wq-time-cell{flex-direction:column;align-items:center;justify-content:center}
+    .wq-type{font-size:var(--cs-wq-meta-fs,.7rem);font-weight:700;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      text-align:center;max-width:100%;
+      padding:3px 10px;border-radius:20px}
+    .wq-time{font-size:.88rem;color:#475569;font-weight:700;
+      letter-spacing:.3px;white-space:nowrap;text-align:center}
+    .wq-ret-badge{display:inline-block;background:rgba(249,115,22,.1);
+      border:1px solid rgba(249,115,22,.4);color:#c2410c;
+      border-radius:20px;padding:2px 7px;font-size:.58rem;font-weight:700;white-space:nowrap}
+
+    /* Col 4: patient name — left-aligned */
+    .wq-patient-cell{flex-direction:column;align-items:flex-start;justify-content:center;
+      padding-left:12px;gap:2px}
+    .wq-patient{font-size:var(--wq-patient-fs,1.0rem);color:#0f172a;font-weight:700;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;line-height:1.25}
+    .wq-ipd-lbl{font-size:.58rem;color:#15803d;white-space:nowrap;line-height:1;font-weight:700;
+      background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:1px 6px}
+
+    /* Col 5: สิทธิการรักษา (own column) */
+    .wq-pttype-cell{flex-direction:column;align-items:center;justify-content:center;padding:8px 6px}
+    .wq-pttype{display:inline-block;
+      background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(245,158,11,.08));
+      border:1px solid rgba(217,119,6,.35);color:#92400e;
+      border-radius:8px;padding:4px 10px;font-size:.68rem;font-weight:700;
+      white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-align:center;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+
+    /* Col 6-7: HN / QN */
+    .wq-hn-cell,.wq-qn-cell{justify-content:center}
+    .wq-hn-val{font-size:var(--wq-hn-fs,.88rem);color:#475569;font-weight:700;
+      letter-spacing:.3px;text-align:center;white-space:nowrap}
+
+    /* Col 8: action */
+    .wq-action-cell{justify-content:center}
+    .btn-call-item{padding:7px 16px;border-radius:20px;border:none;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
+      font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      font-family:inherit;transition:opacity .2s,transform .12s,box-shadow .2s;
+      box-shadow:0 2px 8px rgba(37,99,235,.35)}
+    .btn-call-item:hover{opacity:.92;transform:scale(1.06);box-shadow:0 4px 14px rgba(37,99,235,.5)}
+
+    .wq-empty{text-align:center;color:#94a3b8;padding:40px 16px;font-size:.88rem}
     .wq-empty-icon{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-    .wq-name-right{flex:1.8;text-align:right;min-width:0;padding-left:10px}
-    .wq-hn-row{display:flex;justify-content:flex-end;align-items:baseline;gap:18px;margin-bottom:5px}
-    .wq-hn-item{display:flex;flex-direction:column;align-items:flex-end}
-    .wq-hn-lbl{font-size:.72rem;color:#3a5a78;letter-spacing:.8px;text-transform:uppercase}
-    .wq-hn-val{font-size:1.25rem;color:#fff;font-weight:800;letter-spacing:.5px}
-    .wq-patient{font-size:1.45rem;color:#90caf9;font-weight:700;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .wq-pttype{display:inline-block;background:rgba(255,213,79,.1);
-      border:1px solid rgba(255,213,79,.35);color:#ffd54f;
-      border-radius:6px;padding:1px 9px;font-size:.82rem;font-weight:600;
-      margin-left:8px;vertical-align:middle;white-space:nowrap}
 
     /* ── BOTTOM HISTORY ── */
     .history-strip{grid-column:1/-1;border-top:1px solid #1a2e45;
@@ -366,13 +418,16 @@
       border-radius:18px;padding:4px 13px;font-size:.78rem;cursor:pointer;font-family:inherit;
       transition:all .2s;white-space:nowrap;margin-left:8px}
     .btn-logout:hover{background:rgba(239,83,80,.25);color:#fff;border-color:#ef5350}
-    .nav-ipd-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;
-      background:rgba(46,125,50,.18);border:1px solid rgba(129,199,132,.35);
-      border-radius:20px;padding:3px 10px 3px 8px;font-size:.78rem;
-      color:rgba(255,255,255,.75);white-space:nowrap;transition:all .2s;user-select:none;margin-left:10px}
-    .nav-ipd-toggle:hover{background:rgba(46,125,50,.32)}
-    .nav-ipd-toggle.active{background:rgba(46,125,50,.42);border-color:rgba(129,199,132,.7);color:#a5d6a7}
-    .nav-ipd-lbl{font-weight:700;font-size:.75rem}
+    .nav-ipd-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;
+      background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.18);
+      border-radius:20px;padding:4px 12px 4px 10px;font-size:.8rem;
+      color:rgba(255,255,255,.6);white-space:nowrap;transition:all .22s;user-select:none;margin-left:10px}
+    .nav-ipd-toggle:hover{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85)}
+    .nav-ipd-toggle.active{
+      background:linear-gradient(135deg,#00c853,#00897b);
+      border-color:#69f0ae;color:#fff;font-weight:700;
+      box-shadow:0 0 10px rgba(0,200,83,.45),0 0 0 2px rgba(0,200,83,.2)}
+    .nav-ipd-lbl{font-weight:600;font-size:.78rem;letter-spacing:.2px}
     .nav-ipd-sw{position:relative;flex-shrink:0}
     .nav-ipd-sw input{opacity:0;width:0;height:0;position:absolute}
     .nav-ipd-knob{position:relative;width:32px;height:17px;
@@ -402,6 +457,7 @@
     </div>
   </label>
   <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
+  <button class="btn-gear btn-mini" onclick="openMiniWindow()" title="เปิดหน้าจอขนาดเล็ก" style="width:auto;padding:0 10px;font-size:.75rem;font-weight:700;border-radius:18px;gap:4px;display:flex;align-items:center">🪟 Mini</button>
   <button class="btn-gear" onclick="openStylePanel()" title="ตั้งค่าการแสดงผล">⚙</button>
 </nav>
 
@@ -414,10 +470,21 @@
   <div id="ipdBadge" style="display:none;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#a5d6a7;border-radius:10px;padding:3px 14px;font-size:.8rem;font-weight:700;margin-left:8px;white-space:nowrap">🛏 ผู้ป่วยใน (IPD)</div>
 </div>
 
-<div class="type-tabs" id="typeTabs">
-  <div class="ttab active" data-id="all" onclick="selectTab('all',this)">
-    ทั้งหมด <span class="tbcnt" id="cnt-all">0</span>
+<div style="display:flex;align-items:stretch;background:var(--cs-tabs-bg,#0d1a28);border-bottom:1px solid #1a2e45;flex-shrink:0;overflow:hidden">
+  <div class="type-tabs" id="typeTabs" style="border-bottom:none;flex:1;min-width:0">
+    <div class="ttab active" data-id="all" onclick="selectTab('all',this)">
+      ทั้งหมด <span class="tbcnt" id="cnt-all">0</span>
+    </div>
   </div>
+  <a id="btnHistLink" href="#" onclick="goHistory();return false;"
+     style="display:flex;align-items:center;gap:5px;padding:0 18px;flex-shrink:0;
+            font-size:.78rem;font-weight:600;color:#64b5f6;text-decoration:none;
+            white-space:nowrap;opacity:.8;transition:opacity .2s,background .2s;
+            border-left:1px solid #1a2e45"
+     onmouseover="this.style.opacity=1;this.style.background='rgba(66,165,245,.08)'"
+     onmouseout="this.style.opacity=.8;this.style.background=''">
+    📋 ประวัติเรียกคิว
+  </a>
 </div>
 
 <div class="layout">
@@ -439,8 +506,12 @@
       </label>
       <button class="btn btn-recall" id="btnRecall" onclick="recallCurrent()" disabled>↺ เรียกซ้ำ</button>
       <button class="btn btn-noshow" id="btnNoShow" onclick="markNoShow()"    disabled>✕ ไม่มา</button>
+      <div id="spLblRow" style="font-size:.68rem;color:#3a5a78;letter-spacing:.6px;margin-bottom:3px;display:flex;align-items:center;gap:5px;padding:0 2px">
+        <span id="spLblTxt">🔢 เลขคิว / HN</span>
+        <span style="font-size:.58rem;opacity:.55">📷 สแกนบาร์โค้ดได้</span>
+      </div>
       <div class="sp-row">
-        <input type="text" id="spNum" placeholder="เลขคิว เช่น A001 หรือ QN" maxlength="20"/>
+        <input type="text" id="spNum" placeholder="สแกน HN หรือพิมพ์เลขคิว" maxlength="30"/>
         <button class="btn-sp" onclick="callSpecific()">เรียก</button>
       </div>
     </div>
@@ -458,22 +529,19 @@
       <div class="rp-title"><span id="rpTitleTxt">📋 คิวรอเรียก</span> <span class="rp-cnt" id="rpCnt">0</span></div>
       <div class="rp-type-filter" id="rpFilter">ทั้งหมด</div>
     </div>
+    <div class="wq-thead">
+      <div class="wq-th">เลขคิว</div>
+      <div class="wq-th">ประเภท</div>
+      <div class="wq-th">เวลา</div>
+      <div class="wq-th">ชื่อผู้รับบริการ</div>
+      <div class="wq-th">สิทธิการรักษา</div>
+      <div class="wq-th">HN</div>
+      <div class="wq-th">QN</div>
+      <div class="wq-th"></div>
+    </div>
     <div class="waiting-list" id="waitingList"></div>
   </div>
 
-  <!-- BOTTOM: history -->
-  <div class="history-strip">
-    <div class="hist-tabs">
-      <div class="ht active" onclick="swHist('called',this)">
-        ประวัติเรียกคิว <span class="hc" id="hcC">0</span>
-      </div>
-      <div class="ht ns" onclick="swHist('noshow',this)">
-        เรียกแล้วไม่มา <span class="hc" id="hcN">0</span>
-      </div>
-    </div>
-    <div class="hist-pane active" id="paneCalled"></div>
-    <div class="hist-pane"        id="paneNoShow"></div>
-  </div>
 
 </div>
 
@@ -579,6 +647,33 @@
               oninput="onSCNum('wqMetaFs','cs_wqMetaFs',0.55,1.5,this.value)">
           </div>
         </div>
+        <div class="sp-field">
+          <label>หัวคอลัมน์ตาราง</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_wqThFs" min="0.40" max="1.2" step="0.02"
+              oninput="onSC('wqThFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_wqThFs" min="0.3" max="2" step="0.02"
+              oninput="onSCNum('wqThFs','cs_wqThFs',0.40,1.2,this.value)">
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>ชื่อผู้ป่วย</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_wqPatientFs" min="0.7" max="2.5" step="0.05"
+              oninput="onSC('wqPatientFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_wqPatientFs" min="0.5" max="4" step="0.05"
+              oninput="onSCNum('wqPatientFs','cs_wqPatientFs',0.7,2.5,this.value)">
+          </div>
+        </div>
+        <div class="sp-field">
+          <label>HN / QN</label>
+          <div class="sp-rrow">
+            <input type="range" id="cs_wqHnFs" min="0.7" max="2.5" step="0.05"
+              oninput="onSC('wqHnFs',this.value,true)">
+            <input type="number" class="sp-nval" id="lbl_wqHnFs" min="0.5" max="4" step="0.05"
+              oninput="onSCNum('wqHnFs','cs_wqHnFs',0.7,2.5,this.value)">
+          </div>
+        </div>
       </div>
       <div class="sp-sec">
         <div class="sp-sec-lbl">🔢 ขนาดตัวอักษร — อื่นๆ</div>
@@ -651,6 +746,11 @@
         <div class="sp-crow"><label>กล่องคิวปัจจุบัน (ล่าง)</label><input type="color" id="cs_calledBot" oninput="onSC('calledBot',this.value)"></div>
         <div class="sp-crow"><label>หัวรายการรอ</label><input type="color" id="cs_wqHdrBg" oninput="onSC('wqHdrBg',this.value)"></div>
         <div class="sp-crow"><label>แถบประวัติ</label><input type="color" id="cs_histBg" oninput="onSC('histBg',this.value)"></div>
+      </div>
+      <div class="sp-sec">
+        <div class="sp-sec-lbl">📋 หัวคอลัมน์ตารางรอ</div>
+        <div class="sp-crow"><label>พื้นหลัง</label><input type="color" id="cs_wqTheadBg" oninput="onSC('wqTheadBg',this.value)"></div>
+        <div class="sp-crow"><label>ตัวอักษร</label><input type="color" id="cs_wqTheadClr" oninput="onSC('wqTheadClr',this.value)"></div>
       </div>
       <div class="sp-sec">
         <div class="sp-sec-lbl">🔵 ปุ่มเรียกถัดไป</div>
@@ -839,6 +939,24 @@ function applyMode() {
   const badge = document.getElementById('ipdBadge');
   if (badge) badge.style.display = isIpd ? '' : 'none';
   document.title = isIpd ? 'เรียกคิว (IPD)' : 'เรียกคิว';
+  const spNum    = document.getElementById('spNum');
+  const spLblTxt = document.getElementById('spLblTxt');
+  if (spNum)    spNum.placeholder    = isIpd ? 'สแกน AN หรือพิมพ์เลขคิว' : 'สแกน HN หรือพิมพ์เลขคิว';
+  if (spLblTxt) spLblTxt.textContent = isIpd ? '🛏 AN / เลขคิว (IPD)' : '🏥 HN / เลขคิว (OPD)';
+}
+function goHistory() {
+  location.href = `/history.html?sys=${sysId}&mode=${cashierMode}`;
+}
+function openMiniWindow() {
+  const w = 360, h = 570;
+  const left = Math.max(0, screen.width  - w - 24);
+  const top  = Math.max(0, Math.round((screen.height - h) / 2));
+  const win  = window.open(
+    `/mini-cashier.html?sys=${sysId}&mode=${cashierMode}`,
+    'mini_cashier',
+    `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no`
+  );
+  if (win) win.focus();
 }
 function onModeToggle() {
   const chk = document.getElementById('chkIpd');
@@ -963,6 +1081,7 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   renderTabs(); renderWaiting(); renderCalledHist(); renderNoShowHist();
   updateStats(); renderCbar();
   document.getElementById('cbSkip').checked = skipConfirm;
+  document.getElementById('spNum').focus();
 });
 
 // ── Counter ───────────────────────────────────────────────────────────────
@@ -1043,28 +1162,35 @@ function renderWaiting() {
   }
   el.innerHTML = list.map((t, i) => `
     <div class="wq-item ${i===0?'wq-next':''} ${t.returned?'wq-ret':''}">
-      <div class="wq-pos">${i===0?'▶':('#'+(i+1))}</div>
-      <div class="wq-badge" style="background:${t.color}">${t.prefix}</div>
-      <div class="wq-info">
-        <div class="wq-num" style="color:${t.color}">${t.display}</div>
-        <div class="wq-type">
-          <span>${t.typeName}</span>
-          ${t.returned ? `<span class="wq-ret-badge">↩ ถูกเรียกไปแล้ว${t.returnCount>1?' ×'+t.returnCount:''}</span>` : ''}
-        </div>
-        <div class="wq-time">ออกคิว ${t.issuedAt}${t.returnedAt?` · คืนเวลา ${t.returnedAt}`:''}</div>
+      <div class="wq-num-cell">
+        <div class="wq-badge" style="background:${t.color}">${t.prefix}</div>
+        <span class="wq-num" style="color:${t.color}">${t.display}</span>
       </div>
-      <div class="wq-name-right">
-        ${(t.hn||t.qn||t.vn) ? `
-        <div class="wq-hn-row">
-          ${t.hn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">HN</span><span class="wq-hn-val">${t.hn}</span></div>` : ''}
-          ${t.mode === 'ipd'
-            ? (t.vn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">AN</span><span class="wq-hn-val">${t.vn}</span></div>` : '')
-            : (t.qn ? `<div class="wq-hn-item"><span class="wq-hn-lbl">QN</span><span class="wq-hn-val">${t.qn}</span></div>` : '')}
-        </div>` : ''}
-        ${t.patientName ? `<div class="wq-patient">👤 ${t.patientName}${t.pttypeName?`<span class="wq-pttype">${t.pttypeName}</span>`:''}</div>` : ''}
-        ${t.mode === 'ipd' ? `<div style="font-size:.62rem;color:#a5d6a7;margin-top:2px">🛏 ผู้ป่วยใน</div>` : ''}
+      <div class="wq-type-cell">
+        <div class="wq-type" style="background:${t.color}22;border:1px solid ${t.color}66;color:${t.color}">${t.typeName}</div>
+        ${t.returned?`<div class="wq-ret-badge">↩ ซ้ำ${t.returnCount>1?' ×'+t.returnCount:''}</div>`:''}
       </div>
-      <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
+      <div class="wq-time-cell">
+        <span class="wq-time">${t.issuedAt}</span>
+        ${t.returnedAt?`<div style="font-size:.6rem;color:#546e7a;margin-top:1px">คืน ${t.returnedAt}</div>`:''}
+      </div>
+      <div class="wq-patient-cell">
+        ${t.patientName
+          ?`<div class="wq-patient">👤 ${t.patientName}</div>${t.mode==='ipd'?`<div class="wq-ipd-lbl">🛏 ผู้ป่วยใน</div>`:''}`
+          :`<span style="color:#94a3b8;font-size:.85rem">—</span>`}
+      </div>
+      <div class="wq-pttype-cell">
+        ${t.pttypeName?`<span class="wq-pttype">${t.pttypeName}</span>`:`<span style="color:#94a3b8">—</span>`}
+      </div>
+      <div class="wq-hn-cell">${t.hn?`<span class="wq-hn-val">${t.hn}</span>`:`<span style="color:#94a3b8">—</span>`}</div>
+      <div class="wq-qn-cell">${
+        t.mode==='ipd'
+          ?(t.vn?`<span class="wq-hn-val">${t.vn}</span>`:`<span style="color:#94a3b8">—</span>`)
+          :(t.qn?`<span class="wq-hn-val">${t.qn}</span>`:`<span style="color:#94a3b8">—</span>`)
+      }</div>
+      <div class="wq-action-cell">
+        <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
+      </div>
     </div>`).join('');
 }
 
@@ -1078,8 +1204,8 @@ function updateStats() {
   document.getElementById('stW').textContent = waiting;
   document.getElementById('stS').textContent = servedList.length;
   document.getElementById('stN').textContent = nsList.length;
-  document.getElementById('hcC').textContent = servedList.length;
-  document.getElementById('hcN').textContent = nsList.length;
+  const hcC = document.getElementById('hcC'); if (hcC) hcC.textContent = servedList.length;
+  const hcN = document.getElementById('hcN'); if (hcN) hcN.textContent = nsList.length;
 }
 
 // ── Called display ────────────────────────────────────────────────────────
@@ -1120,6 +1246,7 @@ function renderCalledHist() {
   let list = (activeTab === 'all' ? allServed : allServed.filter(t => t.typeId == activeTab))
               .filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneCalled');
+  if (!el) return;
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ยังไม่มีประวัติ</div>'; return; }
   el.innerHTML = `
     <div class="h-thead thead-called">
@@ -1150,6 +1277,7 @@ function renderNoShowHist() {
   let list = (activeTab === 'all' ? noShows : noShows.filter(t => t.typeId == activeTab))
               .filter(t => (t.mode || 'opd') === cashierMode);
   const el   = document.getElementById('paneNoShow');
+  if (!el) return;
   if (!list.length) { el.innerHTML = '<div style="color:#1a2e45;text-align:center;padding:16px;font-size:.82rem">ไม่มีรายการ</div>'; return; }
   el.innerHTML = `
     <div class="h-thead thead-ns">
@@ -1274,9 +1402,24 @@ function callSpecific() {
   const val = raw.toUpperCase();
   inp.value = '';
   inp.focus();
-  // ค้นหาจาก display (A001) หรือ QN (เลขคิว HIS)
-  const t = allWaiting.find(x => x.display === val)
-         || allWaiting.find(x => x.qn && String(x.qn).trim() === raw.trim());
+
+  const isIpd   = cashierMode === 'ipd';
+  const modList  = allWaiting.filter(x => (x.mode || 'opd') === cashierMode);
+
+  // 1. ตรงกับ display number เช่น A001
+  let t = modList.find(x => x.display && x.display.toUpperCase() === val);
+  // 2. ตรงกับ QN (เลขคิว HIS)
+  t = t || modList.find(x => x.qn && String(x.qn).trim() === raw.trim());
+  if (isIpd) {
+    // 3. IPD: ตรงกับ AN (เก็บใน vn)
+    t = t || modList.find(x => x.vn && String(x.vn).trim() === raw.trim());
+    // 4. IPD: ตรงกับ HN
+    t = t || modList.find(x => x.hn && String(x.hn).trim() === raw.trim());
+  } else {
+    // 3. OPD: ตรงกับ HN
+    t = t || modList.find(x => x.hn && String(x.hn).trim() === raw.trim());
+  }
+
   if (t) {
     pendingCall = { type: 'display', display: t.display };
     if (skipConfirm) { confirmCall(); } else { showConfirm(t); }
@@ -1298,12 +1441,46 @@ function toast(msg, type = '') {
 document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target.id === 'confirmOverlay') closeConfirm(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closeStylePanel(); } });
 
+// ── Global hardware barcode scanner (keyboard wedge) ──────────────────────
+// Barcode gun fires keystrokes very fast then sends Enter.
+// Capture globally so it works even when spNum doesn't have focus.
+let _hwBuf = '', _hwTimer = null;
+document.addEventListener('keydown', function(e) {
+  const spEl  = document.getElementById('spNum');
+  const tag   = document.activeElement?.tagName;
+  // If already typing in spNum, let the normal input/keydown handlers work
+  if (document.activeElement === spEl) return;
+  // Ignore if focus is in any other input / textarea / select
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  // Ignore modifier-key combos
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  if (e.key === 'Enter') {
+    const val = _hwBuf.trim();
+    _hwBuf = ''; clearTimeout(_hwTimer);
+    // Min 3 chars = likely a real barcode (not a stray Enter)
+    if (val.length >= 3) {
+      e.preventDefault();
+      spEl.value = val;
+      callSpecific();
+    }
+    return;
+  }
+  if (e.key.length === 1) {
+    _hwBuf += e.key;
+    clearTimeout(_hwTimer);
+    // 150ms gap = end of barcode burst; clear buffer if no Enter follows
+    _hwTimer = setTimeout(() => { _hwBuf = ''; }, 150);
+  }
+});
+
 // ── Style settings ────────────────────────────────────────────────────────
 const SKEY = 'qf_cashier_style_' + sysId;
 const DEF_STYLE = {
   bodyBg:'#0b141f', navBg:'#0d1f33', cbarBg:'#08111c',
   tabsBg:'#0d1a28', calledTop:'#0d1f33', calledBot:'#091524',
   wqHdrBg:'#0d1a28', histBg:'#080f18',
+  wqTheadBg:'#1e40af', wqTheadClr:'#ffffff',
   leftW:420,
   btnNext1:'#1976d2', btnNext2:'#0d47a1',
   btnRecallBg:'#12253a', btnRecallClr:'#64b5f6',
@@ -1316,7 +1493,7 @@ const DEF_STYLE = {
   callTypeClr:'#64b5f6', callCtrClr:'#ffd54f',
   callFs:4.5, callMetaFs:0.78,
   btnNextFs:0.95, statFs:1.7,
-  wqFs:1.4, wqMetaFs:0.85,
+  wqFs:1.4, wqMetaFs:0.73, wqThFs:0.60, wqPatientFs:1.08, wqHnFs:1.05,
   showStats:true, showHistory:true, showSkip:true, showCallDetail:true,
   lblLogo:'⬡ ระบบคิว', lblCbarCtr:'ช่องบริการ:', lblCalledTop:'กำลังให้บริการ',
   lblBtnNext:'▶ เรียกคิวถัดไป', lblBtnRecall:'↺ เรียกซ้ำ', lblBtnNoShow:'✕ ไม่มา',
@@ -1370,6 +1547,11 @@ function applyStyle() {
   r.setProperty('--cs-btn-noshow-fs', (cStyle.btnNoShowFs || 0.88) + 'rem');
   r.setProperty('--cs-stat-lbl-fs',   (cStyle.statLblFs   || 0.68) + 'rem');
   r.setProperty('--cs-rp-title-fs',   (cStyle.wqHdrFs     || 0.82) + 'rem');
+  r.setProperty('--wq-th-fs',         (cStyle.wqThFs      || 0.72) + 'rem');
+  r.setProperty('--wq-patient-fs',    (cStyle.wqPatientFs || 1.0)  + 'rem');
+  r.setProperty('--wq-hn-fs',         (cStyle.wqHnFs      || 1.0)  + 'rem');
+  r.setProperty('--wq-thead-bg',      cStyle.wqTheadBg || '#1e40af');
+  r.setProperty('--wq-thead-clr',     cStyle.wqTheadClr || '#ffffff');
   const setTxt = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
   setTxt('navLogo',      cStyle.lblLogo      || DEF_STYLE.lblLogo);
   setTxt('cbarLbl',      cStyle.lblCbarCtr   || DEF_STYLE.lblCbarCtr);
@@ -1425,6 +1607,9 @@ function onSC(key, val, isNum) {
   if (key === 'btnNoShowFs') setV('lbl_btnNoShowFs', Number(val).toFixed(2));
   if (key === 'statLblFs')   setV('lbl_statLblFs',   Number(val).toFixed(2));
   if (key === 'wqHdrFs')     setV('lbl_wqHdrFs',     Number(val).toFixed(2));
+  if (key === 'wqThFs')      setV('lbl_wqThFs',      Number(val).toFixed(2));
+  if (key === 'wqPatientFs') setV('lbl_wqPatientFs', Number(val).toFixed(2));
+  if (key === 'wqHnFs')      setV('lbl_wqHnFs',      Number(val).toFixed(2));
 }
 function onSCNum(key, rangeId, min, max, val) {
   cStyle[key] = Number(val);
@@ -1445,6 +1630,7 @@ function onST2(key, val) {
 
 function restoreStyleInputs() {
   ['bodyBg','navBg','cbarBg','tabsBg','calledTop','calledBot','wqHdrBg','histBg',
+   'wqTheadBg','wqTheadClr',
    'btnNext1','btnNext2','btnRecallBg','btnRecallClr','btnNoshow1','btnNoshow2',
    'btnCi1','btnCi2','wqNext','statW','statS','statN',
    'navTxt','logoClr','callTypeClr','callCtrClr'].forEach(k => {
@@ -1458,6 +1644,9 @@ function restoreStyleInputs() {
   document.getElementById('cs_statFs').value      = cStyle.statFs;
   document.getElementById('cs_wqFs').value        = cStyle.wqFs;
   document.getElementById('cs_wqMetaFs').value    = cStyle.wqMetaFs;
+  const _wqThEl = document.getElementById('cs_wqThFs'); if (_wqThEl) _wqThEl.value = cStyle.wqThFs || 0.60;
+  const _wqPtEl = document.getElementById('cs_wqPatientFs'); if (_wqPtEl) _wqPtEl.value = cStyle.wqPatientFs || 1.08;
+  const _wqHnEl = document.getElementById('cs_wqHnFs'); if (_wqHnEl) _wqHnEl.value = cStyle.wqHnFs || 1.05;
   document.getElementById('cs_leftW').value       = cStyle.leftW;
   document.getElementById('cs_showStats').checked      = cStyle.showStats;
   document.getElementById('cs_showHistory').checked    = cStyle.showHistory;
@@ -1470,6 +1659,10 @@ function restoreStyleInputs() {
   document.getElementById('lbl_statFs').value      = Number(cStyle.statFs).toFixed(1);
   document.getElementById('lbl_wqFs').value        = Number(cStyle.wqFs).toFixed(2);
   document.getElementById('lbl_wqMetaFs').value    = Number(cStyle.wqMetaFs).toFixed(2);
+  const setLbl = (id, v, d) => { const e=document.getElementById(id); if(e) e.value=Number(v||d).toFixed(2); };
+  setLbl('lbl_wqThFs',      cStyle.wqThFs,      0.60);
+  setLbl('lbl_wqPatientFs', cStyle.wqPatientFs, 1.08);
+  setLbl('lbl_wqHnFs',      cStyle.wqHnFs,      1.05);
   document.getElementById('lbl_leftW').value       = cStyle.leftW;
   const setTx = (id, val) => { const e=document.getElementById(id); if(e) e.value=val||''; };
   setTx('tx_logo',      cStyle.lblLogo);

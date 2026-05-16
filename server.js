@@ -122,9 +122,14 @@ function loadSysData(sysId) {
   const screenConfigFile = path.join(dir, 'screen-config.json');
 
   const queueTypes = loadJson(typesFile, [
-    { id: 1, name: 'ทั่วไป',    prefix: 'A', color: '#42a5f5' },
-    { id: 2, name: 'นิติบุคคล', prefix: 'B', color: '#66bb6a' },
+    { id: 1, name: 'ทั่วไป',    prefix: 'A', color: '#42a5f5', forMode: 'both' },
+    { id: 2, name: 'นิติบุคคล', prefix: 'B', color: '#66bb6a', forMode: 'both' },
   ]);
+  // migrate old types that were created before forMode field existed
+  let _typesChanged = false;
+  queueTypes.forEach(t => { if (!t.forMode) { t.forMode = 'both'; _typesChanged = true; } });
+  if (_typesChanged) saveJson(typesFile, queueTypes);
+
   const counters = loadJson(ctrsFile, [
     { id: 1, name: 'ช่อง 1' },
     { id: 2, name: 'ช่อง 2' },
@@ -424,12 +429,12 @@ app.get('/api/sys/:sysId/queue-types', requireSys, (req, res) => res.json(req.sy
 
 app.post('/api/sys/:sysId/queue-types', requireSys, (req, res) => {
   const { sys, sysId } = req;
-  const { name, prefix, color } = req.body;
+  const { name, prefix, color, forMode } = req.body;
   if (!name) return res.status(400).json({ success: false, message: 'ต้องระบุชื่อประเภทคิว' });
   const p = (prefix || '').toUpperCase().trim();
   if (p !== '' && sys.queueTypes.find(t => t.prefix === p))
     return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
-  const type = { id: sys.nextTypeId++, name: name.trim(), prefix: p, color: color || '#42a5f5' };
+  const type = { id: sys.nextTypeId++, name: name.trim(), prefix: p, color: color || '#42a5f5', forMode: forMode || 'both' };
   sys.queueTypes.push(type); initTypeState(sys, type.id);
   saveJson(sys.typesFile, sys.queueTypes);
   io.to('sys-' + sysId).emit('types_updated', sys.queueTypes);
@@ -441,15 +446,16 @@ app.put('/api/sys/:sysId/queue-types/:id', requireSys, (req, res) => {
   const id  = parseInt(req.params.id);
   const idx = sys.queueTypes.findIndex(t => t.id === id);
   if (idx === -1) return res.status(404).json({ success: false, message: 'ไม่พบประเภทคิว' });
-  const { name, prefix, color } = req.body;
+  const { name, prefix, color, forMode } = req.body;
   if (prefix !== undefined && prefix !== null) {
     const p = prefix.toUpperCase().trim();
     if (p !== '' && sys.queueTypes.find(t => t.id !== id && t.prefix === p))
       return res.status(400).json({ success: false, message: `Prefix "${p}" ถูกใช้แล้ว` });
     sys.queueTypes[idx].prefix = p;
   }
-  if (name)  sys.queueTypes[idx].name  = name.trim();
-  if (color) sys.queueTypes[idx].color = color;
+  if (name)    sys.queueTypes[idx].name    = name.trim();
+  if (color)   sys.queueTypes[idx].color   = color;
+  if (forMode) sys.queueTypes[idx].forMode = forMode;
   saveJson(sys.typesFile, sys.queueTypes);
   io.to('sys-' + sysId).emit('types_updated', sys.queueTypes);
   res.json({ success: true, type: sys.queueTypes[idx] });
@@ -825,7 +831,13 @@ app.get('/api/sys/:sysId/display-settings', requireSys, (req, res) => res.json(r
 
 app.post('/api/sys/:sysId/display-settings', requireSys, (req, res) => {
   const { sys, sysId } = req;
-  Object.assign(sys.displaySettings, req.body);
+  const { mode, ...rest } = req.body;
+  if (mode) {
+    if (!sys.displaySettings.modes) sys.displaySettings.modes = {};
+    sys.displaySettings.modes[mode] = rest;
+  } else {
+    Object.assign(sys.displaySettings, req.body);
+  }
   saveJson(sys.displaySettingsFile, sys.displaySettings);
   io.to('sys-' + sysId).emit('display_settings_updated', sys.displaySettings);
   res.json({ success: true });

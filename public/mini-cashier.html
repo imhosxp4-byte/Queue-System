@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="theme-color" content="#1d4ed8"/>
+  <title>Mini เรียกคิว</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Tahoma,sans-serif;
+      background:linear-gradient(150deg,#dbeafe 0%,#bfdbfe 30%,#e0f2fe 65%,#cffafe 100%);
+      color:#0d2d52;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* ── Header ── */
+    .hdr{background:rgba(255,255,255,.72);border-bottom:1.5px solid rgba(96,165,250,.35);
+      padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;
+      backdrop-filter:blur(8px)}
+    .hdr-logo{font-size:.92rem;font-weight:800;color:#1d4ed8;letter-spacing:.5px}
+    .hdr-sys{font-size:.72rem;color:#64748b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hdr-mode{font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0}
+    .hdr-mode.opd{background:#dbeafe;border:1.5px solid #93c5fd;color:#1d4ed8}
+    .hdr-mode.ipd{background:linear-gradient(135deg,#d1fae5,#a7f3d0);
+      border:1.5px solid #6ee7b7;color:#065f46;box-shadow:0 0 7px rgba(52,211,153,.3)}
+
+    /* ── Counter bar ── */
+    .ctr-bar{background:rgba(255,255,255,.55);border-bottom:1px solid rgba(147,197,253,.4);
+      padding:5px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .ctr-lbl{font-size:.65rem;color:#6b7a99;white-space:nowrap;font-weight:600}
+    .ctr-sel{background:#fff;border:1.5px solid #93c5fd;color:#1d4ed8;border-radius:10px;
+      padding:3px 8px;font-size:.75rem;font-weight:600;cursor:pointer;outline:none;
+      font-family:inherit;flex:1;min-width:0}
+    .ctr-sel:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+    .ctr-sel option{background:#fff;color:#0d2d52}
+
+    /* ── Called box ── */
+    .called-box{background:rgba(255,255,255,.65);backdrop-filter:blur(6px);
+      padding:14px 16px 12px;border-bottom:1.5px solid rgba(147,197,253,.35);flex-shrink:0;
+      box-shadow:0 2px 12px rgba(59,130,246,.08)}
+    .called-lbl{font-size:.58rem;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;
+      font-weight:700;margin-bottom:8px}
+    .called-main{display:flex;align-items:center;gap:12px;min-height:58px}
+    .c-badge{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;
+      justify-content:center;font-size:1.4rem;font-weight:900;color:#fff;flex-shrink:0;
+      box-shadow:0 4px 14px rgba(0,0,0,.18)}
+    .c-num{font-size:3rem;font-weight:900;letter-spacing:3px;line-height:1}
+    .c-info{flex:1;min-width:0}
+    .c-patient{font-size:.82rem;color:#1e40af;font-weight:700;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis}
+    .c-type{font-size:.68rem;color:#3b82f6;margin-top:2px;font-weight:600}
+    .c-time{font-size:.62rem;color:#94a3b8;margin-top:2px}
+    .idle-txt{font-size:.82rem;color:#94a3b8;font-style:italic}
+
+    /* ── Next preview ── */
+    .next-bar{background:rgba(219,234,254,.6);border-bottom:1px solid rgba(147,197,253,.35);
+      padding:5px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .next-lbl{font-size:.62rem;color:#6b7a99;white-space:nowrap;font-weight:600}
+    .next-num{font-weight:800;font-size:.9rem;color:#1d4ed8}
+    .next-name{font-size:.68rem;color:#3b82f6;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ── Action area ── */
+    .action-box{padding:11px 13px;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+    .btn{width:100%;padding:11px;border-radius:11px;border:none;font-size:.88rem;
+      font-weight:700;cursor:pointer;font-family:inherit;transition:transform .1s,box-shadow .15s,opacity .15s;
+      display:flex;align-items:center;justify-content:center;gap:6px}
+    .btn:hover{transform:translateY(-2px)}
+    .btn:active{transform:translateY(0)}
+    .btn:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-next{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
+      font-size:.95rem;padding:13px;box-shadow:0 4px 14px rgba(37,99,235,.35)}
+    .btn-next:hover{box-shadow:0 6px 18px rgba(37,99,235,.45)}
+    .btn-row{display:flex;gap:7px}
+    .btn-recall{flex:1;background:#fff;color:#2563eb;border:2px solid #93c5fd;font-size:.82rem;
+      box-shadow:0 2px 8px rgba(37,99,235,.12)}
+    .btn-recall:hover{background:#eff6ff;box-shadow:0 4px 12px rgba(37,99,235,.2)}
+    .btn-noshow{flex:1;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;
+      font-size:.82rem;box-shadow:0 4px 12px rgba(239,68,68,.3)}
+    .btn-noshow:hover{box-shadow:0 6px 16px rgba(239,68,68,.4)}
+
+    /* ── Scan row ── */
+    .scan-box{padding:0 13px 10px;flex-shrink:0}
+    .scan-lbl{font-size:.6rem;color:#6b7a99;margin-bottom:4px;letter-spacing:.4px;font-weight:600}
+    .scan-row{display:flex;gap:6px}
+    .scan-inp{flex:1;background:#fff;border:1.5px solid #93c5fd;border-radius:9px;
+      padding:9px 12px;color:#0d2d52;font-size:.85rem;text-align:center;
+      text-transform:uppercase;font-family:inherit;
+      box-shadow:inset 0 1px 3px rgba(0,0,0,.06)}
+    .scan-inp:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+    .scan-inp::placeholder{color:#94a3b8}
+    .btn-scan{padding:9px 16px;border-radius:9px;border:none;
+      background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;
+      font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;
+      box-shadow:0 3px 10px rgba(8,145,178,.3)}
+    .btn-scan:hover{opacity:.9;transform:translateY(-1px)}
+
+    /* ── Stats ── */
+    .stats-box{margin-top:auto;padding:9px 13px;display:grid;grid-template-columns:repeat(3,1fr);
+      gap:7px;border-top:1.5px solid rgba(147,197,253,.35);flex-shrink:0}
+    .stat{background:rgba(255,255,255,.75);border-radius:10px;padding:8px 4px;text-align:center;
+      border:1px solid rgba(147,197,253,.35);box-shadow:0 2px 8px rgba(37,99,235,.07)}
+    .sv{font-size:1.6rem;font-weight:800}
+    .sl{font-size:.6rem;color:#6b7a99;margin-top:1px;font-weight:600}
+    .sv-w{color:#f59e0b}.sv-s{color:#10b981}.sv-n{color:#ef4444}
+
+    /* ── Confirm overlay ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(14,30,60,.5);
+      backdrop-filter:blur(4px);z-index:50;align-items:center;justify-content:center}
+    .overlay.open{display:flex}
+    .cfm-box{background:#fff;border:1.5px solid #93c5fd;border-radius:18px;
+      padding:22px 24px;width:88%;max-width:290px;text-align:center;
+      box-shadow:0 8px 32px rgba(37,99,235,.18)}
+    .cfm-box h3{font-size:.9rem;color:#1d4ed8;margin-bottom:4px;font-weight:700}
+    .cfm-sub{font-size:.75rem;color:#94a3b8;margin-bottom:12px}
+    .cfm-ticket{display:flex;align-items:center;justify-content:center;gap:12px;
+      background:#eff6ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;
+      border:1px solid #bfdbfe}
+    .ct-badge{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;
+      justify-content:center;font-size:.95rem;font-weight:900;color:#fff;flex-shrink:0;
+      box-shadow:0 3px 10px rgba(0,0,0,.15)}
+    .ct-num{font-size:2.3rem;font-weight:900;letter-spacing:2px;line-height:1}
+    .cfm-btns{display:flex;gap:8px}
+    .btn-cfm{flex:1;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;
+      border-radius:10px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer;
+      font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+    .btn-cfm:hover{opacity:.9}
+    .btn-cncl{flex:1;background:#f8fafc;color:#64748b;border:1.5px solid #cbd5e1;
+      border-radius:10px;padding:11px;font-size:.82rem;cursor:pointer;font-family:inherit}
+    .btn-cncl:hover{background:#f1f5f9}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%) translateY(60px);
+      background:#fff;border:1.5px solid #93c5fd;color:#0d2d52;padding:8px 20px;
+      border-radius:22px;font-size:.78rem;font-weight:600;
+      transition:transform .3s;z-index:99;white-space:nowrap;
+      box-shadow:0 4px 16px rgba(37,99,235,.18)}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.err{border-color:#fca5a5;color:#dc2626}
+    .toast.ok{border-color:#6ee7b7;color:#065f46}
+
+    /* ── Header action buttons ── */
+    .btn-min,.btn-popout{border-radius:8px;width:28px;height:28px;cursor:pointer;
+      font-size:.82rem;display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;transition:all .15s;margin-left:4px;font-family:inherit;padding:0}
+    .btn-min{background:rgba(255,255,255,.25);border:1.5px solid rgba(255,255,255,.35);color:#1d4ed8}
+    .btn-min:hover{background:rgba(37,99,235,.12);border-color:#93c5fd}
+    .btn-popout{background:linear-gradient(135deg,#7c3aed,#6d28d9);
+      border:1.5px solid #a78bfa;color:#fff;
+      box-shadow:0 2px 8px rgba(109,40,217,.35)}
+    .btn-popout:hover{box-shadow:0 3px 12px rgba(109,40,217,.5);transform:translateY(-1px)}
+
+    /* ── Mini (avatar) state ── */
+    body.is-mini{background:transparent;min-height:0;height:auto;overflow:hidden}
+    body.is-mini .hdr,body.is-mini .ctr-bar,body.is-mini .called-box,
+    body.is-mini .next-bar,body.is-mini .action-box,body.is-mini .scan-box,
+    body.is-mini .stats-box,body.is-mini .overlay,body.is-mini .toast{display:none!important}
+    body.is-mini .avatar-bubble{display:flex}
+
+    /* ── Mini state: body background matches title-bar theme-color ── */
+    body.is-mini{background:#1d4ed8!important}
+
+    /* ── Float mode: avatar fills the whole tiny window ── */
+    body.is-float.is-mini .avatar-bubble{
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      width:100vw;height:100vh;
+      border-radius:0;border:none;
+      box-shadow:none;animation:none;
+      transform:none!important;
+      cursor:pointer}
+
+    /* ── Avatar bubble ── */
+    .avatar-bubble{display:none;position:fixed;bottom:20px;right:20px;
+      width:80px;height:80px;border-radius:50%;cursor:pointer;z-index:9999;
+      flex-direction:column;align-items:center;justify-content:center;
+      background:linear-gradient(145deg,#3b82f6,#1d4ed8);
+      border:3px solid #93c5fd;
+      box-shadow:0 6px 24px rgba(37,99,235,.55),0 0 0 5px rgba(147,197,253,.2);
+      animation:avFloat 3s ease-in-out infinite;
+      transition:transform .18s,box-shadow .18s;
+      user-select:none;touch-action:none}
+    .avatar-bubble:hover{transform:scale(1.08) translateY(-4px)!important;
+      box-shadow:0 10px 32px rgba(37,99,235,.65),0 0 0 8px rgba(147,197,253,.25)}
+    .avatar-bubble:active{transform:scale(.95)!important}
+    .avatar-bubble.pulse{animation:avPulse .55s ease 3,avFloat 3s ease-in-out 1.65s infinite}
+
+    @keyframes avFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+    @keyframes avPulse{
+      0%{box-shadow:0 6px 24px rgba(37,99,235,.55),0 0 0 5px rgba(147,197,253,.2)}
+      50%{box-shadow:0 6px 30px rgba(37,99,235,.85),0 0 0 14px rgba(147,197,253,.35),0 0 0 26px rgba(147,197,253,.1)}
+      100%{box-shadow:0 6px 24px rgba(37,99,235,.55),0 0 0 5px rgba(147,197,253,.2)}}
+
+    .av-char{font-size:2.1rem;line-height:1;pointer-events:none}
+    .av-num{font-size:.7rem;font-weight:900;color:#fff;letter-spacing:1.5px;
+      line-height:1;min-height:.85rem;pointer-events:none}
+    .av-badge{display:none;position:absolute;top:-5px;right:-5px;
+      background:#ef4444;color:#fff;border-radius:50%;width:22px;height:22px;
+      font-size:.62rem;font-weight:800;align-items:center;justify-content:center;
+      border:2.5px solid #dbeafe;box-shadow:0 2px 6px rgba(239,68,68,.45)}
+    .av-dot{position:absolute;bottom:5px;right:5px;width:12px;height:12px;
+      border-radius:50%;border:2px solid #fff;background:#94a3b8;transition:background .3s}
+    .av-dot.active{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.6)}
+    .av-tip{position:absolute;bottom:88px;left:50%;transform:translateX(-50%);
+      background:rgba(15,23,42,.82);color:#e2e8f0;
+      font-size:.6rem;white-space:nowrap;padding:4px 9px;border-radius:8px;
+      opacity:0;transition:opacity .2s;pointer-events:none;backdrop-filter:blur(4px)}
+    .avatar-bubble:hover .av-tip{opacity:1}
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <span class="hdr-logo">⬡ เรียกคิว</span>
+  <span class="hdr-sys" id="hdrSys"></span>
+  <span class="hdr-mode" id="hdrMode">OPD</span>
+  <button class="btn-popout" id="btnFloat" onclick="minimizeMini()" title="ย่อเป็นการ์ตูนลอยหน้าจอ">🪄</button>
+</div>
+
+<div class="ctr-bar">
+  <span class="ctr-lbl">🪟 ช่องบริการ:</span>
+  <select id="ctrSel" class="ctr-sel" onchange="pickCtr(this.value)">
+    <option value="">— เลือก —</option>
+  </select>
+</div>
+
+<div class="called-box">
+  <div class="called-lbl">กำลังให้บริการ</div>
+  <div class="called-main" id="calledMain">
+    <div class="idle-txt">ยังไม่มีการเรียกคิว</div>
+  </div>
+</div>
+
+<div class="next-bar">
+  <span class="next-lbl">ถัดไป :</span>
+  <span class="next-num" id="nextNum">—</span>
+  <span class="next-name" id="nextName"></span>
+</div>
+
+<div class="action-box">
+  <button class="btn btn-next" onclick="callNext()">▶ เรียกคิวถัดไป</button>
+  <div class="btn-row">
+    <button class="btn btn-recall" id="btnRecall" onclick="recallCurrent()" disabled>↺ เรียกซ้ำ</button>
+    <button class="btn btn-noshow" id="btnNoShow" onclick="markNoShow()" disabled>✕ ไม่มา</button>
+  </div>
+</div>
+
+<div class="scan-box">
+  <div class="scan-lbl" id="scanLbl">🔢 HN / เลขคิว — สแกนบาร์โค้ดได้</div>
+  <div class="scan-row">
+    <input id="spNum" type="text" class="scan-inp" placeholder="สแกน HN หรือพิมพ์เลขคิว" maxlength="30"/>
+    <button class="btn-scan" onclick="callSpecific()">เรียก</button>
+  </div>
+</div>
+
+<div class="stats-box">
+  <div class="stat"><div class="sv sv-w" id="stW">0</div><div class="sl">คิวรอ</div></div>
+  <div class="stat"><div class="sv sv-s" id="stS">0</div><div class="sl">บริการแล้ว</div></div>
+  <div class="stat"><div class="sv sv-n" id="stN">0</div><div class="sl">ไม่มา</div></div>
+</div>
+
+<div class="overlay" id="cfmOverlay">
+  <div class="cfm-box">
+    <h3>ยืนยันการเรียกคิว</h3>
+    <p class="cfm-sub">คุณต้องการเรียกหมายเลขนี้ใช่ไหม?</p>
+    <div class="cfm-ticket">
+      <div class="ct-badge" id="ctBadge"></div>
+      <div class="ct-num"   id="ctNum"></div>
+    </div>
+    <div class="cfm-btns">
+      <button class="btn-cncl" onclick="closeCfm()">✕ ยกเลิก</button>
+      <button class="btn-cfm"  onclick="confirmCall()">▶ ยืนยัน เรียก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Avatar bubble (shown when minimized) -->
+<div class="avatar-bubble" id="avatarBubble" onclick="expandMini()">
+  <div class="av-char">👩‍⚕️</div>
+  <div class="av-num" id="avNum"></div>
+  <div class="av-badge" id="avBadge">0</div>
+  <div class="av-dot"  id="avDot"></div>
+  <div class="av-tip">คลิกเพื่อเปิดหน้าเรียกคิว</div>
+</div>
+
+<script>
+const params    = new URLSearchParams(location.search);
+const sysId     = params.get('sys') || 1;
+const mode      = params.get('mode') || localStorage.getItem('cashierMode_' + sysId) || 'opd';
+const isIpd     = mode === 'ipd';
+const socket    = io();
+
+const modeEl = document.getElementById('hdrMode');
+modeEl.textContent = isIpd ? '🛏 IPD' : '🏥 OPD';
+modeEl.className   = 'hdr-mode ' + (isIpd ? 'ipd' : 'opd');
+document.getElementById('spNum').placeholder   = isIpd ? 'สแกน AN หรือพิมพ์เลขคิว' : 'สแกน HN หรือพิมพ์เลขคิว';
+document.getElementById('scanLbl').textContent = isIpd ? '🛏 AN / เลขคิว (IPD) — สแกนได้' : '🏥 HN / เลขคิว (OPD) — สแกนได้';
+
+let counters    = [];
+let queueTypes  = [];
+let allWaiting  = [];
+let allServed   = [];
+let noShows     = [];
+let lastCalled  = null;
+let pendingCall = null;
+let skipConfirm = localStorage.getItem('qf_skip_confirm_' + sysId) === 'true';
+let myCounterId = Number(localStorage.getItem('qf_counter_id_' + sysId)) || null;
+
+socket.on('connect', () => socket.emit('join_sys', Number(sysId)));
+
+socket.on('queue_called', ({ calledQueue, allWaiting:aw, allServed:as, noShows:ns }) => {
+  allWaiting = aw; allServed = as; noShows = ns || noShows;
+  lastCalled = calledQueue; showCalled(calledQueue); updateNext(); updateStats();
+  updateAvatar(); pulseAvatar();
+});
+socket.on('queue_issued', ({ allWaiting:aw }) => {
+  allWaiting = aw; updateNext(); updateStats(); updateAvatar();
+});
+socket.on('queue_uncalled', ({ allWaiting:aw, allServed:as }) => {
+  allWaiting = aw; allServed = as;
+  if (lastCalled && !as.find(t => t.display === lastCalled.display)) {
+    lastCalled = as[0] || null;
+    if (lastCalled) showCalled(lastCalled); else resetCalled();
+  }
+  updateNext(); updateStats();
+});
+socket.on('queue_noshow',    ({ allServed:as, noShows:ns }) => { allServed=as; noShows=ns; updateStats(); });
+socket.on('noshow_recalled', ({ noShows:ns }) => { noShows=ns; updateStats(); });
+socket.on('queue_reset', () => {
+  allWaiting=[]; allServed=[]; noShows=[]; lastCalled=null;
+  resetCalled(); updateNext(); updateStats(); updateAvatar();
+});
+socket.on('counters_updated', c => { counters=c; renderCtr(); });
+socket.on('types_updated',    t => { queueTypes=t; });
+socket.on('sys_state', d => {
+  if (d.counters)   { counters=d.counters; renderCtr(); }
+  if (d.queueTypes)   queueTypes=d.queueTypes;
+  if (d.allWaiting)   allWaiting=d.allWaiting;
+  if (d.allServed)    allServed=d.allServed;
+  if (d.noShows)      noShows=d.noShows;
+  if (d.lastCalledByCounter && myCounterId) {
+    const lc = d.lastCalledByCounter[myCounterId];
+    if (lc) { lastCalled=lc; showCalled(lc); }
+  }
+  updateNext(); updateStats();
+});
+
+fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
+  counters   = d.counters   || [];
+  queueTypes = d.queueTypes || [];
+  allWaiting = d.allWaiting || [];
+  allServed  = d.allServed  || [];
+  noShows    = d.noShows    || [];
+  if (d.sysInfo) document.getElementById('hdrSys').textContent = d.sysInfo.name;
+  if (d.lastCalled) { lastCalled=d.lastCalled; showCalled(d.lastCalled); }
+  if (myCounterId && !counters.find(c => c.id===myCounterId)) {
+    myCounterId=null; localStorage.removeItem('qf_counter_id_'+sysId);
+  }
+  renderCtr(); updateNext(); updateStats();
+  document.getElementById('spNum').focus();
+});
+
+function getWaiting() { return allWaiting.filter(t => (t.mode||'opd') === mode); }
+
+function updateNext() {
+  const list = getWaiting();
+  const nv = document.getElementById('nextNum');
+  const nn = document.getElementById('nextName');
+  if (!list.length) { nv.textContent='—'; nv.style.color='#94a3b8'; nn.textContent=''; return; }
+  nv.textContent = list[0].display;
+  nv.style.color = list[0].color || '#1d4ed8';
+  nn.textContent = list[0].patientName ? '👤 '+list[0].patientName : (list[0].typeName||'');
+}
+function updateStats() {
+  document.getElementById('stW').textContent = getWaiting().length;
+  document.getElementById('stS').textContent = allServed.filter(t => (t.mode||'opd')===mode).length;
+  document.getElementById('stN').textContent = noShows.filter(t =>  (t.mode||'opd')===mode).length;
+}
+function renderCtr() {
+  const sel = document.getElementById('ctrSel');
+  sel.innerHTML = '<option value="">— เลือก —</option>' +
+    counters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value = myCounterId!=null ? String(myCounterId) : '';
+}
+function pickCtr(val) {
+  myCounterId = val ? Number(val) : null;
+  if (myCounterId) localStorage.setItem('qf_counter_id_'+sysId, myCounterId);
+  else localStorage.removeItem('qf_counter_id_'+sysId);
+}
+
+function showCalled(t) {
+  document.getElementById('calledMain').innerHTML = `
+    <div class="c-badge" style="background:${t.color};box-shadow:0 4px 16px ${t.color}66">${t.prefix}</div>
+    <div style="min-width:0;flex:1">
+      <div class="c-num" style="color:${t.color}">${t.display}</div>
+      ${t.patientName ? `<div class="c-patient">👤 ${t.patientName}</div>` : ''}
+      <div class="c-type">${t.typeName}</div>
+      <div class="c-time">เรียกเวลา ${t.calledAt}${t.counterName?' · 🪟 '+t.counterName:''}</div>
+    </div>`;
+  document.getElementById('btnRecall').disabled = false;
+  document.getElementById('btnNoShow').disabled = !!t.noShow;
+}
+function resetCalled() {
+  document.getElementById('calledMain').innerHTML = '<div class="idle-txt">ยังไม่มีการเรียกคิว</div>';
+  document.getElementById('btnRecall').disabled = true;
+  document.getElementById('btnNoShow').disabled = true;
+}
+
+function callNext() {
+  const list = getWaiting();
+  if (!list.length) { toast('ไม่มีคิวรอ','err'); return; }
+  pendingCall = { display: list[0].display };
+  if (skipConfirm) confirmCall(); else showCfm(list[0]);
+}
+function callSpecific() {
+  const inp = document.getElementById('spNum');
+  const raw = inp.value.trim(); if (!raw) return;
+  const val = raw.toUpperCase();
+  inp.value=''; inp.focus();
+  const list = getWaiting();
+  let t = list.find(x => x.display && x.display.toUpperCase()===val);
+  t = t || list.find(x => x.qn && String(x.qn).trim()===raw);
+  if (isIpd) {
+    t = t || list.find(x => x.vn && String(x.vn).trim()===raw);
+    t = t || list.find(x => x.hn && String(x.hn).trim()===raw);
+  } else {
+    t = t || list.find(x => x.hn && String(x.hn).trim()===raw);
+  }
+  pendingCall = { display: t ? t.display : val };
+  if (skipConfirm || !t) confirmCall(); else showCfm(t);
+}
+function showCfm(t) {
+  document.getElementById('ctBadge').style.background = t.color;
+  document.getElementById('ctBadge').textContent = t.prefix;
+  document.getElementById('ctNum').textContent   = t.display;
+  document.getElementById('ctNum').style.color   = t.color;
+  document.getElementById('cfmOverlay').classList.add('open');
+}
+function closeCfm() {
+  document.getElementById('cfmOverlay').classList.remove('open');
+  pendingCall = null;
+  document.getElementById('spNum').focus();
+}
+function confirmCall() {
+  if (!pendingCall) return;
+  const d = pendingCall; closeCfm();
+  fetch(`/api/sys/${sysId}/call-number`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display:d.display, counterId:myCounterId })
+  }).then(r=>r.json()).then(r => {
+    if (!r.success) toast(r.message,'err');
+    document.getElementById('spNum').focus();
+  });
+}
+function recallCurrent() {
+  if (!lastCalled) return;
+  fetch(`/api/sys/${sysId}/recall-served`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display:lastCalled.display, counterId:myCounterId })
+  }).then(r=>r.json()).then(r => {
+    toast(r.success ? 'เรียกซ้ำ '+lastCalled.display : r.message, r.success?'ok':'err');
+  });
+}
+function markNoShow() {
+  if (!lastCalled) return;
+  fetch(`/api/sys/${sysId}/no-show`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display:lastCalled.display })
+  }).then(r=>r.json()).then(r => {
+    if (r.success) { toast(`"${r.entry.display}" ไม่มา`,'ok'); document.getElementById('btnNoShow').disabled=true; }
+    else toast(r.message,'err');
+  });
+}
+
+document.getElementById('spNum').addEventListener('input',   e => { e.target.value=e.target.value.toUpperCase(); });
+document.getElementById('spNum').addEventListener('keydown', e => { if (e.key==='Enter') callSpecific(); });
+document.getElementById('cfmOverlay').addEventListener('click', e => { if (e.target.id==='cfmOverlay') closeCfm(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeCfm(); });
+
+// hardware barcode scanner
+let _buf='', _timer=null;
+document.addEventListener('keydown', function(e) {
+  const sp = document.getElementById('spNum');
+  if (document.activeElement===sp) return;
+  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+  if (e.ctrlKey||e.altKey||e.metaKey) return;
+  if (e.key==='Enter') {
+    const v=_buf.trim(); _buf=''; clearTimeout(_timer);
+    if (v.length>=3) { e.preventDefault(); sp.value=v; callSpecific(); }
+    return;
+  }
+  if (e.key.length===1) { _buf+=e.key; clearTimeout(_timer); _timer=setTimeout(()=>{_buf='';},150); }
+});
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ── Float / Avatar / minimize ── */
+// IS_FLOAT = opened via Edge/Chrome --app launcher with ?float=1
+// In that mode window.resizeTo() works and browser chrome is hidden
+const IS_FLOAT = new URLSearchParams(location.search).get('float') === '1';
+let _isMini = false;
+
+if (IS_FLOAT) document.body.classList.add('is-float');
+
+function minimizeMini() {
+  _isMini = true;
+  document.body.classList.add('is-mini');
+  updateAvatar();
+  try {
+    const sz = 150;
+    window.resizeTo(sz, sz);
+    window.moveTo(screen.width - sz - 16, screen.height - sz - 56);
+  } catch(e) {}
+}
+
+function expandMini() {
+  _isMini = false;
+  document.body.classList.remove('is-mini');
+  try {
+    const pw = 365, ph = 645;
+    window.resizeTo(pw, ph);
+    window.moveTo(screen.width - pw - 16, screen.height - ph - 56);
+  } catch(e) {}
+  setTimeout(() => document.getElementById('spNum').focus(), 80);
+}
+
+function updateAvatar() {
+  if (!_isMini) return;
+  const avNum   = document.getElementById('avNum');
+  const avBadge = document.getElementById('avBadge');
+  const avDot   = document.getElementById('avDot');
+  if (lastCalled) {
+    avNum.textContent = lastCalled.display;
+    avNum.style.color = lastCalled.color || '#fff';
+    avDot.classList.add('active');
+  } else {
+    avNum.textContent = '';
+    avDot.classList.remove('active');
+  }
+  const w = getWaiting().length;
+  avBadge.textContent = w > 99 ? '99+' : w;
+  avBadge.style.display = w > 0 ? 'flex' : 'none';
+}
+
+function pulseAvatar() {
+  if (!_isMini) return;
+  const b = document.getElementById('avatarBubble');
+  b.classList.remove('pulse');
+  void b.offsetWidth; // reflow
+  b.classList.add('pulse');
+}
+
+/* ── Drag avatar (only when NOT in float mode — OS window handles drag in float) ── */
+(function() {
+  if (IS_FLOAT) return; // popup window itself is draggable by OS
+  const el = document.getElementById('avatarBubble');
+  let dragging = false, ox = 0, oy = 0, startX, startY;
+
+  function onStart(cx, cy) {
+    dragging = true;
+    const r = el.getBoundingClientRect();
+    ox = cx - r.left; oy = cy - r.top;
+    startX = cx; startY = cy;
+    el.style.animation = 'none';
+    el.style.transition = 'box-shadow .18s';
+  }
+  function onMove(cx, cy) {
+    if (!dragging) return;
+    el.style.right = 'auto'; el.style.bottom = 'auto';
+    el.style.left = (cx - ox) + 'px';
+    el.style.top  = (cy - oy) + 'px';
+  }
+  function onEnd(cx, cy) {
+    if (!dragging) return;
+    dragging = false;
+    el.style.transition = 'transform .18s,box-shadow .18s';
+    el.style.animation  = '';
+    const moved = Math.hypot(cx - startX, cy - startY);
+    if (moved < 6) expandMini();
+  }
+
+  el.addEventListener('mousedown',  e => { e.preventDefault(); onStart(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup',   e => onEnd(e.clientX, e.clientY));
+
+  el.addEventListener('touchstart', e => { const t=e.touches[0]; onStart(t.clientX,t.clientY); },{passive:true});
+  document.addEventListener('touchmove',  e => { const t=e.touches[0]; onMove(t.clientX,t.clientY); },{passive:true});
+  document.addEventListener('touchend',   e => { const t=e.changedTouches[0]; onEnd(t.clientX,t.clientY); });
+  el.onclick = null;
+})();
+</script>
+</body>
+</html>

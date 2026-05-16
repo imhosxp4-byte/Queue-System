@@ -575,6 +575,10 @@ function applyIpdMode() {
   if (frame) frame.style.boxShadow = ipd
     ? '0 0 0 2px #2e7d32, 0 0 0 6px #080f14, 0 16px 60px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.04)'
     : '';
+  // ย้าย cursor ไปยัง field ที่เหมาะสมกับ mode
+  const onScan = document.getElementById('scannerStep') &&
+                 document.getElementById('scannerStep').style.display !== 'none';
+  if (onScan) setTimeout(() => (ipd ? qnEl : hnEl).focus(), 80);
 }
 applyIpdMode();
 
@@ -652,8 +656,15 @@ document.addEventListener('keydown', function(e) {
     // Min 3 chars = likely a barcode; also if focus was NOT on our inputs treat as barcode
     if (val.length >= 3 && document.activeElement !== hnEl && document.activeElement !== qnEl) {
       e.preventDefault();
-      hnEl.value = val; qnEl.value = ''; syncFields();
-      _fromBarcode = true; doLookup();
+      if (chkIpd.checked) {
+        qnEl.value = val; hnEl.value = '';   // IPD: ยิง AN เข้าช่อง AN
+        _fromBarcode = false;
+      } else {
+        hnEl.value = val; qnEl.value = '';   // OPD: ยิง HN เข้าช่อง HN
+        _fromBarcode = true;
+      }
+      syncFields();
+      doLookup();
     }
     return;
   }
@@ -863,6 +874,7 @@ function showStep(step) {
   document.getElementById('scannerStep').style.display = step === 'scanner' ? '' : 'none';
   document.getElementById('typeStep').classList.toggle('show', step === 'type');
   if (step !== 'result') document.getElementById('resultOverlay').classList.remove('show');
+  if (step === 'type') renderCards();
 }
 
 function backToScanner() {
@@ -871,23 +883,31 @@ function backToScanner() {
   hnEl.value = ''; qnEl.value = '';
   hnEl.classList.remove('active-field','dim');
   qnEl.classList.remove('active-field','dim');
-  setStatus('พร้อมรับบัตรคิว — ยิงบาร์โค้ด HN หรือกรอกข้อมูลด้านล่าง');
+  const isIpd = chkIpd.checked;
+  setStatus(isIpd
+    ? 'พร้อมรับบัตรคิว — ยิงบาร์โค้ด AN หรือกรอกข้อมูลด้านล่าง'
+    : 'พร้อมรับบัตรคิว — ยิงบาร์โค้ด HN หรือกรอกข้อมูลด้านล่าง');
   const pttypeTag = document.getElementById('ptPttypeTag');
   if (pttypeTag) pttypeTag.style.display = 'none';
   showStep('scanner');
   if (chkAutoScan.checked) setTimeout(() => startScanner(), 400);
-  // Auto-focus HN for hardware barcode scanner
-  setTimeout(() => hnEl.focus(), 300);
+  // Focus ช่องที่เหมาะกับ mode ปัจจุบัน
+  setTimeout(() => (isIpd ? qnEl : hnEl).focus(), 300);
 }
 
 // ── Cards ─────────────────────────────────────────────────────────────────
 function renderCards() {
   const grid = document.getElementById('cardsGrid');
-  if (!queueTypes.length) {
+  const isIpd = chkIpd.checked;
+  const filteredTypes = queueTypes.filter(t => {
+    const m = t.forMode || 'both';
+    return isIpd ? (m === 'ipd' || m === 'both') : (m === 'opd' || m === 'both');
+  });
+  if (!filteredTypes.length) {
     grid.innerHTML = `<div class="no-types">ยังไม่มีประเภทคิว — <a href="/settings.html?sys=${sysId}" style="color:#ffd54f">ตั้งค่า</a></div>`;
     return;
   }
-  grid.innerHTML = queueTypes.map(t => `
+  grid.innerHTML = filteredTypes.map(t => `
     <div class="q-card" onclick="getQueue(${t.id})" style="--c:${t.color}28">
       <div class="qc-icon" style="background:${t.color}">${t.prefix}</div>
       <div class="qc-name">${t.name}</div>
