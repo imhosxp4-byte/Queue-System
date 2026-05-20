@@ -1259,7 +1259,7 @@ function renderSplitCard(counter, animate, flashFor) {
   const badgeRow = showBadge ? `
     <div class="split-badge-row">
       <div class="split-pfx" style="background:${ticket.color};width:${bsz}px;height:${bsz}px;font-size:${(bsz*0.032).toFixed(2)}rem">${ticket.prefix}</div>
-      <span class="split-typename" style="font-size:${typeFs}">${ticket.typeName}</span>
+      <span class="split-typename" style="font-size:${typeFs};color:${ticket.color}">${ticket.typeName}</span>
     </div>` : '';
 
   if (mode === 'split-h') {
@@ -1271,7 +1271,7 @@ function renderSplitCard(counter, animate, flashFor) {
         qCell = `<div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
           <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;max-width:35%">
             <div class="split-pfx" style="background:${ticket.color};width:${bsz}px;height:${bsz}px;font-size:${(bsz*0.032).toFixed(2)}rem">${ticket.prefix}</div>
-            <span class="split-typename" style="font-size:${typeFs};text-align:center;word-break:break-word">${ticket.typeName}</span>
+            <span class="split-typename" style="font-size:${typeFs};color:${ticket.color};text-align:center;word-break:break-word">${ticket.typeName}</span>
           </div>
           <div class="split-q-val" data-flash="${doFlash?'1':''}" style="font-size:${qFs};color:${ticket.color};flex:1;text-align:center">${ticket.display}</div>
         </div>`;
