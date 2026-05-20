@@ -96,11 +96,17 @@ function buildLines(cfg, ticket) {
       if (parts.length) lines.push({ t:'text', text: parts.join('   '), fs: Math.max(7,c(cfg.patientFontSize,11)-2), bold:false, color:'DimGray' });
     },
     queueType: () => {
+      if (c(cfg.queueTypePosition, 'above') === 'left') return; // rendered with queueNum
       if (!c(cfg.showQueueType, true) || !ticket.typeName) return;
       lines.push({ t:'text', text: ticket.typeName, fs: c(cfg.queueTypeFontSize,11), bold:false, color:'Black' });
     },
     queueNum: () => {
-      lines.push({ t:'num', text: ticket.display, fs: c(cfg.queueNumFontSize,60), bold:true, color:'Black' });
+      if (c(cfg.queueTypePosition, 'above') === 'left' && c(cfg.showQueueType, true) && ticket.typeName) {
+        lines.push({ t:'numWithType', typeText: ticket.typeName, typeFs: c(cfg.queueTypeFontSize,11),
+                     numText: ticket.display, numFs: c(cfg.queueNumFontSize,60) });
+      } else {
+        lines.push({ t:'num', text: ticket.display, fs: c(cfg.queueNumFontSize,60), bold:true, color:'Black' });
+      }
     },
     dateTime: () => {
       if (!c(cfg.showDateTime, true)) return;
@@ -154,6 +160,26 @@ function DoPrint {
         $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
         $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
         $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
+      }elseif($line.t -eq 'numWithType'){
+        [float]$typeSmm=$line.typeFs/72.0*25.4
+        [float]$numSmm=$line.numFs/72.0*25.4
+        [float]$lh=$numSmm*1.5
+        [float]$leftW=$pw*[float]0.35
+        [float]$gap=[float]2.0
+        [float]$rightW=$pw-$leftW-$gap
+        [float]$rightX=$m+$leftW+$gap
+        $typeFont=New-Object System.Drawing.Font($script:fontName,$typeSmm,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Millimeter)
+        $numFont=New-Object System.Drawing.Font($script:fontName,$numSmm,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Millimeter)
+        $fmt=New-Object System.Drawing.StringFormat
+        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+        $leftRect=New-Object System.Drawing.RectangleF($m,$y,$leftW,$lh)
+        $g.DrawString($line.typeText,$typeFont,[System.Drawing.Brushes]::Black,$leftRect,$fmt)
+        $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
+        $g.DrawRectangle($bpen,$rightX,$y,$rightW,$lh)
+        $rightRect=New-Object System.Drawing.RectangleF($rightX,$y,$rightW,$lh)
+        $g.DrawString($line.numText,$numFont,[System.Drawing.Brushes]::Black,$rightRect,$fmt)
+        $y+=$lh+[float]1.5
       }else{
         [float]$smm=$line.fs/72.0*25.4
         $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
