@@ -370,6 +370,20 @@
             <input type="range" id="cfgSplitNumFs" min="1" max="30" step="0.5" value="4.5" style="flex:1;accent-color:#42a5f5;cursor:pointer" oninput="syncNum('cfgSplitNumFsN',this.value,1);onSplitOptChange()"/>
             <input type="number" id="cfgSplitNumFsN" min="1" max="99" step="0.5" value="4.5" style="width:62px;background:#0f1923;border:1px solid #1e3a5f;border-radius:7px;padding:5px 6px;color:#ffd54f;font-size:.88rem;font-weight:700;font-family:inherit;text-align:center" oninput="syncRange('cfgSplitNumFs',this.value,1,30);onSplitOptChange()"/>
           </div></div>
+        <div class="sf-row"><label class="sf-label">ขนาดตัวอักษรประเภทคิว (rem)</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:5px">
+            <input type="range" id="cfgSplitTypeFs" min="0.4" max="6" step="0.1" value="0.8" style="flex:1;accent-color:#ce93d8;cursor:pointer" oninput="syncNum('cfgSplitTypeFsN',this.value,1);onSplitOptChange()"/>
+            <input type="number" id="cfgSplitTypeFsN" min="0.4" max="20" step="0.1" value="0.8" style="width:62px;background:#0f1923;border:1px solid #1e3a5f;border-radius:7px;padding:5px 6px;color:#ffd54f;font-size:.88rem;font-weight:700;font-family:inherit;text-align:center" oninput="syncRange('cfgSplitTypeFs',this.value,0.4,6);onSplitOptChange()"/>
+          </div></div>
+        <div class="sf-row"><label class="sf-label">ตำแหน่งประเภทคิว</label>
+          <div style="display:flex;gap:16px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;color:#cfd8dc">
+              <input type="radio" name="cfgSplitTypePos" id="cfgSplitTypePosAbove" value="above" onchange="onSplitOptChange()" checked> บนหมายเลขคิว
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;color:#cfd8dc">
+              <input type="radio" name="cfgSplitTypePos" id="cfgSplitTypePosLeft" value="left" onchange="onSplitOptChange()"> ซ้ายหมายเลขคิว
+            </label>
+          </div></div>
         <div class="sf-row"><label class="sf-label">ขนาดชื่อช่องบริการ (rem)</label>
           <div style="display:flex;gap:8px;align-items:center;margin-top:5px">
             <input type="range" id="cfgSplitCtrFs" min="0.5" max="20" step="0.5" value="2.8" style="flex:1;accent-color:#ffd54f;cursor:pointer" oninput="syncNum('cfgSplitCtrFsN',this.value,1);onSplitOptChange()"/>
@@ -860,7 +874,7 @@ let tickerMsgs    = [];
 
 // ── Settings ─────────────────────────────────────────────────────────────
 let LS_KEY = 'qf_display_' + sysId + '_' + dispMode;
-const DEF = { columns:2, maxPerCounter:1, selectedCounters:[], hiddenTypes:[], layoutMode:'grid', splitLblCtr:'ช่องบริการ', splitLblQ:'หมายเลขที่เรียกเข้าบริการ', splitHdrBg:'#2e7d32', splitHdrClr:'#ffffff', splitRowBg:'', splitCtrClr:'', splitDivClr:'', splitHdrFs:1.0, splitHdrPad:12, splitNumFs:4.5, splitCtrFs:2.8, splitCardH:140, splitCtrRatio:1, splitQRatio:2,
+const DEF = { columns:2, maxPerCounter:1, selectedCounters:[], hiddenTypes:[], layoutMode:'grid', splitLblCtr:'ช่องบริการ', splitLblQ:'หมายเลขที่เรียกเข้าบริการ', splitHdrBg:'#2e7d32', splitHdrClr:'#ffffff', splitRowBg:'', splitCtrClr:'', splitDivClr:'', splitHdrFs:1.0, splitHdrPad:12, splitNumFs:4.5, splitCtrFs:2.8, splitCardH:140, splitCtrRatio:1, splitQRatio:2, splitTypeFs:0.8, splitTypePos:'above',
   svLblCtr:'ช่องบริการ', svLblQ:'หมายเลขที่เรียกเข้าบริการ',
   svHdrBg:'#1565c0', svHdrClr:'#ffffff', svRowBg:'', svCtrClr:'', svDivClr:'',
   svHdrFs:1.0, svHdrPad:12, svNumFs:4.5, svCtrFs:2.8, svCardH:200,
@@ -1240,24 +1254,38 @@ function renderSplitCard(counter, animate, flashFor) {
   const dur     = d.custom?.blinkDur   > 0  ? d.custom.blinkDur   : 0.5;
   const cnt     = d.custom?.blinkCount >= 1  ? d.custom.blinkCount : 3;
   const bsz     = 32;
+  const typePos = d.splitTypePos || 'above';
+  const typeFs  = (d.splitTypeFs || 0.8) + 'rem';
   const badgeRow = showBadge ? `
     <div class="split-badge-row">
       <div class="split-pfx" style="background:${ticket.color};width:${bsz}px;height:${bsz}px;font-size:${(bsz*0.032).toFixed(2)}rem">${ticket.prefix}</div>
-      <span class="split-typename">${ticket.typeName}</span>
+      <span class="split-typename" style="font-size:${typeFs}">${ticket.typeName}</span>
     </div>` : '';
 
   if (mode === 'split-h') {
     const qFs = (d.splitNumFs || 4.5) + 'rem';
     const cFs = (d.splitCtrFs || 2.8) + 'rem';
+    let qCell = '';
+    if (ticket) {
+      if (typePos === 'left' && showBadge) {
+        qCell = `<div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;max-width:35%">
+            <div class="split-pfx" style="background:${ticket.color};width:${bsz}px;height:${bsz}px;font-size:${(bsz*0.032).toFixed(2)}rem">${ticket.prefix}</div>
+            <span class="split-typename" style="font-size:${typeFs};text-align:center;word-break:break-word">${ticket.typeName}</span>
+          </div>
+          <div class="split-q-val" data-flash="${doFlash?'1':''}" style="font-size:${qFs};color:${ticket.color};flex:1;text-align:center">${ticket.display}</div>
+        </div>`;
+      } else {
+        qCell = `${badgeRow}<div class="split-q-val" data-flash="${doFlash?'1':''}" style="font-size:${qFs};color:${ticket.color}">${ticket.display}</div>`;
+      }
+    } else {
+      qCell = `<div class="split-q-idle">รอเรียกคิว...</div>`;
+    }
     card.innerHTML = `
       <div class="split-td">
         <div class="split-ctr-val" style="font-size:${cFs}">${counter.name}</div>
       </div>
-      <div class="split-td">
-        ${ticket
-          ? `${badgeRow}<div class="split-q-val" data-flash="${doFlash?'1':''}" style="font-size:${qFs};color:${ticket.color}">${ticket.display}</div>`
-          : `<div class="split-q-idle">รอเรียกคิว...</div>`}
-      </div>`;
+      <div class="split-td">${qCell}</div>`;
   } else {
     // split-v — ใช้ sv* keys แยกต่างหาก
     const qFs    = (d.svNumFs  || 4.5) + 'rem';
@@ -1349,6 +1377,8 @@ function onSplitOptChange() {
   currentCfg.splitCardH   = parseInt(document.getElementById('cfgSplitCardHN').value)      || 120;
   currentCfg.splitCtrRatio= parseFloat(document.getElementById('cfgSplitCtrRatioN').value) || 1;
   currentCfg.splitQRatio  = parseFloat(document.getElementById('cfgSplitQRatioN').value)   || 2;
+  currentCfg.splitTypeFs  = parseFloat(document.getElementById('cfgSplitTypeFsN').value)   || 0.8;
+  currentCfg.splitTypePos = document.querySelector('input[name="cfgSplitTypePos"]:checked')?.value || 'above';
   applySplitCssVars();
   // Update header labels live
   document.querySelectorAll('.split-th').forEach((th,i) => th.textContent = i===0 ? currentCfg.splitLblCtr : currentCfg.splitLblQ);
@@ -1447,6 +1477,12 @@ function loadCfgUI() {
   const sqr = currentCfg.splitQRatio || 2;
   document.getElementById('cfgSplitQRatio').value  = Math.min(8, sqr);
   document.getElementById('cfgSplitQRatioN').value = sqr;
+  const stf = currentCfg.splitTypeFs || 0.8;
+  document.getElementById('cfgSplitTypeFs').value  = Math.min(6, stf);
+  document.getElementById('cfgSplitTypeFsN').value = stf;
+  const stp = currentCfg.splitTypePos || 'above';
+  const stpEl = document.getElementById(stp === 'left' ? 'cfgSplitTypePosLeft' : 'cfgSplitTypePosAbove');
+  if (stpEl) stpEl.checked = true;
   // sv* (split-v settings)
   document.getElementById('cfgSvLblCtr').value = currentCfg.svLblCtr || 'ช่องบริการ';
   document.getElementById('cfgSvLblQ').value   = currentCfg.svLblQ   || 'หมายเลขที่เรียกเข้าบริการ';
