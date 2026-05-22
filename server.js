@@ -976,7 +976,10 @@ function DoPrint {
   $pd = New-Object System.Drawing.Printing.PrintDocument
   $pd.PrinterSettings.PrinterName = $script:d.printerName
   $pd.PrinterSettings.Copies = [int16]1
-  $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
+  $customSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
+  $customSize.RawKind = 256
+  $pd.DefaultPageSettings.PaperSize = $customSize
+  $pd.DefaultPageSettings.Landscape = $false
   $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
   $pd.add_PrintPage({
     param($s,$e)
