@@ -907,11 +907,17 @@ function buildPrintLines(cfg, ticket) {
       if (parts.length) lines.push({ t:'text', text: parts.join('   '), fs: Math.max(7,(cfg.patientFontSize||11)-2), bold:false, color:'DimGray' });
     },
     queueType: () => {
+      if ((cfg.queueTypePosition || 'above') === 'left') return;
       if (!cfg.showQueueType || !ticket.typeName) return;
       lines.push({ t:'text', text: ticket.typeName, fs: cfg.queueTypeFontSize||11, bold:false, color:'Black' });
     },
     queueNum: () => {
-      lines.push({ t:'num', text: ticket.display, fs: cfg.queueNumFontSize||60, bold:true, color:'Black' });
+      if ((cfg.queueTypePosition || 'above') === 'left' && cfg.showQueueType && ticket.typeName) {
+        lines.push({ t:'numWithType', typeText: ticket.typeName, typeFs: cfg.queueTypeFontSize||11,
+                     numText: ticket.display, numFs: cfg.queueNumFontSize||60 });
+      } else {
+        lines.push({ t:'num', text: ticket.display, fs: cfg.queueNumFontSize||60, bold:true, color:'Black' });
+      }
     },
     dateTime: () => {
       if (!cfg.showDateTime) return;
@@ -940,50 +946,78 @@ function runPowershellPrint(printData, callback) {
   const ts       = Date.now();
   const dataFile = path.join(os.tmpdir(), `qdata_${ts}.json`);
   const ps1File  = path.join(os.tmpdir(), `qprint_${ts}.ps1`);
-  fs.writeFileSync(dataFile, JSON.stringify(printData), 'utf8');
+  const safeFont = (printData.fontFamily || 'Segoe UI').replace(/['"]/g, '');
+  fs.writeFileSync(dataFile, JSON.stringify({ ...printData, fontFamily: safeFont }), 'utf8');
+  const esc = dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''");
   const psScript = `
 Add-Type -AssemblyName System.Drawing
-$script:d = Get-Content '${dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''")}' -Raw -Encoding utf8 | ConvertFrom-Json
+$script:d = Get-Content '${esc}' -Raw -Encoding utf8 | ConvertFrom-Json
 $pw100 = [int]($script:d.paperMm / 25.4 * 100)
-$pd = New-Object System.Drawing.Printing.PrintDocument
-$pd.PrinterSettings.PrinterName = $script:d.printerName
-$pd.PrinterSettings.Copies = [int16]([Math]::Max(1,$script:d.copies))
-$pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
-$pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
-$pd.add_PrintPage({
-  param($s,$e)
-  $g=$e.Graphics
-  $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
-  [float]$pw=$script:d.paperMm-6.0
-  [float]$m=3.0
-  [float]$y=$m
-  foreach($line in $script:d.lines){
-    if($line.t -eq 'div'){
-      $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
-      $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
-      $g.DrawLine($pen,$m,$y,($m+$pw),$y)
-      $y+=[float]3.0
-    }else{
-      [float]$smm=$line.fs/72.0*25.4
-      $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
-      $font=New-Object System.Drawing.Font('Segoe UI',$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
-      $brush=[System.Drawing.Brushes]::($line.color)
-      if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
-      $fmt=New-Object System.Drawing.StringFormat
-      $fmt.Alignment=[System.Drawing.StringAlignment]::Center
-      $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
-      [float]$lh=$smm*1.5
-      if($line.t -eq 'num'){
+$ph100 = if($script:d.paperHmm -gt 0){[int]($script:d.paperHmm / 25.4 * 100)}else{2000}
+$script:fontName = if($script:d.fontFamily -and $script:d.fontFamily -ne ''){$script:d.fontFamily}else{'Segoe UI'}
+
+function DoPrint {
+  $pd = New-Object System.Drawing.Printing.PrintDocument
+  $pd.PrinterSettings.PrinterName = $script:d.printerName
+  $pd.PrinterSettings.Copies = [int16]1
+  $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
+  $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
+  $pd.add_PrintPage({
+    param($s,$e)
+    $g=$e.Graphics; $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
+    [float]$pw=$script:d.paperMm-6.0; [float]$m=3.0; [float]$y=$m
+    foreach($line in $script:d.lines){
+      if($line.t -eq 'div'){
+        $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
+        $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+        $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
+      }elseif($line.t -eq 'numWithType'){
+        [float]$typeSmm=$line.typeFs/72.0*25.4
+        [float]$numSmm=$line.numFs/72.0*25.4
+        [float]$lh=$numSmm*1.5
+        [float]$leftW=$pw*[float]0.35
+        [float]$gap=[float]2.0
+        [float]$rightW=$pw-$leftW-$gap
+        [float]$rightX=$m+$leftW+$gap
+        $typeFont=New-Object System.Drawing.Font($script:fontName,$typeSmm,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Millimeter)
+        $numFont=New-Object System.Drawing.Font($script:fontName,$numSmm,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Millimeter)
+        $fmt=New-Object System.Drawing.StringFormat
+        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+        $leftRect=New-Object System.Drawing.RectangleF($m,$y,$leftW,$lh)
+        $g.DrawString($line.typeText,$typeFont,[System.Drawing.Brushes]::Black,$leftRect,$fmt)
         $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
-        $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+        $g.DrawRectangle($bpen,$rightX,$y,$rightW,$lh)
+        $rightRect=New-Object System.Drawing.RectangleF($rightX,$y,$rightW,$lh)
+        $g.DrawString($line.numText,$numFont,[System.Drawing.Brushes]::Black,$rightRect,$fmt)
+        $y+=$lh+[float]1.5
+      }else{
+        [float]$smm=$line.fs/72.0*25.4
+        $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
+        $font=New-Object System.Drawing.Font($script:fontName,$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
+        $brush=[System.Drawing.Brushes]::($line.color)
+        if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
+        $fmt=New-Object System.Drawing.StringFormat
+        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+        [float]$lh=$smm*1.5
+        if($line.t -eq 'num'){
+          $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
+          $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+        }
+        $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
+        $g.DrawString($line.text,$font,$brush,$rect,$fmt)
+        $y+=$lh+[float]1.5
       }
-      $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
-      $g.DrawString($line.text,$font,$brush,$rect,$fmt)
-      $y+=$lh+[float]1.5
     }
-  }
-})
-$pd.Print()
+  })
+  $pd.Print()
+}
+
+for($i=0; $i -lt [int]$script:d.copies; $i++){
+  DoPrint
+  if($i -lt ([int]$script:d.copies - 1)){ Start-Sleep -Milliseconds 300 }
+}
 `;
   fs.writeFileSync(ps1File, psScript, 'utf8');
   exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1File}"`,
@@ -997,9 +1031,12 @@ $pd.Print()
 app.post('/api/sys/:sysId/print-ticket', requireSys, (req, res) => {
   const cfg = req.sys.printConfig;
   if (!cfg.printerName) return res.json({ success: false, message: 'ไม่ได้เลือกเครื่องพิมพ์' });
-  const paperMm = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
-                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
-  runPowershellPrint({ printerName: cfg.printerName, paperMm, copies: cfg.copies || 1, lines: buildPrintLines(cfg, req.body) },
+  const paperMm  = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
+                 : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  const paperHmm = cfg.paperSize === 'a4' ? 297
+                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight) : 300;
+  runPowershellPrint({ printerName: cfg.printerName, paperMm, paperHmm, copies: cfg.copies || 1,
+                       fontFamily: cfg.fontFamily || '', lines: buildPrintLines(cfg, req.body) },
     (err, stderr) => {
       if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
       res.json({ success: true });
@@ -1013,9 +1050,12 @@ app.post('/api/local-print', corsLocal, (req, res) => {
   if (!printerName) return res.json({ success: false, message: 'ไม่ได้ระบุเครื่องพิมพ์' });
   const sys = getSys(Number(sysId) || 1);
   const cfg = sys ? { ...sys.printConfig, printerName } : { ...PRINT_CFG_DEFAULTS, printerName };
-  const paperMm = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
-                : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
-  runPowershellPrint({ printerName, paperMm, copies: cfg.copies || 1, lines: buildPrintLines(cfg, ticket || req.body) },
+  const paperMm  = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
+                 : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  const paperHmm = cfg.paperSize === 'a4' ? 297
+                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight) : 300;
+  runPowershellPrint({ printerName, paperMm, paperHmm, copies: cfg.copies || 1,
+                       fontFamily: cfg.fontFamily || '', lines: buildPrintLines(cfg, ticket || req.body) },
     (err, stderr) => {
       if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
       res.json({ success: true });

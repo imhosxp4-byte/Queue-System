@@ -132,24 +132,25 @@ function buildLines(cfg, ticket) {
 }
 
 // ── Print via PowerShell GDI+ ─────────────────────────────────────────────
-function runPrint(printerName, paperMm, copies, fontFamily, lines, cb) {
+function runPrint(printerName, paperMm, paperHmm, copies, fontFamily, lines, cb) {
   const ts       = Date.now();
   const dataFile = path.join(os.tmpdir(), `qpa_data_${ts}.json`);
   const ps1File  = path.join(os.tmpdir(), `qpa_print_${ts}.ps1`);
   const safeFont = (fontFamily || 'Segoe UI').replace(/['"]/g, '');
-  fs.writeFileSync(dataFile, JSON.stringify({ printerName, paperMm, copies: Math.max(1, copies || 1), fontFamily: safeFont, lines }), 'utf8');
+  fs.writeFileSync(dataFile, JSON.stringify({ printerName, paperMm, paperHmm: paperHmm || 300, copies: Math.max(1, copies || 1), fontFamily: safeFont, lines }), 'utf8');
   const esc = dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''");
   const ps = `
 Add-Type -AssemblyName System.Drawing
 $script:d = Get-Content '${esc}' -Raw -Encoding utf8 | ConvertFrom-Json
 $pw100 = [int]($script:d.paperMm / 25.4 * 100)
+$ph100 = if($script:d.paperHmm -gt 0){[int]($script:d.paperHmm / 25.4 * 100)}else{2000}
 $script:fontName = if($script:d.fontFamily -and $script:d.fontFamily -ne ''){$script:d.fontFamily}else{'Segoe UI'}
 
 function DoPrint {
   $pd = New-Object System.Drawing.Printing.PrintDocument
   $pd.PrinterSettings.PrinterName = $script:d.printerName
   $pd.PrinterSettings.Copies = [int16]1
-  $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,2000)
+  $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
   $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
   $pd.add_PrintPage({
     param($s,$e)
@@ -250,14 +251,17 @@ const server = http.createServer((req, res) => {
       const { printerName, ticket, cfg } = body;
       if (!printerName) { sendJson(res, { success: false, message: 'ไม่ได้ระบุเครื่องพิมพ์' }); return; }
       const useCfg = Object.assign({}, localCfg, cfg || {});
-      const paperMm = (useCfg.paperSize === '58mm') ? 58
-                    : (useCfg.paperSize === 'a4')    ? 210
-                    : (useCfg.paperSize === 'custom') ? (Number(useCfg.customWidth) || 80)
-                    : 80;
+      const paperMm  = (useCfg.paperSize === '58mm') ? 58
+                     : (useCfg.paperSize === 'a4')    ? 210
+                     : (useCfg.paperSize === 'custom') ? (Number(useCfg.customWidth) || 80)
+                     : 80;
+      const paperHmm = (useCfg.paperSize === 'a4') ? 297
+                     : (useCfg.paperSize === 'custom' && Number(useCfg.customHeight)) ? Number(useCfg.customHeight)
+                     : 300;
       const lines   = buildLines(useCfg, ticket || {});
       const copies  = Math.max(1, Number(useCfg.copies) || 1);
       const font    = useCfg.fontFamily || '';
-      runPrint(printerName, paperMm, copies, font, lines, (err, stderr) => {
+      runPrint(printerName, paperMm, paperHmm, copies, font, lines, (err, stderr) => {
         if (err) sendJson(res, { success: false, message: (stderr || err.message).trim() });
         else     sendJson(res, { success: true });
       });

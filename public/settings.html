@@ -1646,9 +1646,16 @@ function updatePreview() {
   const el  = document.getElementById('slipPreview');
   const sysName = pdSysName || PD_SAMPLE.sysName;
 
-  // Paper width for preview
   const widthMap = { '80mm':'72mm', '58mm':'50mm', 'a4':'190mm', 'custom': (cfg.customWidth||80)+'mm' };
   el.style.width = widthMap[pdCurrentSize] || '72mm';
+
+  if (pdCurrentSize === 'custom' && Number(cfg.customHeight)) {
+    el.style.height   = cfg.customHeight + 'mm';
+    el.style.overflow = 'hidden';
+  } else {
+    el.style.height   = '';
+    el.style.overflow = '';
+  }
 
   el.innerHTML = renderSlipHtml(cfg, { ...PD_SAMPLE, sysName });
 }
