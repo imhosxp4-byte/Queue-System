@@ -73,6 +73,23 @@ function getPrinters(cb) {
     });
 }
 
+// ── Calculate paper height from content (for printers without auto-cut) ──────
+function calcPrintHeight(lines, bottomMargin = 8) {
+  let y = 3; // top margin
+  for (const line of lines) {
+    if (line.t === 'div') {
+      y += 3.0;
+    } else if (line.t === 'numWithType') {
+      const lh = (line.numFs / 72.0 * 25.4) * 1.5;
+      y += lh + 1.5;
+    } else {
+      const lh = (line.fs / 72.0 * 25.4) * 1.5;
+      y += lh + 1.5;
+    }
+  }
+  return Math.ceil(y + bottomMargin);
+}
+
 // ── Build print lines (same layout logic as server) ───────────────────────
 function buildLines(cfg, ticket) {
   const lines = [];
@@ -255,10 +272,10 @@ const server = http.createServer((req, res) => {
                      : (useCfg.paperSize === 'a4')    ? 210
                      : (useCfg.paperSize === 'custom') ? (Number(useCfg.customWidth) || 80)
                      : 80;
+      const lines    = buildLines(useCfg, ticket || {});
       const paperHmm = (useCfg.paperSize === 'a4') ? 297
                      : (useCfg.paperSize === 'custom' && Number(useCfg.customHeight)) ? Number(useCfg.customHeight)
-                     : 300;
-      const lines   = buildLines(useCfg, ticket || {});
+                     : calcPrintHeight(lines);
       const copies  = Math.max(1, Number(useCfg.copies) || 1);
       const font    = useCfg.fontFamily || '';
       runPrint(printerName, paperMm, paperHmm, copies, font, lines, (err, stderr) => {

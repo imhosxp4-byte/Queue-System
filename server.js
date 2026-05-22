@@ -886,6 +886,22 @@ app.get('/api/printers', corsLocal, (req, res) => {
 });
 
 // ── Direct print (server-side, no browser dialog) ────────────────────────
+function calcPrintHeight(lines, bottomMargin = 8) {
+  let y = 3; // top margin
+  for (const line of lines) {
+    if (line.t === 'div') {
+      y += 3.0;
+    } else if (line.t === 'numWithType') {
+      const lh = (line.numFs / 72.0 * 25.4) * 1.5;
+      y += lh + 1.5;
+    } else {
+      const lh = (line.fs / 72.0 * 25.4) * 1.5;
+      y += lh + 1.5;
+    }
+  }
+  return Math.ceil(y + bottomMargin);
+}
+
 function buildPrintLines(cfg, ticket) {
   const lines = [];
   const DEFAULT_ORDER = ['header','patientName','hnQn','queueType','queueNum','dateTime','footer'];
@@ -1033,10 +1049,12 @@ app.post('/api/sys/:sysId/print-ticket', requireSys, (req, res) => {
   if (!cfg.printerName) return res.json({ success: false, message: 'ไม่ได้เลือกเครื่องพิมพ์' });
   const paperMm  = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
                  : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  const lines    = buildPrintLines(cfg, req.body);
   const paperHmm = cfg.paperSize === 'a4' ? 297
-                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight) : 300;
+                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight)
+                 : calcPrintHeight(lines);
   runPowershellPrint({ printerName: cfg.printerName, paperMm, paperHmm, copies: cfg.copies || 1,
-                       fontFamily: cfg.fontFamily || '', lines: buildPrintLines(cfg, req.body) },
+                       fontFamily: cfg.fontFamily || '', lines },
     (err, stderr) => {
       if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
       res.json({ success: true });
@@ -1052,10 +1070,12 @@ app.post('/api/local-print', corsLocal, (req, res) => {
   const cfg = sys ? { ...sys.printConfig, printerName } : { ...PRINT_CFG_DEFAULTS, printerName };
   const paperMm  = cfg.paperSize === '58mm' ? 58 : cfg.paperSize === 'a4' ? 210
                  : cfg.paperSize === 'custom' ? (Number(cfg.customWidth) || 80) : 80;
+  const lines    = buildPrintLines(cfg, ticket || req.body);
   const paperHmm = cfg.paperSize === 'a4' ? 297
-                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight) : 300;
+                 : cfg.paperSize === 'custom' && Number(cfg.customHeight) ? Number(cfg.customHeight)
+                 : calcPrintHeight(lines);
   runPowershellPrint({ printerName, paperMm, paperHmm, copies: cfg.copies || 1,
-                       fontFamily: cfg.fontFamily || '', lines: buildPrintLines(cfg, ticket || req.body) },
+                       fontFamily: cfg.fontFamily || '', lines },
     (err, stderr) => {
       if (err) return res.json({ success: false, message: (stderr || err.message).trim() });
       res.json({ success: true });
