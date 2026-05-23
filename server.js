@@ -1001,11 +1001,19 @@ if ($script:fontName -notin $allFamilies) {
   }
 }
 
-# Detect ZPL printer (Zebra ZDesigner)
+# Detect ZPL printer — driver name check first, then printer name fallback
+# (network/shared printers show MEPPC driver locally, not ZDesigner)
 $script:isZPL = $false
 try {
-  $pWmi = Get-WmiObject Win32_Printer -Filter ("Name='" + $script:d.printerName.Replace("'","''") + "'") -ErrorAction SilentlyContinue
-  $script:isZPL = $pWmi -and ($pWmi.DriverName -like '*ZDesigner*' -or $pWmi.DriverName -like '*Zebra*' -or $pWmi.DriverName -like '*ZPL*')
+  $pName = $script:d.printerName
+  $pWmi = Get-WmiObject Win32_Printer -Filter ("Name='" + $pName.Replace("'","''") + "'") -ErrorAction SilentlyContinue
+  if ($pWmi -and ($pWmi.DriverName -like '*ZDesigner*' -or $pWmi.DriverName -like '*Zebra*' -or $pWmi.DriverName -like '*ZPL*')) {
+    $script:isZPL = $true
+  }
+  # Fallback: match on printer name itself (covers shared/network printers)
+  if (-not $script:isZPL) {
+    $script:isZPL = ($pName -like '*ZDesigner*' -or $pName -like '*Zebra*' -or $pName -like '*ZPL*')
+  }
 } catch {}
 
 # Drawing logic shared by GDI+ and ZPL paths
