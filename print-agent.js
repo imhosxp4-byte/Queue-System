@@ -158,70 +158,144 @@ function runPrint(printerName, paperMm, paperHmm, copies, fontFamily, lines, cb)
   const esc = dataFile.replace(/\\/g,'\\\\').replace(/'/g,"''");
   const ps = `
 Add-Type -AssemblyName System.Drawing
+Add-Type -TypeDefinition @'
+using System;using System.Runtime.InteropServices;
+public class RawPrint{
+  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)]
+  struct DOCINFOW{[MarshalAs(UnmanagedType.LPWStr)]public string pDocName;[MarshalAs(UnmanagedType.LPWStr)]public string pOutputFile;[MarshalAs(UnmanagedType.LPWStr)]public string pDatatype;}
+  [DllImport("winspool.drv",CharSet=CharSet.Unicode)]static extern bool OpenPrinter(string p,out IntPtr h,IntPtr d);
+  [DllImport("winspool.drv")]static extern bool ClosePrinter(IntPtr h);
+  [DllImport("winspool.drv",CharSet=CharSet.Unicode)]static extern int StartDocPrinterW(IntPtr h,int lv,ref DOCINFOW di);
+  [DllImport("winspool.drv")]static extern bool StartPagePrinter(IntPtr h);
+  [DllImport("winspool.drv")]static extern bool WritePrinter(IntPtr h,byte[] b,int n,out int w);
+  [DllImport("winspool.drv")]static extern bool EndPagePrinter(IntPtr h);
+  [DllImport("winspool.drv")]static extern bool EndDocPrinter(IntPtr h);
+  public static bool Send(string name,byte[] data){
+    IntPtr h;if(!OpenPrinter(name,out h,IntPtr.Zero))return false;
+    var di=new DOCINFOW{pDocName="Q",pDatatype="RAW"};
+    if(StartDocPrinterW(h,1,ref di)<=0){ClosePrinter(h);return false;}
+    StartPagePrinter(h);int w;WritePrinter(h,data,data.Length,out w);
+    EndPagePrinter(h);EndDocPrinter(h);ClosePrinter(h);return true;
+  }
+}
+'@ -Language CSharp -ErrorAction SilentlyContinue
 $script:d = Get-Content '${esc}' -Raw -Encoding utf8 | ConvertFrom-Json
 $pw100 = [int]($script:d.paperMm / 25.4 * 100)
 $ph100 = if($script:d.paperHmm -gt 0){[int]($script:d.paperHmm / 25.4 * 100)}else{2000}
 $script:fontName = if($script:d.fontFamily -and $script:d.fontFamily -ne ''){$script:d.fontFamily}else{'Segoe UI'}
 
-function DoPrint {
-  $pd = New-Object System.Drawing.Printing.PrintDocument
-  $pd.PrinterSettings.PrinterName = $script:d.printerName
-  $pd.PrinterSettings.Copies = [int16]1
-  $customSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
-  $customSize.RawKind = 256
-  $pd.DefaultPageSettings.PaperSize = $customSize
-  $pd.DefaultPageSettings.Landscape = $false
-  $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
-  $pd.add_PrintPage({
-    param($s,$e)
-    $g=$e.Graphics; $g.PageUnit=[System.Drawing.GraphicsUnit]::Millimeter
-    [float]$pw=$script:d.paperMm-6.0; [float]$m=3.0; [float]$y=$m
-    foreach($line in $script:d.lines){
-      if($line.t -eq 'div'){
-        $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
-        $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
-        $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
-      }elseif($line.t -eq 'numWithType'){
-        [float]$typeSmm=$line.typeFs/72.0*25.4
-        [float]$numSmm=$line.numFs/72.0*25.4
-        [float]$lh=$numSmm*1.5
-        [float]$leftW=$pw*[float]0.35
-        [float]$gap=[float]2.0
-        [float]$rightW=$pw-$leftW-$gap
-        [float]$rightX=$m+$leftW+$gap
-        $typeFont=New-Object System.Drawing.Font($script:fontName,$typeSmm,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Millimeter)
-        $numFont=New-Object System.Drawing.Font($script:fontName,$numSmm,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Millimeter)
-        $fmt=New-Object System.Drawing.StringFormat
-        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
-        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
-        $leftRect=New-Object System.Drawing.RectangleF($m,$y,$leftW,$lh)
-        $g.DrawString($line.typeText,$typeFont,[System.Drawing.Brushes]::Black,$leftRect,$fmt)
+# Font fallback: if configured font not installed in Windows, use Thai-capable system font
+$allFamilies = [System.Drawing.FontFamily]::Families | ForEach-Object { $_.Name }
+if ($script:fontName -notin $allFamilies) {
+  foreach ($fb in @('Leelawadee UI','Leelawadee','Tahoma','Segoe UI')) {
+    if ($fb -in $allFamilies) { $script:fontName = $fb; break }
+  }
+}
+
+# Detect ZPL printer (Zebra ZDesigner)
+$script:isZPL = $false
+try {
+  $pWmi = Get-WmiObject Win32_Printer -Filter ("Name='" + $script:d.printerName.Replace("'","''") + "'") -ErrorAction SilentlyContinue
+  $script:isZPL = $pWmi -and ($pWmi.DriverName -like '*ZDesigner*' -or $pWmi.DriverName -like '*Zebra*' -or $pWmi.DriverName -like '*ZPL*')
+} catch {}
+
+# Drawing logic shared by GDI+ and ZPL paths
+$script:drawContent = {
+  param($g)
+  $g.PageUnit = [System.Drawing.GraphicsUnit]::Millimeter
+  [float]$pw=$script:d.paperMm-6.0; [float]$m=3.0; [float]$y=$m
+  foreach($line in $script:d.lines){
+    if($line.t -eq 'div'){
+      $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::LightGray,[float]0.3)
+      $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+      $g.DrawLine($pen,$m,$y,($m+$pw),$y); $y+=[float]3.0
+    }elseif($line.t -eq 'numWithType'){
+      [float]$typeSmm=$line.typeFs/72.0*25.4
+      [float]$numSmm=$line.numFs/72.0*25.4
+      [float]$lh=$numSmm*1.5
+      [float]$leftW=$pw*[float]0.35; [float]$gap=[float]2.0
+      [float]$rightW=$pw-$leftW-$gap; [float]$rightX=$m+$leftW+$gap
+      $typeFont=New-Object System.Drawing.Font($script:fontName,$typeSmm,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Millimeter)
+      $numFont=New-Object System.Drawing.Font($script:fontName,$numSmm,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Millimeter)
+      $fmt=New-Object System.Drawing.StringFormat
+      $fmt.Alignment=[System.Drawing.StringAlignment]::Center; $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+      $leftRect=New-Object System.Drawing.RectangleF($m,$y,$leftW,$lh)
+      $g.DrawString($line.typeText,$typeFont,[System.Drawing.Brushes]::Black,$leftRect,$fmt)
+      $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
+      $g.DrawRectangle($bpen,$rightX,$y,$rightW,$lh)
+      $rightRect=New-Object System.Drawing.RectangleF($rightX,$y,$rightW,$lh)
+      $g.DrawString($line.numText,$numFont,[System.Drawing.Brushes]::Black,$rightRect,$fmt)
+      $y+=$lh+[float]1.5
+    }else{
+      [float]$smm=$line.fs/72.0*25.4
+      $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
+      $font=New-Object System.Drawing.Font($script:fontName,$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
+      $brush=[System.Drawing.Brushes]::($line.color)
+      if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
+      $fmt=New-Object System.Drawing.StringFormat
+      $fmt.Alignment=[System.Drawing.StringAlignment]::Center; $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+      [float]$lh=$smm*1.5
+      if($line.t -eq 'num'){
         $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
-        $g.DrawRectangle($bpen,$rightX,$y,$rightW,$lh)
-        $rightRect=New-Object System.Drawing.RectangleF($rightX,$y,$rightW,$lh)
-        $g.DrawString($line.numText,$numFont,[System.Drawing.Brushes]::Black,$rightRect,$fmt)
-        $y+=$lh+[float]1.5
-      }else{
-        [float]$smm=$line.fs/72.0*25.4
-        $st=if($line.bold){[System.Drawing.FontStyle]::Bold}else{[System.Drawing.FontStyle]::Regular}
-        $font=New-Object System.Drawing.Font($script:fontName,$smm,$st,[System.Drawing.GraphicsUnit]::Millimeter)
-        $brush=[System.Drawing.Brushes]::($line.color)
-        if(-not $brush){$brush=[System.Drawing.Brushes]::Black}
-        $fmt=New-Object System.Drawing.StringFormat
-        $fmt.Alignment=[System.Drawing.StringAlignment]::Center
-        $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
-        [float]$lh=$smm*1.5
-        if($line.t -eq 'num'){
-          $bpen=New-Object System.Drawing.Pen([System.Drawing.Color]::Black,[float]0.7)
-          $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
-        }
-        $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
-        $g.DrawString($line.text,$font,$brush,$rect,$fmt)
-        $y+=$lh+[float]1.5
+        $g.DrawRectangle($bpen,$m,$y,$pw,$lh)
+      }
+      $rect=New-Object System.Drawing.RectangleF($m,$y,$pw,$lh)
+      $g.DrawString($line.text,$font,$brush,$rect,$fmt)
+      $y+=$lh+[float]1.5
+    }
+  }
+}
+
+function DoPrint {
+  if ($script:isZPL) {
+    # ZPL path: render to bitmap at printer DPI → convert to ^GFA hex → send raw ZPL
+    # ^PW and ^LL in ZPL data stream enforce exact label dimensions the driver cannot override
+    [int]$dpi = 203
+    try {
+      $pdDpi = New-Object System.Drawing.Printing.PrintDocument
+      $pdDpi.PrinterSettings.PrinterName = $script:d.printerName
+      $r = $pdDpi.PrinterSettings.DefaultPageSettings.PrinterResolution.X
+      if ($r -gt 0) { $dpi = $r }
+    } catch {}
+    [int]$bmpW = [Math]::Max(1,[int]($script:d.paperMm / 25.4 * $dpi))
+    [int]$bmpH = [Math]::Max(1,[int]($script:d.paperHmm / 25.4 * $dpi))
+    $bmp = New-Object System.Drawing.Bitmap($bmpW, $bmpH)
+    $bmp.SetResolution($dpi, $dpi)
+    $gBmp = [System.Drawing.Graphics]::FromImage($bmp)
+    $gBmp.Clear([System.Drawing.Color]::White)
+    & $script:drawContent $gBmp
+    $gBmp.Dispose()
+    # Convert to 1-bit ZPL ^GFA hex
+    $bytesPerRow = [int][Math]::Ceiling($bmpW / 8.0)
+    $totalBytes  = $bytesPerRow * $bmpH
+    $bmp1 = $bmp.Clone([System.Drawing.Rectangle]::new(0,0,$bmpW,$bmpH),[System.Drawing.Imaging.PixelFormat]::Format1bppIndexed)
+    $bmp.Dispose()
+    $bd = $bmp1.LockBits([System.Drawing.Rectangle]::new(0,0,$bmpW,$bmpH),[System.Drawing.Imaging.ImageLockMode]::ReadOnly,[System.Drawing.Imaging.PixelFormat]::Format1bppIndexed)
+    $stride = [Math]::Abs($bd.Stride)
+    $raw = New-Object byte[] ($bmpH * $stride)
+    [System.Runtime.InteropServices.Marshal]::Copy($bd.Scan0,$raw,0,$raw.Length)
+    $bmp1.UnlockBits($bd); $bmp1.Dispose()
+    $sb = [System.Text.StringBuilder]::new($totalBytes * 2)
+    for ($r = 0; $r -lt $bmpH; $r++) {
+      for ($b = 0; $b -lt $bytesPerRow; $b++) {
+        [void]$sb.Append((($raw[$r * $stride + $b] -bxor 0xFF) -band 0xFF).ToString('X2'))
       }
     }
-  })
-  $pd.Print()
+    $zpl = "^XA^PW$bmpW^LL$bmpH^FO0,0^GFA,$totalBytes,$totalBytes,$bytesPerRow,$($sb.ToString())^FS^XZ"
+    [void][RawPrint]::Send($script:d.printerName,[System.Text.Encoding]::UTF8.GetBytes($zpl))
+  } else {
+    # Standard GDI+ path
+    $pd = New-Object System.Drawing.Printing.PrintDocument
+    $pd.PrinterSettings.PrinterName = $script:d.printerName
+    $pd.PrinterSettings.Copies = [int16]1
+    $customSize = New-Object System.Drawing.Printing.PaperSize('Custom',$pw100,$ph100)
+    $customSize.RawKind = 256
+    $pd.DefaultPageSettings.PaperSize = $customSize
+    $pd.DefaultPageSettings.Landscape = $false
+    $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0,0,0,0)
+    $pd.add_PrintPage({ param($s,$e); & $script:drawContent $e.Graphics })
+    $pd.Print()
+  }
 }
 
 for($i=0; $i -lt [int]$script:d.copies; $i++){
