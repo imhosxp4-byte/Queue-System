@@ -1817,21 +1817,55 @@ _testPrintArea.id = 'testPrintArea';
 _testPrintArea.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:#fff;padding:8mm';
 document.body.appendChild(_testPrintArea);
 
-function testPrint() {
-  const cfg = collectPrintCfg();
-  const sysName = pdSysName || PD_SAMPLE.sysName;
-  _testPrintArea.innerHTML = renderSlipHtml(cfg, { ...PD_SAMPLE, sysName });
-  _testPrintArea.style.display = 'block';
+async function testPrint() {
+  const cfg      = collectPrintCfg();
+  const sysName  = pdSysName || PD_SAMPLE.sysName;
+  const ticket   = { ...PD_SAMPLE, sysName };
+  const mode     = localStorage.getItem('queuePrintMode') || 'host';
 
-  // Inject @page size
+  // HOST mode: save config → print via server GDI+/ZPL pipeline
+  if (mode === 'host') {
+    const printerName = document.getElementById('pdPrinter').value;
+    if (printerName) {
+      try {
+        await fetch(`/api/sys/${sysId}/print-config`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg)
+        });
+        const r = await fetch(`/api/sys/${sysId}/print-ticket`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(ticket)
+        });
+        const j = await r.json();
+        if (j.success) toast('✅ ส่งทดสอบพิมพ์แล้ว');
+        else toast(`❌ ${j.message || 'พิมพ์ไม่สำเร็จ'}`);
+      } catch { toast('❌ เชื่อมต่อไม่ได้'); }
+      return;
+    }
+  }
+
+  // LOCAL mode: send to print-agent with current (possibly unsaved) config
+  if (mode === 'local') {
+    const localPrinter = document.getElementById('pdLocalPrinter').value;
+    if (localPrinter) {
+      try {
+        const r = await fetch('http://localhost:3001/api/local-print', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ printerName: localPrinter, ticket, cfg })
+        });
+        const j = await r.json();
+        if (j.success) toast('✅ ส่งทดสอบพิมพ์แล้ว');
+        else toast(`❌ ${j.message || 'พิมพ์ไม่สำเร็จ'}`);
+      } catch { toast('❌ เชื่อมต่อ Print Agent ไม่ได้'); }
+      return;
+    }
+  }
+
+  // Fallback: browser print dialog (no printer configured)
+  _testPrintArea.innerHTML = renderSlipHtml(cfg, ticket);
+  _testPrintArea.style.display = 'block';
   let ps = document.getElementById('_testPageStyle');
   if (!ps) { ps = document.createElement('style'); ps.id='_testPageStyle'; document.head.appendChild(ps); }
   const szMap = {'80mm':'80mm auto','58mm':'58mm auto','a4':'A4','custom':`${cfg.customWidth||80}mm ${cfg.customHeight?cfg.customHeight+'mm':'auto'}`};
   ps.textContent = `@media print{@page{size:${szMap[pdCurrentSize]};margin:4mm}body>*:not(#testPrintArea){display:none!important}#testPrintArea{display:block!important;position:static;padding:0}}`;
-
-  const printerName = document.getElementById('pdPrinter').value;
-  if (printerName) toast(`🖨 เลือก "${printerName}" ในหน้าต่างพิมพ์`);
-
   setTimeout(() => {
     window.print();
     setTimeout(() => { _testPrintArea.style.display='none'; ps.textContent=''; }, 1000);
