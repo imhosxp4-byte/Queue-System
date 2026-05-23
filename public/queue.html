@@ -1138,7 +1138,7 @@ function doPrint(ticket) {
     if (localPrinter) {
       fetch('http://localhost:3001/api/local-print', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ printerName: localPrinter, sysId, ticket: data, cfg: printConfig }),
+        body: JSON.stringify({ printerName: localPrinter, sysId, ticket: data }),
         signal: AbortSignal.timeout(15000),
       }).then(r => r.json()).then(r => {
         if (!r.success) browserPrint(data);
