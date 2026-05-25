@@ -169,6 +169,23 @@
       font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;
     }
     .btn-recall-ns:hover{opacity:.85}
+    .btn-clear-ns{
+      border:1px solid rgba(100,116,139,.4);background:rgba(100,116,139,.1);
+      color:#64748b;border-radius:7px;padding:4px 10px;font-size:.72rem;
+      font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .18s;
+    }
+    .btn-clear-ns:hover{background:rgba(100,116,139,.22);color:#334155}
+
+    /* no-show sub-tabs */
+    .ns-sub-tabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid rgba(147,197,253,.4)}
+    .ns-stab{padding:8px 18px;font-size:.8rem;font-weight:700;color:#7a9bb5;cursor:pointer;
+      border-bottom:3px solid transparent;transition:color .15s;white-space:nowrap;margin-bottom:-2px}
+    .ns-stab:hover{color:#1e3a5f}
+    .ns-stab.active{color:#dc2626;border-bottom-color:#dc2626}
+    .ns-stab.clr.active{color:#1d4ed8;border-bottom-color:#1d4ed8}
+    .ns-cleared-row{opacity:.6}
+    .ns-cleared-tag{font-size:.62rem;color:#1d4ed8;background:rgba(29,78,216,.1);
+      border:1px solid rgba(29,78,216,.25);border-radius:4px;padding:1px 6px;margin-left:5px}
 
     /* ── TOAST ── */
     .toast{
@@ -240,9 +257,11 @@ const _urlMode    = params.get('mode');
 let   cashierMode = _urlMode || localStorage.getItem('cashierMode_' + sysId) || 'opd';
 let   myCounterId = Number(localStorage.getItem('myCounterId_' + sysId)) || null;
 
-let allServed = [];
-let noShows   = [];
-let curTab    = 'called';
+let allServed      = [];
+let noShows        = [];
+let clearedNoShows = [];
+let curTab         = 'called';
+let nsSubTab       = 'active';
 
 // ── Socket ──────────────────────────────────────────────────────────────────
 const socket = io();
@@ -266,15 +285,21 @@ socket.on('noshow_recalled', d => {
   if (d.noShows) noShows = d.noShows;
   renderNoShowHist(); updateStats();
 });
+socket.on('noshow_display_cleared', d => {
+  if (d.noShows)        noShows        = d.noShows;
+  if (d.clearedNoShows) clearedNoShows = d.clearedNoShows;
+  renderNoShowHist(); updateStats();
+});
 socket.on('queue_reset', () => {
-  allServed = []; noShows = [];
+  allServed = []; noShows = []; clearedNoShows = [];
   renderAll();
 });
 
 // ── Load initial data ────────────────────────────────────────────────────────
 fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
-  allServed = d.allServed || [];
-  noShows   = d.noShows   || [];
+  allServed      = d.allServed      || [];
+  noShows        = d.noShows        || [];
+  clearedNoShows = d.clearedNoShows || [];
   renderAll();
 });
 
@@ -363,33 +388,67 @@ function renderCalledHist() {
       </div>`).join('');
 }
 
+function swNsTab(tab) {
+  nsSubTab = tab;
+  document.querySelectorAll('.ns-stab').forEach(e => e.classList.remove('active'));
+  const el = document.getElementById('nsStab_' + tab);
+  if (el) el.classList.add('active');
+  renderNoShowHist();
+}
+
+function clearNoShowDisplay(display) {
+  fetch(`/api/sys/${sysId}/clear-noshow-display`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display })
+  }).then(r=>r.json()).then(d => {
+    if (!d.success) toast(d.message || 'เกิดข้อผิดพลาด', 'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด', 'err'));
+}
+
 function renderNoShowHist() {
-  const list = noShows.filter(t => (t.mode||'opd') === cashierMode);
-  const el   = document.getElementById('paneNoShow');
-  if (!list.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">ไม่มีรายการเรียกแล้วไม่มา</div></div>`;
-    return;
-  }
-  el.innerHTML = `
+  const el           = document.getElementById('paneNoShow');
+  const activeList   = noShows.filter(t       => (t.mode||'opd') === cashierMode);
+  const clearedList  = clearedNoShows.filter(t => (t.mode||'opd') === cashierMode);
+
+  const thead = `
     <div class="h-thead thead-ns">
       <span>หมายเลขคิว</span><span>ผู้ป่วย / ประเภท</span><span>เวลาเรียก</span><span>เวลาไม่มา</span><span>จัดการ</span>
-    </div>` +
-    list.map(t => `
-      <div class="h-row row-ns ns-item">
-        <div class="h-cell">
-          <div class="h-badge" style="background:${t.color}">${t.prefix||'#'}</div>
-          <span class="h-num h-ns-num">${t.display}</span>
-        </div>
-        <div class="h-meta">
-          <div class="h-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
-          ${patientMeta(t)}
-        </div>
-        <div class="h-time">${t.calledAt}</div>
-        <div class="h-time-ns">${t.noShowAt||'-'}</div>
-        <div>
-          <button class="btn-recall-ns" onclick="recallNoShow('${t.display}')">↺ เรียกซ้ำ</button>
-        </div>
-      </div>`).join('');
+    </div>`;
+
+  const rowHtml = (t, cleared) => `
+    <div class="h-row row-ns ns-item${cleared?' ns-cleared-row':''}">
+      <div class="h-cell">
+        <div class="h-badge" style="background:${t.color}">${t.prefix||'#'}</div>
+        <span class="h-num h-ns-num">${t.display}</span>
+        ${cleared ? `<span class="ns-cleared-tag">เคลียแล้ว</span>` : ''}
+      </div>
+      <div class="h-meta">
+        <div class="h-type">${t.typeName}${t.counterName?' · '+t.counterName:''}</div>
+        ${patientMeta(t)}
+      </div>
+      <div class="h-time">${t.calledAt}</div>
+      <div class="h-time-ns">${cleared ? (t.clearedAt||t.noShowAt||'-') : (t.noShowAt||'-')}</div>
+      <div class="action-btns">
+        <button class="btn-recall-ns" onclick="recallNoShow('${t.display}')">↺ เรียกซ้ำ</button>
+        ${!cleared ? `<button class="btn-clear-ns" onclick="clearNoShowDisplay('${t.display}')">🧹 เคลีย</button>` : ''}
+      </div>
+    </div>`;
+
+  const tabs = `
+    <div class="ns-sub-tabs">
+      <div class="ns-stab${nsSubTab==='active'?' active':''}" id="nsStab_active" onclick="swNsTab('active')">✕ ไม่มา (${activeList.length})</div>
+      <div class="ns-stab clr${nsSubTab==='cleared'?' active':''}" id="nsStab_cleared" onclick="swNsTab('cleared')">✓ เคลียแล้ว (${clearedList.length})</div>
+    </div>`;
+
+  if (nsSubTab === 'cleared') {
+    el.innerHTML = tabs + (clearedList.length
+      ? thead + clearedList.map(t => rowHtml(t, true)).join('')
+      : `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">ไม่มีรายการเคลียแล้ว</div></div>`);
+  } else {
+    el.innerHTML = tabs + (activeList.length
+      ? thead + activeList.map(t => rowHtml(t, false)).join('')
+      : `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-txt">ไม่มีรายการเรียกแล้วไม่มา</div></div>`);
+  }
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────

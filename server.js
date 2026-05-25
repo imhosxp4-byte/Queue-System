@@ -163,6 +163,7 @@ function loadSysData(sysId) {
     nextCounterId:       Math.max(0, ...counters.map(c => c.id))   + 1,
     state,
     noShows:             [],
+    clearedNoShows:      [],
     lastCalledByCounter: {},
     recentByCounter:     {},
   };
@@ -295,6 +296,7 @@ function saveQueueState(sysId, sys) {
     date:                todayStr(),
     state:               sys.state,
     noShows:             sys.noShows,
+    clearedNoShows:      sys.clearedNoShows || [],
     lastCalledByCounter: sys.lastCalledByCounter,
     recentByCounter:     sys.recentByCounter,
   });
@@ -311,6 +313,7 @@ function restoreQueueState(sysId, sys) {
       if (sys.state[tid]) sys.state[tid] = s;
     }
     sys.noShows             = saved.noShows             || [];
+    sys.clearedNoShows      = saved.clearedNoShows      || [];
     sys.lastCalledByCounter = saved.lastCalledByCounter || {};
     sys.recentByCounter     = saved.recentByCounter     || {};
   } catch {}
@@ -355,6 +358,7 @@ io.on('connection', socket => {
       counters:            sys.counters,
       queueTypes:          sys.queueTypes,
       noShows:             sys.noShows.slice(0, 40),
+      clearedNoShows:      (sys.clearedNoShows || []).slice(0, 40),
       lastCalledByCounter: sys.lastCalledByCounter,
       recentByCounter:     sys.recentByCounter,
       displayConfig:       sys.displayConfig,
@@ -722,6 +726,25 @@ app.post('/api/sys/:sysId/clear-counter', requireSys, (req, res) => {
   res.json({ success: true });
 });
 
+// ── Clear no-show from display (move to clearedNoShows, do NOT delete) ───
+app.post('/api/sys/:sysId/clear-noshow-display', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display = (req.body.display || '').toUpperCase().trim();
+  const idx = sys.noShows.findIndex(t => t.display === display);
+  if (idx === -1) return res.json({ success: false, message: 'ไม่พบคิวนี้ในรายการไม่มา' });
+  const [ticket] = sys.noShows.splice(idx, 1);
+  ticket.clearedAt = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  if (!sys.clearedNoShows) sys.clearedNoShows = [];
+  sys.clearedNoShows.unshift(ticket);
+  if (sys.clearedNoShows.length > 100) sys.clearedNoShows.pop();
+  saveQueueState(sysId, sys);
+  io.to('sys-' + sysId).emit('noshow_display_cleared', {
+    noShows:        sys.noShows,
+    clearedNoShows: sys.clearedNoShows.slice(0, 40),
+  });
+  res.json({ success: true });
+});
+
 // ── Recall served (re-announce without changing queue state) ─────────────
 app.post('/api/sys/:sysId/recall-served', requireSys, (req, res) => {
   const { sys, sysId } = req;
@@ -820,6 +843,7 @@ app.get('/api/sys/:sysId/status', requireSys, (req, res) => {
     allServed:           allServed(sys),
     lastCalled:          allServed(sys)[0] || null,
     noShows:             sys.noShows.slice(0, 40),
+    clearedNoShows:      (sys.clearedNoShows || []).slice(0, 40),
     lastCalledByCounter: sys.lastCalledByCounter,
     recentByCounter:     sys.recentByCounter,
     displayConfig:       sys.displayConfig,
@@ -1208,7 +1232,7 @@ app.post('/api/local-print', corsLocal, (req, res) => {
 function resetSys(sysId, sys) {
   for (const id of Object.keys(sys.state))
     sys.state[id] = { serial: 0, waiting: [], served: [], calledQueue: null };
-  sys.noShows = []; sys.lastCalledByCounter = {}; sys.recentByCounter = {};
+  sys.noShows = []; sys.clearedNoShows = []; sys.lastCalledByCounter = {}; sys.recentByCounter = {};
   try { fs.unlinkSync(path.join(sysDir(sysId), 'queue-state.json')); } catch {}
   io.to('sys-' + sysId).emit('queue_reset');
 }

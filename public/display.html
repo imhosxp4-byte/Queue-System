@@ -1011,8 +1011,9 @@ socket.on('queue_uncalled', ({ lastCalledByCounter: lbc, recentByCounter: rbc })
   if (rbc) recentByCtr   = rbc;
   renderCounters(false, null);
 });
-socket.on('queue_noshow',       ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
-socket.on('noshow_recalled',    ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
+socket.on('queue_noshow',           ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
+socket.on('noshow_recalled',        ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
+socket.on('noshow_display_cleared', ({ noShows: ns })  => { noShows = ns; renderNoShow(); });
 socket.on('counters_updated',   c  => { allCounters = c; buildCounterGrid(); rebuildCfgList(); });
 socket.on('types_updated',      t  => { queueTypes  = t; rebuildTypeList(); });
 socket.on('display_config_updated', dc => {

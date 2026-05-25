@@ -1,6 +1,7 @@
 [Setup]
 AppName=ระบบคิว (Queue System)
-AppVersion=1.0
+AppVersion=2.1.0
+AppVerName=ระบบคิว (Queue System) v2.1.0
 AppPublisher=Hospital Queue System
 AppId={{A3F2C1D0-4E5B-6F7A-8B9C-0D1E2F3A4B5C}
 DefaultDirName={autopf}\QueueSystem
@@ -15,28 +16,34 @@ PrivilegesRequired=admin
 UninstallDisplayName=ระบบคิว (Queue System)
 UninstallDisplayIcon={app}\QueueServer.exe
 CloseApplications=no
+MinVersion=6.1
 
 [Languages]
 Name: "thai"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "สร้าง Shortcut บน Desktop"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
+Name: "desktopicon"; Description: "สร้าง Shortcut บน Desktop (เปิดระบบคิวในเบราว์เซอร์)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
 Name: "firewall"; Description: "เปิด Firewall อนุญาต Port 3000 (สำหรับเชื่อมต่อจากเครื่องอื่นใน LAN)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
 
 [Files]
-Source: "QueueServer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "nssm.exe"; DestDir: "{app}\tools"; Flags: ignoreversion
-Source: "..\public\*"; DestDir: "{app}\public"; Flags: ignoreversion recursesubdirs createallsubdirs
+; ── โปรแกรมหลัก ──────────────────────────────────────────────────────────
+Source: "QueueServer.exe";     DestDir: "{app}";          Flags: ignoreversion
+Source: "nssm.exe";            DestDir: "{app}\tools";    Flags: ignoreversion
+; ── หน้าเว็บ ─────────────────────────────────────────────────────────────
+Source: "..\public\*";         DestDir: "{app}\public";   Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
 Name: "{app}\data"
 Name: "{app}\logs"
 
 [Icons]
-Name: "{group}\เปิดระบบคิว (เบราว์เซอร์)"; Filename: "{app}\open-queue.url"
-Name: "{group}\หยุด Queue System Service"; Filename: "{app}\tools\nssm.exe"; Parameters: "stop QueueSystem"; IconFilename: "{app}\QueueServer.exe"
-Name: "{group}\ถอนการติดตั้ง"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\ระบบคิว"; Filename: "{app}\open-queue.url"; Tasks: desktopicon; Comment: "เปิดระบบคิวในเบราว์เซอร์"
+; Start Menu
+Name: "{group}\เปิดระบบคิว";                    Filename: "{app}\open-queue.url";         Comment: "เปิดระบบคิวในเบราว์เซอร์"
+Name: "{group}\หยุด Queue System Service";       Filename: "{app}\tools\nssm.exe";         Parameters: "stop QueueSystem"; IconFilename: "{app}\QueueServer.exe"
+Name: "{group}\เริ่ม Queue System Service";      Filename: "{app}\tools\nssm.exe";         Parameters: "start QueueSystem"; IconFilename: "{app}\QueueServer.exe"
+Name: "{group}\ถอนการติดตั้ง";                  Filename: "{uninstallexe}"
+; Desktop
+Name: "{commondesktop}\ระบบคิว";                Filename: "{app}\open-queue.url";         Tasks: desktopicon; Comment: "เปิดระบบคิว (Queue System)"
 
 [Code]
 
@@ -54,19 +61,18 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  UninstStr: String;
+  UninstStr, NssmExe: String;
   ResultCode: Integer;
-  NssmExe: String;
 begin
   Result := '';
 
-  // หยุด service เก่าก่อน (ถ้ามี)
+  // หยุด service เก่าก่อน
   NssmExe := ExpandConstant('{autopf}') + '\QueueSystem\tools\nssm.exe';
   if FileExists(NssmExe) then
   begin
     Exec(NssmExe, 'stop QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec(NssmExe, 'remove QueueSystem confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(1500);
+    Sleep(2000);
   end;
 
   // ถอนการติดตั้งเวอร์ชันเก่า (silent)
@@ -75,7 +81,7 @@ begin
   begin
     UninstStr := RemoveQuotes(UninstStr);
     Exec(UninstStr, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(2000);
+    Sleep(2500);
   end;
 end;
 
@@ -117,20 +123,20 @@ begin
     AppDir  := ExpandConstant('{app}');
     NssmExe := AppDir + '\tools\nssm.exe';
 
-    // สร้าง shortcut เบราว์เซอร์
+    // สร้าง URL shortcut
     CreateUrlShortcut();
 
-    // หยุด/ลบ service เก่าที่ยังค้างอยู่ (กรณี PrepareToInstall ไม่ครอบคลุม)
+    // หยุด/ลบ service เก่าที่อาจค้างอยู่
     if ServiceExists('QueueSystem') then
     begin
       Exec(NssmExe, 'stop QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       Exec(NssmExe, 'remove QueueSystem confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      Sleep(1000);
+      Sleep(1500);
     end;
 
-    // ติดตั้ง service ใหม่
+    // ติดตั้ง service ใหม่ ── QueueServer.exe รัน Node.js ในตัว ไม่ต้อง cmd
     Exec(NssmExe, 'install QueueSystem "' + AppDir + '\QueueServer.exe"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      AppDir, SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
     // ตั้งค่า service
     Exec(NssmExe, 'set QueueSystem AppDirectory "' + AppDir + '"',
@@ -152,7 +158,7 @@ begin
     Exec(NssmExe, 'set QueueSystem AppExit Default Restart',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-    // Firewall rule
+    // Firewall
     if WizardIsTaskSelected('firewall') then
     begin
       Exec('netsh', 'advfirewall firewall delete rule name="Queue System Port 3000"',
@@ -163,6 +169,7 @@ begin
 
     // เริ่ม service
     Exec(NssmExe, 'start QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(2000);
   end;
 end;
 
@@ -176,7 +183,7 @@ begin
   begin
     NssmExe := ExpandConstant('{app}\tools\nssm.exe');
     Exec(NssmExe, 'stop QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(1000);
+    Sleep(1500);
     Exec(NssmExe, 'remove QueueSystem confirm', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('netsh', 'advfirewall firewall delete rule name="Queue System Port 3000"',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
@@ -184,4 +191,4 @@ begin
 end;
 
 [Run]
-Filename: "http://localhost:3000"; Description: "เปิดระบบคิวในเบราว์เซอร์"; Flags: shellexec postinstall skipifsilent nowait
+Filename: "http://localhost:3000"; Description: "เปิดระบบคิวในเบราว์เซอร์หลังติดตั้งเสร็จ"; Flags: shellexec postinstall skipifsilent nowait

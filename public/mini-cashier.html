@@ -160,6 +160,10 @@
       font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;
       font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.3);flex-shrink:0}
     .btn-come-call:hover{opacity:.88;transform:scale(1.04)}
+    .btn-clear-ns{padding:4px 10px;border-radius:12px;border:1px solid rgba(100,116,139,.4);
+      background:rgba(100,116,139,.1);color:#94a3b8;font-size:.65rem;font-weight:700;
+      cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0}
+    .btn-clear-ns:hover{background:rgba(100,116,139,.25);color:#cbd5e1}
     .ns-empty{text-align:center;color:#94a3b8;padding:24px;font-size:.82rem}
     .stat-ns-btn{cursor:pointer;transition:transform .15s}
     .stat-ns-btn:hover{transform:scale(1.06)}
@@ -396,10 +400,11 @@ document.getElementById('scanLbl').textContent = isIpd ? '🛏 AN / เลขค
 
 let counters    = [];
 let queueTypes  = [];
-let allWaiting  = [];
-let allServed   = [];
-let noShows     = [];
-let lastCalled  = null;
+let allWaiting      = [];
+let allServed       = [];
+let noShows         = [];
+let clearedNoShows  = [];
+let lastCalled      = null;
 let pendingCall = null;
 let skipConfirm = localStorage.getItem('qf_skip_confirm_' + sysId) === 'true';
 let myCounterId = Number(localStorage.getItem('qf_counter_id_' + sysId)) || null;
@@ -425,10 +430,11 @@ socket.on('queue_uncalled', ({ allWaiting:aw, allServed:as }) => {
   updateNext(); updateStats();
   if (_wqOpen) renderWqList(); if (_svOpen) renderSvList();
 });
-socket.on('queue_noshow',    ({ allServed:as, noShows:ns }) => { allServed=as; noShows=ns; updateStats(); if (_nsOpen) renderNsList(); if (_svOpen) renderSvList(); });
-socket.on('noshow_recalled', ({ noShows:ns }) => { noShows=ns; updateStats(); if (_nsOpen) renderNsList(); });
+socket.on('queue_noshow',           ({ allServed:as, noShows:ns }) => { allServed=as; noShows=ns; updateStats(); if (_nsOpen) renderNsList(); if (_svOpen) renderSvList(); });
+socket.on('noshow_recalled',        ({ noShows:ns }) => { noShows=ns; updateStats(); if (_nsOpen) renderNsList(); });
+socket.on('noshow_display_cleared', ({ noShows:ns, clearedNoShows:cns }) => { noShows=ns; clearedNoShows=cns||[]; updateStats(); if (_nsOpen) renderNsList(); });
 socket.on('queue_reset', () => {
-  allWaiting=[]; allServed=[]; noShows=[]; lastCalled=null;
+  allWaiting=[]; allServed=[]; noShows=[]; clearedNoShows=[]; lastCalled=null;
   resetCalled(); updateNext(); updateStats(); updateAvatar();
 });
 socket.on('counters_updated', c => { counters=c; renderCtr(); });
@@ -437,8 +443,9 @@ socket.on('sys_state', d => {
   if (d.counters)   { counters=d.counters; renderCtr(); }
   if (d.queueTypes)   queueTypes=d.queueTypes;
   if (d.allWaiting)   allWaiting=d.allWaiting;
-  if (d.allServed)    allServed=d.allServed;
-  if (d.noShows)      noShows=d.noShows;
+  if (d.allServed)       allServed=d.allServed;
+  if (d.noShows)         noShows=d.noShows;
+  if (d.clearedNoShows)  clearedNoShows=d.clearedNoShows;
   if (d.lastCalledByCounter && myCounterId) {
     const lc = d.lastCalledByCounter[myCounterId];
     if (lc) { lastCalled=lc; showCalled(lc); }
@@ -450,8 +457,9 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   counters   = d.counters   || [];
   queueTypes = d.queueTypes || [];
   allWaiting = d.allWaiting || [];
-  allServed  = d.allServed  || [];
-  noShows    = d.noShows    || [];
+  allServed       = d.allServed       || [];
+  noShows         = d.noShows         || [];
+  clearedNoShows  = d.clearedNoShows  || [];
   if (d.sysInfo) document.getElementById('hdrSys').textContent = d.sysInfo.name;
   if (d.lastCalled) { lastCalled=d.lastCalled; showCalled(d.lastCalled); }
   if (myCounterId && !counters.find(c => c.id===myCounterId)) {
@@ -594,24 +602,53 @@ function closeNsSheet() {
   document.getElementById('nsOverlay').classList.remove('open');
 }
 function renderNsList() {
-  const list = noShows.filter(t => (t.mode||'opd') === mode);
-  document.getElementById('nsSheetCnt').textContent = list.length;
+  const activeList  = noShows.filter(t => (t.mode||'opd') === mode);
+  const clearedList = clearedNoShows.filter(t => (t.mode||'opd') === mode);
+  document.getElementById('nsSheetCnt').textContent = activeList.length;
   const el = document.getElementById('nsList');
-  if (!list.length) {
-    el.innerHTML = '<div class="ns-empty">✅ ไม่มีรายการไม่มา</div>';
-    return;
-  }
-  el.innerHTML = list.map(t => `
-    <div class="ns-item-row">
-      <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
-      <div style="flex:1;min-width:0;overflow:hidden">
-        <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
-        ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
-        <div class="ns-i-meta">${t.typeName} · ไม่มา ${t.noShowAt||''}</div>
-      </div>
-      <button class="btn-come-call" onclick="recallNoShow('${t.display}')">▶ มาเรียก</button>
-    </div>`).join('');
+
+  const activeHtml = activeList.length
+    ? activeList.map(t => `
+      <div class="ns-item-row">
+        <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
+        <div style="flex:1;min-width:0;overflow:hidden">
+          <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
+          ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
+          <div class="ns-i-meta">${t.typeName} · ไม่มา ${t.noShowAt||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button class="btn-come-call" onclick="recallNoShow('${t.display}')">▶ มาเรียก</button>
+          <button class="btn-clear-ns" onclick="clearNoShowDisplay('${t.display}')">🧹 เคลีย</button>
+        </div>
+      </div>`).join('')
+    : '<div class="ns-empty">✅ ไม่มีรายการไม่มา</div>';
+
+  const clearedHtml = clearedList.length
+    ? `<div style="margin:8px 0 4px;font-size:.68rem;font-weight:700;color:#64b5f6;letter-spacing:.03em;padding:0 2px">✓ เคลียแล้ว (${clearedList.length})</div>` +
+      clearedList.map(t => `
+        <div class="ns-item-row" style="opacity:.6">
+          <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
+          <div style="flex:1;min-width:0;overflow:hidden">
+            <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
+            ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
+            <div class="ns-i-meta">${t.typeName} · เคลีย ${t.clearedAt||t.noShowAt||''}</div>
+          </div>
+          <button class="btn-come-call" style="opacity:.7" onclick="recallNoShow('${t.display}')">↺ เรียกซ้ำ</button>
+        </div>`).join('')
+    : '';
+
+  el.innerHTML = activeHtml + clearedHtml;
 }
+
+function clearNoShowDisplay(display) {
+  fetch(`/api/sys/${sysId}/clear-noshow-display`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display })
+  }).then(r=>r.json()).then(d => {
+    if (!d.success) toast(d.message || 'เกิดข้อผิดพลาด', 'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด','err'));
+}
+
 function recallNoShow(display) {
   fetch(`/api/sys/${sysId}/recall-noshow`, {
     method:'POST', headers:{'Content-Type':'application/json'},
