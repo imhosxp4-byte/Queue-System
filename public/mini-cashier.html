@@ -127,6 +127,60 @@
       border-radius:10px;padding:11px;font-size:.82rem;cursor:pointer;font-family:inherit}
     .btn-cncl:hover{background:#f1f5f9}
 
+    /* ── No-show bottom sheet ── */
+    .ns-overlay{display:none;position:fixed;inset:0;background:rgba(14,30,60,.48);
+      backdrop-filter:blur(4px);z-index:70;flex-direction:column;justify-content:flex-end}
+    .ns-overlay.open{display:flex}
+    .ns-sheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 14px 18px;
+      max-height:72vh;display:flex;flex-direction:column;
+      box-shadow:0 -6px 28px rgba(37,99,235,.22)}
+    .ns-sheet-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-shrink:0}
+    .ns-sheet-title{font-size:.88rem;font-weight:800;color:#dc2626;flex:1}
+    .ns-sheet-cnt{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);
+      color:#dc2626;border-radius:10px;padding:1px 8px;font-size:.7rem;font-weight:800}
+    .ns-sheet-close{background:rgba(0,0,0,.06);border:none;border-radius:50%;
+      width:26px;height:26px;cursor:pointer;font-size:.82rem;
+      display:flex;align-items:center;justify-content:center;color:#6b7a99;flex-shrink:0}
+    .ns-sheet-close:hover{background:rgba(0,0,0,.12)}
+    .ns-list{overflow-y:auto;flex:1;padding-right:2px}
+    .ns-list::-webkit-scrollbar{width:3px}
+    .ns-list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+    .ns-item-row{display:flex;align-items:center;gap:8px;padding:9px 4px;
+      border-bottom:1px solid #f1f5f9}
+    .ns-item-row:last-child{border-bottom:none}
+    .ns-i-badge{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;
+      justify-content:center;font-size:.65rem;font-weight:900;color:#fff;flex-shrink:0;
+      box-shadow:0 2px 6px rgba(0,0,0,.18)}
+    .ns-i-num{font-size:.92rem;font-weight:800;letter-spacing:.5px}
+    .ns-i-pt{font-size:.72rem;color:#0d2d52;font-weight:600;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis}
+    .ns-i-meta{font-size:.6rem;color:#94a3b8;white-space:nowrap}
+    .btn-come-call{padding:5px 12px;border-radius:14px;border:none;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
+      font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.3);flex-shrink:0}
+    .btn-come-call:hover{opacity:.88;transform:scale(1.04)}
+    .ns-empty{text-align:center;color:#94a3b8;padding:24px;font-size:.82rem}
+    .stat-ns-btn{cursor:pointer;transition:transform .15s}
+    .stat-ns-btn:hover{transform:scale(1.06)}
+    .ns-arr{font-size:.55rem;display:block;color:#ef4444;margin-top:1px;font-weight:700}
+    .wq-sheet-title{color:#d97706!important}
+    .wq-sheet-cnt{background:rgba(217,119,6,.12)!important;border-color:rgba(217,119,6,.3)!important;color:#d97706!important}
+    .sv-sheet-title{color:#059669!important}
+    .sv-sheet-cnt{background:rgba(5,150,105,.12)!important;border-color:rgba(5,150,105,.3)!important;color:#059669!important}
+    .ns-arr-w{font-size:.55rem;display:block;color:#d97706;margin-top:1px;font-weight:700}
+    .ns-arr-s{font-size:.55rem;display:block;color:#059669;margin-top:1px;font-weight:700}
+    .btn-sheet-call{padding:5px 12px;border-radius:14px;border:none;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
+      font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      font-family:inherit;box-shadow:0 2px 8px rgba(37,99,235,.3);flex-shrink:0}
+    .btn-sheet-call:hover{opacity:.88;transform:scale(1.04)}
+    .btn-sheet-recall{padding:5px 12px;border-radius:14px;border:none;
+      background:#fff;border:1.5px solid #93c5fd;color:#2563eb;
+      font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      font-family:inherit;flex-shrink:0}
+    .btn-sheet-recall:hover{background:#eff6ff}
+
     /* ── Toast ── */
     .toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%) translateY(60px);
       background:#fff;border:1.5px solid #93c5fd;color:#0d2d52;padding:8px 20px;
@@ -251,9 +305,54 @@
 </div>
 
 <div class="stats-box">
-  <div class="stat"><div class="sv sv-w" id="stW">0</div><div class="sl">คิวรอ</div></div>
-  <div class="stat"><div class="sv sv-s" id="stS">0</div><div class="sl">บริการแล้ว</div></div>
-  <div class="stat"><div class="sv sv-n" id="stN">0</div><div class="sl">ไม่มา</div></div>
+  <div class="stat stat-ns-btn" onclick="openWqSheet()" title="ดูรายการคิวรอ">
+    <div class="sv sv-w" id="stW">0</div>
+    <div class="sl">คิวรอ <span class="ns-arr-w">▾ ดู</span></div>
+  </div>
+  <div class="stat stat-ns-btn" onclick="openSvSheet()" title="ดูรายการบริการแล้ว">
+    <div class="sv sv-s" id="stS">0</div>
+    <div class="sl">บริการแล้ว <span class="ns-arr-s">▾ ดู</span></div>
+  </div>
+  <div class="stat stat-ns-btn" onclick="openNsSheet()" title="ดูรายการไม่มา">
+    <div class="sv sv-n" id="stN">0</div>
+    <div class="sl">ไม่มา <span class="ns-arr">▾ ดู</span></div>
+  </div>
+</div>
+
+<!-- Waiting queue bottom sheet -->
+<div class="ns-overlay" id="wqOverlay">
+  <div class="ns-sheet">
+    <div class="ns-sheet-hdr">
+      <span class="ns-sheet-title wq-sheet-title">📋 คิวรอเรียก</span>
+      <span class="ns-sheet-cnt wq-sheet-cnt" id="wqSheetCnt">0</span>
+      <button class="ns-sheet-close" onclick="closeWqSheet()">✕</button>
+    </div>
+    <div class="ns-list" id="wqList"></div>
+  </div>
+</div>
+
+<!-- Served queue bottom sheet -->
+<div class="ns-overlay" id="svOverlay">
+  <div class="ns-sheet">
+    <div class="ns-sheet-hdr">
+      <span class="ns-sheet-title sv-sheet-title">✅ บริการแล้ว</span>
+      <span class="ns-sheet-cnt sv-sheet-cnt" id="svSheetCnt">0</span>
+      <button class="ns-sheet-close" onclick="closeSvSheet()">✕</button>
+    </div>
+    <div class="ns-list" id="svList"></div>
+  </div>
+</div>
+
+<!-- No-show bottom sheet -->
+<div class="ns-overlay" id="nsOverlay">
+  <div class="ns-sheet">
+    <div class="ns-sheet-hdr">
+      <span class="ns-sheet-title">✕ เรียกแล้วไม่มา</span>
+      <span class="ns-sheet-cnt" id="nsSheetCnt">0</span>
+      <button class="ns-sheet-close" onclick="closeNsSheet()">✕</button>
+    </div>
+    <div class="ns-list" id="nsList"></div>
+  </div>
 </div>
 
 <div class="overlay" id="cfmOverlay">
@@ -311,9 +410,11 @@ socket.on('queue_called', ({ calledQueue, allWaiting:aw, allServed:as, noShows:n
   allWaiting = aw; allServed = as; noShows = ns || noShows;
   lastCalled = calledQueue; showCalled(calledQueue); updateNext(); updateStats();
   updateAvatar(); pulseAvatar();
+  if (_wqOpen) renderWqList(); if (_svOpen) renderSvList();
 });
 socket.on('queue_issued', ({ allWaiting:aw }) => {
   allWaiting = aw; updateNext(); updateStats(); updateAvatar();
+  if (_wqOpen) renderWqList();
 });
 socket.on('queue_uncalled', ({ allWaiting:aw, allServed:as }) => {
   allWaiting = aw; allServed = as;
@@ -322,9 +423,10 @@ socket.on('queue_uncalled', ({ allWaiting:aw, allServed:as }) => {
     if (lastCalled) showCalled(lastCalled); else resetCalled();
   }
   updateNext(); updateStats();
+  if (_wqOpen) renderWqList(); if (_svOpen) renderSvList();
 });
-socket.on('queue_noshow',    ({ allServed:as, noShows:ns }) => { allServed=as; noShows=ns; updateStats(); });
-socket.on('noshow_recalled', ({ noShows:ns }) => { noShows=ns; updateStats(); });
+socket.on('queue_noshow',    ({ allServed:as, noShows:ns }) => { allServed=as; noShows=ns; updateStats(); if (_nsOpen) renderNsList(); if (_svOpen) renderSvList(); });
+socket.on('noshow_recalled', ({ noShows:ns }) => { noShows=ns; updateStats(); if (_nsOpen) renderNsList(); });
 socket.on('queue_reset', () => {
   allWaiting=[]; allServed=[]; noShows=[]; lastCalled=null;
   resetCalled(); updateNext(); updateStats(); updateAvatar();
@@ -474,7 +576,120 @@ function markNoShow() {
 document.getElementById('spNum').addEventListener('input',   e => { e.target.value=e.target.value.toUpperCase(); });
 document.getElementById('spNum').addEventListener('keydown', e => { if (e.key==='Enter') callSpecific(); });
 document.getElementById('cfmOverlay').addEventListener('click', e => { if (e.target.id==='cfmOverlay') closeCfm(); });
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeCfm(); });
+document.getElementById('nsOverlay').addEventListener('click',  e => { if (e.target.id==='nsOverlay')  closeNsSheet(); });
+document.getElementById('wqOverlay').addEventListener('click',  e => { if (e.target.id==='wqOverlay')  closeWqSheet(); });
+document.getElementById('svOverlay').addEventListener('click',  e => { if (e.target.id==='svOverlay')  closeSvSheet(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeCfm(); closeNsSheet(); closeWqSheet(); closeSvSheet(); } });
+
+// ── No-show sheet ─────────────────────────────────────────────────────────
+let _nsOpen = false;
+
+function openNsSheet() {
+  _nsOpen = true;
+  renderNsList();
+  document.getElementById('nsOverlay').classList.add('open');
+}
+function closeNsSheet() {
+  _nsOpen = false;
+  document.getElementById('nsOverlay').classList.remove('open');
+}
+function renderNsList() {
+  const list = noShows.filter(t => (t.mode||'opd') === mode);
+  document.getElementById('nsSheetCnt').textContent = list.length;
+  const el = document.getElementById('nsList');
+  if (!list.length) {
+    el.innerHTML = '<div class="ns-empty">✅ ไม่มีรายการไม่มา</div>';
+    return;
+  }
+  el.innerHTML = list.map(t => `
+    <div class="ns-item-row">
+      <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
+        ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
+        <div class="ns-i-meta">${t.typeName} · ไม่มา ${t.noShowAt||''}</div>
+      </div>
+      <button class="btn-come-call" onclick="recallNoShow('${t.display}')">▶ มาเรียก</button>
+    </div>`).join('');
+}
+function recallNoShow(display) {
+  fetch(`/api/sys/${sysId}/recall-noshow`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId })
+  }).then(r=>r.json()).then(r => {
+    if (r.success) { toast(`เรียกคิว ${display} อีกครั้ง`,'ok'); closeNsSheet(); }
+    else toast(r.message,'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด','err'));
+}
+
+// ── Waiting queue sheet ───────────────────────────────────────────────────
+let _wqOpen = false;
+function openWqSheet() {
+  _wqOpen = true; renderWqList();
+  document.getElementById('wqOverlay').classList.add('open');
+}
+function closeWqSheet() {
+  _wqOpen = false;
+  document.getElementById('wqOverlay').classList.remove('open');
+}
+function renderWqList() {
+  const list = getWaiting();
+  document.getElementById('wqSheetCnt').textContent = list.length;
+  const el = document.getElementById('wqList');
+  if (!list.length) { el.innerHTML = '<div class="ns-empty">✅ ไม่มีคิวรอ</div>'; return; }
+  el.innerHTML = list.map(t => `
+    <div class="ns-item-row">
+      <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
+        ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
+        <div class="ns-i-meta">${t.typeName}${t.issuedAt ? ' · '+t.issuedAt : ''}</div>
+      </div>
+      <button class="btn-sheet-call" onclick="callFromWqSheet('${t.display}')">▶ เรียก</button>
+    </div>`).join('');
+}
+function callFromWqSheet(display) {
+  closeWqSheet();
+  const t = getWaiting().find(x => x.display === display);
+  pendingCall = { display };
+  if (skipConfirm || !t) confirmCall(); else showCfm(t);
+}
+
+// ── Served queue sheet ────────────────────────────────────────────────────
+let _svOpen = false;
+function openSvSheet() {
+  _svOpen = true; renderSvList();
+  document.getElementById('svOverlay').classList.add('open');
+}
+function closeSvSheet() {
+  _svOpen = false;
+  document.getElementById('svOverlay').classList.remove('open');
+}
+function renderSvList() {
+  const list = allServed.filter(t => (t.mode||'opd') === mode);
+  document.getElementById('svSheetCnt').textContent = list.length;
+  const el = document.getElementById('svList');
+  if (!list.length) { el.innerHTML = '<div class="ns-empty">ยังไม่มีรายการ</div>'; return; }
+  el.innerHTML = list.map(t => `
+    <div class="ns-item-row">
+      <div class="ns-i-badge" style="background:${t.color}">${t.prefix}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div class="ns-i-num" style="color:${t.color}">${t.display}</div>
+        ${t.patientName ? `<div class="ns-i-pt">👤 ${t.patientName}</div>` : ''}
+        <div class="ns-i-meta">${t.typeName}${t.calledAt ? ' · เรียก '+t.calledAt : ''}</div>
+      </div>
+      <button class="btn-sheet-recall" onclick="recallFromSvSheet('${t.display}')">↺ เรียกซ้ำ</button>
+    </div>`).join('');
+}
+function recallFromSvSheet(display) {
+  fetch(`/api/sys/${sysId}/recall-served`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display, counterId: myCounterId })
+  }).then(r=>r.json()).then(r => {
+    if (r.success) { toast(`เรียกซ้ำ ${display}`,'ok'); closeSvSheet(); }
+    else toast(r.message,'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด','err'));
+}
 
 // hardware barcode scanner
 let _buf='', _timer=null;

@@ -23,7 +23,7 @@
       --cs-stat-w:#ffd54f;--cs-stat-s:#4caf50;--cs-stat-n:#ef5350;
       --cs-nav-txt:#90caf9;--cs-logo-clr:#ffd54f;
       --cs-nav-fs:.82rem;
-      --wq-cols:100px 120px 110px 1fr 180px 130px 90px 80px;
+      --wq-cols:100px 120px 110px 1fr 180px 130px 90px 140px;
       --wq-th-fs:.72rem;--wq-patient-fs:1.0rem;--wq-hn-fs:1.0rem;
       --wq-thead-bg:#1e40af;--wq-thead-clr:#ffffff;
       --cs-call-type-clr:#64b5f6;--cs-call-ctr-clr:#ffd54f;
@@ -115,6 +115,11 @@
     .btn-recall{background:var(--cs-btn-recall-bg,#12253a);color:var(--cs-btn-recall-clr,#64b5f6);border:1px solid #1e3a5f;font-size:var(--cs-btn-recall-fs,.88rem)}
     .btn-recall:hover{opacity:.85}
     .btn-noshow{background:linear-gradient(135deg,var(--cs-btn-noshow1,#c62828),var(--cs-btn-noshow2,#b71c1c));color:#fff;font-size:var(--cs-btn-noshow-fs,.88rem)}
+    .btn-clear-disp{background:rgba(13,26,40,.8);color:#546e7a;border:1px dashed #1e3a5f;
+      font-size:.76rem;font-weight:600;border-radius:10px;padding:4px 12px;cursor:pointer;
+      white-space:nowrap;font-family:inherit;transition:all .2s}
+    .btn-clear-disp:hover:not(:disabled){background:#0f2030;color:#90a4ae;border-color:#2a4a6f}
+    .btn-clear-disp:disabled{opacity:.3;cursor:not-allowed}
     .sp-row{display:flex;gap:6px}
     .sp-row input{flex:1;background:#091524;border:1px solid #1e3a5f;border-radius:8px;
       padding:9px 10px;color:#fff;font-size:.85rem;text-align:center;text-transform:uppercase;
@@ -223,13 +228,18 @@
       letter-spacing:.3px;text-align:center;white-space:nowrap}
 
     /* Col 8: action */
-    .wq-action-cell{justify-content:center}
     .btn-call-item{padding:7px 16px;border-radius:20px;border:none;
       background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
       font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;
       font-family:inherit;transition:opacity .2s,transform .12s,box-shadow .2s;
       box-shadow:0 2px 8px rgba(37,99,235,.35)}
     .btn-call-item:hover{opacity:.92;transform:scale(1.06);box-shadow:0 4px 14px rgba(37,99,235,.5)}
+    .wq-action-cell{justify-content:center;gap:5px;flex-direction:column;align-items:center}
+    .btn-del-item{padding:4px 10px;border-radius:14px;border:1px solid rgba(220,38,38,.45);
+      background:rgba(220,38,38,.1);color:#ef4444;
+      font-size:.66rem;font-weight:700;cursor:pointer;white-space:nowrap;
+      font-family:inherit;transition:all .2s}
+    .btn-del-item:hover{background:rgba(220,38,38,.25);border-color:#ef4444;color:#fff}
 
     .wq-empty{text-align:center;color:#94a3b8;padding:40px 16px;font-size:.88rem}
     .wq-empty-icon{font-size:2.5rem;margin-bottom:8px;opacity:.5}
@@ -467,6 +477,7 @@
     <option value="">— เลือกช่องบริการ —</option>
   </select>
   <div class="cbar-dot" id="cbarDot"></div>
+  <button class="btn-clear-disp" id="btnClearDisp" onclick="clearCounterDisplay()" disabled>🖥 เคลียจอแสดงคิว</button>
   <div id="ipdBadge" style="display:none;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#a5d6a7;border-radius:10px;padding:3px 14px;font-size:.8rem;font-weight:700;margin-left:8px;white-space:nowrap">🛏 ผู้ป่วยใน (IPD)</div>
 </div>
 
@@ -572,6 +583,28 @@
     <div class="confirm-btns">
       <button class="btn-cancel-call" onclick="closeConfirm()">✕ ยกเลิก</button>
       <button class="btn-confirm"     onclick="confirmCall()">▶ ยืนยัน เรียก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete waiting queue confirm modal -->
+<div class="confirm-overlay" id="deleteConfirmOverlay">
+  <div class="confirm-box">
+    <h3 style="color:#ef4444">🗑 ลบคิวออกจากรายการรอ</h3>
+    <p>คิวนี้จะถูกลบออกจากระบบและไม่สามารถกู้คืนได้</p>
+    <div class="confirm-ticket">
+      <div class="ct-badge" id="delCtBadge"></div>
+      <div>
+        <div class="ct-num" id="delCtNum"></div>
+        <div class="ct-info">
+          <div class="ct-type"   id="delCtType"></div>
+          <div class="ct-issued" id="delCtIssued"></div>
+        </div>
+      </div>
+    </div>
+    <div class="confirm-btns">
+      <button class="btn-cancel-call" onclick="closeDeleteConfirm()">✕ ยกเลิก</button>
+      <button class="btn-confirm" style="background:linear-gradient(135deg,#dc2626,#991b1b)" onclick="confirmDeleteWaiting()">🗑 ยืนยัน ลบ</button>
     </div>
   </div>
 </div>
@@ -1006,6 +1039,10 @@ socket.on('queue_uncalled', ({ typeWaiting: tw, allWaiting: aw, allServed: as })
   }
   renderTabs(); renderWaiting(); renderCalledHist(); updateStats();
 });
+socket.on('queue_deleted_waiting', ({ typeWaiting: tw, allWaiting: aw }) => {
+  typeWaiting = tw; allWaiting = aw;
+  renderTabs(); renderWaiting(); updateStats();
+});
 socket.on('queue_noshow', ({ allServed: as, noShows: ns }) => {
   allServed = as; noShows = ns;
   renderCalledHist(); renderNoShowHist(); updateStats();
@@ -1092,6 +1129,7 @@ function renderCbar() {
     counters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   sel.value = myCounterId != null ? String(myCounterId) : '';
   dot.classList.toggle('on', !!myCounterId);
+  document.getElementById('btnClearDisp').disabled = !myCounterId;
 }
 function pickCtrSelect(val) {
   const id = val ? Number(val) : null;
@@ -1099,6 +1137,7 @@ function pickCtrSelect(val) {
   if (id) localStorage.setItem('qf_counter_id_' + sysId, id);
   else localStorage.removeItem('qf_counter_id_' + sysId);
   document.getElementById('cbarDot').classList.toggle('on', !!id);
+  document.getElementById('btnClearDisp').disabled = !id;
 }
 function buildCtrGrid() {
   document.getElementById('ctrGrid').innerHTML = counters.map(c => `
@@ -1111,6 +1150,7 @@ function pickCtr(id)   {
   myCounterId = id;
   localStorage.setItem('qf_counter_id_' + sysId, id);
   document.getElementById('pickerOverlay').classList.remove('open');
+  document.getElementById('btnClearDisp').disabled = false;
   renderCbar(); buildCtrGrid();
 }
 
@@ -1189,7 +1229,8 @@ function renderWaiting() {
           :(t.qn?`<span class="wq-hn-val">${t.qn}</span>`:`<span style="color:#94a3b8">—</span>`)
       }</div>
       <div class="wq-action-cell">
-        <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">เรียก</button>
+        <button class="btn-call-item" onclick="callByDisplay('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">▶ เรียก</button>
+        <button class="btn-del-item"  onclick="deleteWaiting('${t.display}',${JSON.stringify(t).replace(/"/g,'&quot;')})">🗑 ลบ</button>
       </div>
     </div>`).join('');
 }
@@ -1372,6 +1413,17 @@ function markNoShow() {
     else toast(d.message, 'err');
   });
 }
+function clearCounterDisplay() {
+  if (!myCounterId) { toast('กรุณาเลือกช่องบริการก่อน', 'err'); return; }
+  const ctr = counters.find(c => c.id === myCounterId);
+  fetch(`/api/sys/${sysId}/clear-counter`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ counterId: myCounterId })
+  }).then(r => r.json()).then(d => {
+    if (d.success) toast(`เคลียจอแสดงคิว${ctr ? ' "'+ctr.name+'"' : ''} แล้ว`, 'ok');
+    else toast(d.message || 'เกิดข้อผิดพลาด', 'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด', 'err'));
+}
 function recallNoShow(display) {
   fetch(`/api/sys/${sysId}/recall-noshow`, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ display, counterId: myCounterId }) })
@@ -1394,6 +1446,36 @@ function uncallTicket(display) {
     if (d.success) toast(`คืนคิว ${display} กลับรายการรอแล้ว`, 'ok');
     else toast(d.message, 'err');
   });
+}
+
+let pendingDelete = null;
+
+function deleteWaiting(display, ticketJson) {
+  let ticket;
+  try { ticket = typeof ticketJson === 'object' ? ticketJson : JSON.parse(ticketJson); } catch { ticket = { display, color:'#ef4444', prefix:'?', typeName:'', issuedAt:'' }; }
+  pendingDelete = { display };
+  document.getElementById('delCtBadge').style.background = ticket.color;
+  document.getElementById('delCtBadge').textContent      = ticket.prefix;
+  document.getElementById('delCtNum').textContent         = ticket.display;
+  document.getElementById('delCtNum').style.color         = ticket.color;
+  document.getElementById('delCtType').textContent        = ticket.typeName;
+  document.getElementById('delCtIssued').textContent      = ticket.issuedAt ? `ออกคิวเวลา ${ticket.issuedAt}` : '';
+  document.getElementById('deleteConfirmOverlay').classList.add('open');
+}
+function closeDeleteConfirm() {
+  document.getElementById('deleteConfirmOverlay').classList.remove('open');
+  pendingDelete = null;
+}
+function confirmDeleteWaiting() {
+  if (!pendingDelete) return;
+  const { display } = pendingDelete;
+  closeDeleteConfirm();
+  fetch(`/api/sys/${sysId}/delete-waiting`, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ display }) })
+  .then(r=>r.json()).then(d => {
+    if (d.success) toast(`ลบคิว ${display} ออกจากรายการรอแล้ว`, 'ok');
+    else toast(d.message || 'ลบไม่สำเร็จ', 'err');
+  }).catch(() => toast('เกิดข้อผิดพลาด', 'err'));
 }
 function callSpecific() {
   const inp = document.getElementById('spNum');
@@ -1439,7 +1521,8 @@ function toast(msg, type = '') {
 }
 
 document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target.id === 'confirmOverlay') closeConfirm(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closeStylePanel(); } });
+document.getElementById('deleteConfirmOverlay').addEventListener('click', e => { if (e.target.id === 'deleteConfirmOverlay') closeDeleteConfirm(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeConfirm(); closeDeleteConfirm(); closeStylePanel(); } });
 
 // ── Global hardware barcode scanner (keyboard wedge) ──────────────────────
 // Barcode gun fires keystrokes very fast then sends Enter.

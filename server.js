@@ -685,6 +685,43 @@ app.post('/api/sys/:sysId/uncall', requireSys, (req, res) => {
   res.json({ success: false, message: 'ไม่พบคิวนี้ในประวัติ' });
 });
 
+// ── Delete from waiting queue ─────────────────────────────────────────────
+app.post('/api/sys/:sysId/delete-waiting', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const display = (req.body.display || '').toUpperCase().trim();
+  for (const s of Object.values(sys.state)) {
+    const idx = s.waiting.findIndex(t => t.display === display);
+    if (idx !== -1) {
+      s.waiting.splice(idx, 1);
+      saveQueueState(sysId, sys);
+      io.to('sys-' + sysId).emit('queue_deleted_waiting', {
+        display,
+        typeWaiting: typeWaiting(sys),
+        allWaiting:  allWaiting(sys),
+      });
+      return res.json({ success: true });
+    }
+  }
+  res.json({ success: false, message: 'ไม่พบคิวนี้ในรายการรอ' });
+});
+
+// ── Clear counter display ─────────────────────────────────────────────────
+app.post('/api/sys/:sysId/clear-counter', requireSys, (req, res) => {
+  const { sys, sysId } = req;
+  const counterId = Number(req.body.counterId);
+  if (!counterId) return res.json({ success: false, message: 'ไม่ระบุช่องบริการ' });
+  const cid = String(counterId);
+  delete sys.lastCalledByCounter[cid];
+  delete sys.recentByCounter[cid];
+  saveQueueState(sysId, sys);
+  io.to('sys-' + sysId).emit('counter_cleared', {
+    counterId,
+    recentByCounter:     sys.recentByCounter     || {},
+    lastCalledByCounter: sys.lastCalledByCounter  || {},
+  });
+  res.json({ success: true });
+});
+
 // ── Recall served (re-announce without changing queue state) ─────────────
 app.post('/api/sys/:sysId/recall-served', requireSys, (req, res) => {
   const { sys, sysId } = req;
