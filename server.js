@@ -847,6 +847,7 @@ app.get('/api/sys/:sysId/status', requireSys, (req, res) => {
     lastCalledByCounter: sys.lastCalledByCounter,
     recentByCounter:     sys.recentByCounter,
     displayConfig:       sys.displayConfig,
+    displaySettings:     sys.displaySettings,
     printConfig:         sys.printConfig,
     screenConfig:        sys.screenConfig,
   });

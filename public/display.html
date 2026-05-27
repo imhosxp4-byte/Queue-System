@@ -1098,17 +1098,33 @@ fetch(`/api/sys/${sysId}/status`).then(r=>r.json()).then(d => {
   // Apply custom header font size
   const customHdrFs = (d.displayConfig||{}).custom?.headerFontSize;
   if (customHdrFs) document.documentElement.style.setProperty('--hdr-fs', customHdrFs + 'rem');
+  // Apply display settings from status response (single round-trip)
+  if (d.displaySettings) {
+    const ds = getModeSettings(d.displaySettings);
+    if (ds.cfg && Object.keys(ds.cfg).length) {
+      cfg = { ...DEF, ...ds.cfg }; if (!cfg.custom) cfg.custom = {};
+      localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+    }
+    if (ds.theme && THEMES[ds.theme]) { activeTheme = ds.theme; localStorage.setItem('qf_theme_' + sysId + '_' + dispMode, ds.theme); }
+    if (ds.soundEnabled !== undefined) { soundEnabled = !!ds.soundEnabled; localStorage.setItem('qf_sound_' + sysId + '_' + dispMode, ds.soundEnabled); }
+  }
   buildCounterGrid(); renderCounters(false, null);
   renderNoShow(); applyLayout(); updateTicker(); buildTickerList(); rebuildCfgList(); rebuildTypeList(); loadCfgUI();
   applyTheme(activeTheme); restoreCustom(); applyNsFontSizes();
+  // Second fetch still runs to handle race conditions and push local settings to server
   fetch(`/api/sys/${sysId}/display-settings`).then(r=>r.json()).then(rawDs => {
     const ds = getModeSettings(rawDs);
     let ch = false;
     if (ds.cfg && Object.keys(ds.cfg).length) {
+      // Server has saved settings → apply to this machine
       cfg = { ...DEF, ...ds.cfg };
       if (!cfg.custom) cfg.custom = {};
       localStorage.setItem(LS_KEY, JSON.stringify(cfg));
       ch = true;
+    } else if (localStorage.getItem(LS_KEY)) {
+      // Server has no settings but this machine has local settings →
+      // push them to server so other machines (clients) can inherit them
+      saveCfg();
     }
     if (ds.theme && THEMES[ds.theme]) { activeTheme = ds.theme; localStorage.setItem('qf_theme_' + sysId + '_' + dispMode, ds.theme); ch = true; }
     if (ds.soundEnabled !== undefined) { soundEnabled = !!ds.soundEnabled; localStorage.setItem('qf_sound_' + sysId + '_' + dispMode, ds.soundEnabled); updateSoundBtn(); }
