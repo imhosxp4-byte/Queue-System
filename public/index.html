@@ -291,6 +291,14 @@
       </div>
       <div class="lm-hint">ส่งให้จอ TV / monitor ที่แสดงหมายเลขคิวให้ผู้รับบริการ</div>
     </div>
+    <div class="lm-sec">
+      <div class="lm-lbl">📞 เรียกคิว <span style="color:#3a5a78;font-weight:400;text-transform:none;letter-spacing:0">(สำหรับเจ้าหน้าที่เรียกคิว)</span></div>
+      <div class="lm-url-row">
+        <input type="text" class="lm-url" id="lmUrlCashier" readonly onclick="this.select()">
+        <button class="btn-lm-copy" id="btnCpCashier" onclick="copyLink('lmUrlCashier','btnCpCashier')">📋 คัดลอก</button>
+      </div>
+      <div class="lm-hint">ส่งให้เครื่องเจ้าหน้าที่ / เพิ่มเป็น shortcut บนหน้าจอ</div>
+    </div>
   </div>
 </div>
 
@@ -545,14 +553,31 @@ function openLinkModal(id) {
   const s = systems.find(x => x.id === id);
   if (!s) return;
   linkSysId = id;
-  const origin = window.location.origin;
+  // Use actual LAN IP — warn if still localhost so users know the link won't work on other machines
+  let origin = window.location.origin;
+  const isLocalhost = /^https?:\/\/(localhost|127\.|::1)/i.test(origin);
   document.getElementById('lmSysName').textContent = s.name;
   document.getElementById('lmUrlQueue').value   = `${origin}/queue.html?sys=${id}`;
   document.getElementById('lmUrlDisplay').value = `${origin}/display.html?sys=${id}`;
-  document.getElementById('btnCpQueue').textContent   = '📋 คัดลอก';
-  document.getElementById('btnCpQueue').classList.remove('copied');
-  document.getElementById('btnCpDisplay').textContent = '📋 คัดลอก';
-  document.getElementById('btnCpDisplay').classList.remove('copied');
+  document.getElementById('lmUrlCashier').value = `${origin}/cashier.html?sys=${id}`;
+  ['btnCpQueue','btnCpDisplay','btnCpCashier'].forEach(bid => {
+    document.getElementById(bid).textContent = '📋 คัดลอก';
+    document.getElementById(bid).classList.remove('copied');
+  });
+  // Show localhost warning
+  let warn = document.getElementById('lmLocalhostWarn');
+  if (!warn) {
+    warn = document.createElement('div');
+    warn.id = 'lmLocalhostWarn';
+    warn.style.cssText = 'background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.3);color:#ffb74d;border-radius:8px;padding:8px 12px;font-size:.78rem;margin-top:4px;line-height:1.5';
+    document.querySelector('.link-modal').appendChild(warn);
+  }
+  if (isLocalhost) {
+    warn.style.display = '';
+    warn.innerHTML = '⚠️ ขณะนี้เปิดผ่าน <b>localhost</b> — ลิงค์เหล่านี้จะใช้งานได้เฉพาะบนเครื่องนี้เท่านั้น<br>หากต้องการแชร์ให้เครื่องอื่น ให้เปิดผ่าน IP จริง เช่น <b>http://192.168.x.x:3000/</b> แล้วเปิด 🔗 ลิงค์อีกครั้ง';
+  } else {
+    warn.style.display = 'none';
+  }
   document.getElementById('linkModal').classList.add('open');
 }
 function closeLinkModal() {

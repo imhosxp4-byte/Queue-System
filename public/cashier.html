@@ -481,6 +481,7 @@
   </label>
   <button class="btn-logout" onclick="doLogout()">⏻ ออกจากระบบ</button>
   <button class="btn-gear btn-mini" onclick="openMiniWindow()" title="เปิดหน้าจอขนาดเล็ก" style="width:auto;padding:0 10px;font-size:.75rem;font-weight:700;border-radius:18px;gap:4px;display:flex;align-items:center">🪟 Mini</button>
+  <button class="btn-gear btn-copy-link" id="btnCopyLink" onclick="copyCashierLink()" title="คัดลอกลิงค์หน้านี้ เพื่อส่งให้เครื่องอื่น / ทำ shortcut" style="width:auto;padding:0 10px;font-size:.75rem;font-weight:700;border-radius:18px;gap:4px;display:flex;align-items:center">🔗 ลิงค์</button>
   <button class="btn-gear" onclick="openStylePanel()" title="ตั้งค่าการแสดงผล">⚙</button>
 </nav>
 
@@ -968,6 +969,27 @@ function doLogout() {
   sessionStorage.removeItem('officerName');
   if (token) fetch('/api/auth/logout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token }) });
   location.href = '/login.html';
+}
+
+function copyCashierLink() {
+  // Always build URL from window.location so it reflects the actual IP/hostname
+  const url = window.location.origin + '/cashier.html?sys=' + sysId;
+  const isLocalhost = /^https?:\/\/(localhost|127\.|::1)/i.test(window.location.origin);
+  const btn = document.getElementById('btnCopyLink');
+  const doCopy = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).catch(() => { const el = document.createElement('input'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); });
+    } else {
+      const el = document.createElement('input'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    }
+    btn.textContent = '✅ คัดลอกแล้ว';
+    setTimeout(() => { btn.textContent = '🔗 ลิงค์'; }, 2500);
+  };
+  if (isLocalhost) {
+    // Warn: this URL has localhost, won't work on other machines
+    if (!confirm('⚠️ ขณะนี้เปิดผ่าน localhost\n\nลิงค์นี้จะใช้งานได้เฉพาะบนเครื่องนี้เท่านั้น\n\nหากต้องการแชร์ให้เครื่องอื่น ให้เปิดหน้านี้ด้วย IP จริง เช่น http://192.168.x.x:3000/\nแล้วกดปุ่มนี้อีกครั้ง\n\nคัดลอก URL นี้ต่อไปหรือไม่?')) return;
+  }
+  doCopy();
 }
 
 // Update nav links (propagate IPD mode to queue and cashier links)
