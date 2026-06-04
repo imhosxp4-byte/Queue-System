@@ -2207,38 +2207,74 @@ function makeUtterance(text) {
   return u;
 }
 
-// Chrome fix: cancel → wait 150ms → speak → resume
-function safeSpeak(text, onDone) {
+// ── AudioContext unlock ก่อน TTS (แก้ synthesis-failed บน mini PC / headless) ──
+function _unlockAudioThenSpeak(fn) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(fn).catch(fn);
+    } else {
+      fn();
+    }
+  } catch(e) { fn(); }
+}
+
+// speak หลัก — cancel → unlock audio → รอ 400ms → speak → resume
+// synthesis-failed: retry 3 ครั้ง delay 2s/3s/4s
+function safeSpeak(text, onDone, _retry) {
+  const retry = _retry || 0;
+  const delay = retry === 0 ? 400 : 600 + retry * 400;
   speechSynthesis.cancel();
-  setTimeout(() => {
-    const u = makeUtterance(text);
-    if (onDone) u.onend = onDone;
-    u.onerror = (e) => { if (e.error !== 'interrupted') console.warn('TTS error:', e.error); };
-    speechSynthesis.speak(u);
-    speechSynthesis.resume();
-  }, 150);
+  _unlockAudioThenSpeak(() => {
+    setTimeout(() => {
+      speechSynthesis.resume();
+      const u = makeUtterance(text);
+      if (onDone) u.onend = onDone;
+      u.onerror = (e) => {
+        if (e.error === 'interrupted') return;
+        if (e.error === 'synthesis-failed' && retry < 3) {
+          setTimeout(() => safeSpeak(text, onDone, retry + 1), 2000 + retry * 1000);
+        } else {
+          console.warn('TTS error:', e.error, 'retry:', retry);
+        }
+      };
+      speechSynthesis.speak(u);
+      speechSynthesis.resume();
+    }, delay);
+  });
 }
 
 function sanitizeForSpeech(str) {
   return (str || '').replace(/\//g, ' ทับ ').replace(/\s+/g, ' ').trim();
 }
 
-function announceQueue(ticket) {
+function announceQueue(ticket, _retry) {
   if (!soundEnabled || !ticket || !window.speechSynthesis) return;
+  const retry = _retry || 0;
   const num = fmtQueueNum(ticket.display);
   const ctr = sanitizeForSpeech(ticket.counterName || '');
   speechSynthesis.cancel();
-  setTimeout(() => {
-    const u1 = makeUtterance(`ขอเชิญ หมายเลข ${num}`);
-    u1.onerror = (e) => { if (e.error !== 'interrupted') console.warn('TTS announce:', e.error); };
-    speechSynthesis.speak(u1);
-    if (ctr) {
-      const u2 = makeUtterance(`ที่ช่องบริการ ${ctr}`);
-      u2.onerror = (e) => { if (e.error !== 'interrupted') console.warn('TTS:', e.error); };
-      speechSynthesis.speak(u2);
-    }
-    speechSynthesis.resume();
-  }, 50);
+  _unlockAudioThenSpeak(() => {
+    setTimeout(() => {
+      speechSynthesis.resume();
+      const u1 = makeUtterance(`ขอเชิญ หมายเลข ${num}`);
+      u1.onerror = (e) => {
+        if (e.error === 'interrupted') return;
+        if (e.error === 'synthesis-failed' && retry < 3) {
+          setTimeout(() => announceQueue(ticket, retry + 1), 2000 + retry * 1000);
+        } else {
+          console.warn('TTS announce error:', e.error, 'retry:', retry);
+        }
+      };
+      speechSynthesis.speak(u1);
+      if (ctr) {
+        const u2 = makeUtterance(`ที่ช่องบริการ ${ctr}`);
+        u2.onerror = (e) => { if (e.error !== 'interrupted') console.warn('TTS ctr:', e.error); };
+        speechSynthesis.speak(u2);
+      }
+      speechSynthesis.resume();
+    }, retry === 0 ? 100 : 500);
+  });
 }
 
 function setDiag(msg, color) {
@@ -2246,45 +2282,72 @@ function setDiag(msg, color) {
   if (el) { el.textContent = msg; el.style.color = color || '#546e7a'; }
 }
 
+// testVoice — retry อัตโนมัติ 3 ครั้ง เมื่อ synthesis-failed
+let _testRetryCount = 0;
 function testVoice() {
   applyCounterSettings();
+  _testRetryCount = 0;
   if (!window.speechSynthesis) {
     setDiag('❌ Browser ไม่รองรับ Web Speech API', '#ef9a9a');
     return;
   }
-  // Button click = user gesture → unlock TTS now
   _ttsUnlocked = true;
   _hideSoundOverlay();
+  _runTestSpeak();
+}
 
+function _runTestSpeak() {
   const voices = _voices.length ? _voices : speechSynthesis.getVoices();
   if (!voices.length) {
-    setDiag('❌ พบ 0 เสียง — ไปที่ Settings > Time & Language > Speech แล้วติดตั้งเสียงภาษาไทย', '#ef9a9a');
+    setDiag('❌ พบ 0 เสียง — รัน Setup_Sound.exe แล้วรีสตาร์ทเครื่อง', '#ef9a9a');
     updateVoiceActiveInfo();
     return;
   }
   const thCount = voices.filter(v => /^th/i.test(v.lang) || /thai/i.test(v.name)).length;
-  setDiag(`พบ ${voices.length} เสียง (ไทย: ${thCount}) — กำลังพูด...`, '#80cbc4');
+  const retryTxt = _testRetryCount > 0 ? ` (retry ${_testRetryCount}/3)` : '';
+  setDiag(`พบ ${voices.length} เสียง (ไทย: ${thCount})${retryTxt} — กำลังพูด...`, '#80cbc4');
   updateVoiceActiveInfo();
 
   const num = fmtQueueNum('A001');
   const ctr = sanitizeForSpeech('ชำระเงิน ช่อง 1');
+
   speechSynthesis.cancel();
-  setTimeout(() => {
-    const u1 = makeUtterance(`ขอเชิญ หมายเลข ${num}`);
-    u1.onstart = () => setDiag('🔊 กำลังพูด...', '#a5d6a7');
-    u1.onend   = () => setDiag('✓ พูดเสร็จแล้ว', '#80cbc4');
-    u1.onerror = (e) => {
-      if (e.error === 'interrupted') return;
-      if (e.error === 'not-allowed') { _ttsUnlocked = false; _showSoundOverlay(); }
-      setDiag('❌ error: ' + e.error + ' — ลองคลิกปุ่มอีกครั้ง', '#ef9a9a');
-    };
-    const u2 = makeUtterance(`ที่ช่องบริการ ${ctr}`);
-    u2.onend   = () => setDiag('✓ พูดเสร็จแล้ว', '#80cbc4');
-    u2.onerror = (e) => { if (e.error !== 'interrupted') setDiag('❌ error: ' + e.error, '#ef9a9a'); };
-    speechSynthesis.speak(u1);
-    speechSynthesis.speak(u2);
-    speechSynthesis.resume();
-  }, 120);
+  _unlockAudioThenSpeak(() => {
+    setTimeout(() => {
+      speechSynthesis.resume();
+      const u1 = makeUtterance(`ขอเชิญ หมายเลข ${num}`);
+      u1.onstart = () => setDiag('🔊 กำลังพูด...', '#a5d6a7');
+      u1.onend   = () => setDiag('✓ ได้ยินเสียงแล้ว — ระบบเสียงพร้อมใช้งาน', '#69f0ae');
+      u1.onerror = (e) => {
+        if (e.error === 'interrupted') return;
+        if (e.error === 'not-allowed') { _ttsUnlocked = false; _showSoundOverlay(); return; }
+        if (e.error === 'synthesis-failed') {
+          if (_testRetryCount < 3) {
+            _testRetryCount++;
+            const wait = 2000 + _testRetryCount * 1000;
+            setDiag(`⏳ synthesis-failed — retry ${_testRetryCount}/3 (รอ ${wait/1000}s)...`, '#ffcc80');
+            setTimeout(_runTestSpeak, wait);
+          } else {
+            setDiag(
+              '❌ synthesis-failed — วิธีแก้: ' +
+              '① ต่อลำโพง/หูฟัง  ' +
+              '② ใช้ Microsoft Edge แทน Chrome  ' +
+              '③ Services.msc → Windows Audio → Start',
+              '#ef9a9a'
+            );
+          }
+          return;
+        }
+        setDiag('❌ error: ' + e.error, '#ef9a9a');
+      };
+      const u2 = makeUtterance(`ที่ช่องบริการ ${ctr}`);
+      u2.onend   = () => setDiag('✓ ได้ยินเสียงแล้ว — ระบบเสียงพร้อมใช้งาน', '#69f0ae');
+      u2.onerror = (e) => { if (e.error !== 'interrupted') console.warn('TTS u2:', e.error); };
+      speechSynthesis.speak(u1);
+      speechSynthesis.speak(u2);
+      speechSynthesis.resume();
+    }, _testRetryCount === 0 ? 300 : 600);
+  });
 }
 
 // Apply on load

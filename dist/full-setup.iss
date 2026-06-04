@@ -1,7 +1,7 @@
 [Setup]
 AppName=ระบบคิว (Queue System)
-AppVersion=2.1.0
-AppVerName=ระบบคิว (Queue System) v2.1.0
+AppVersion=2.2.0
+AppVerName=ระบบคิว (Queue System) v2.2.0
 AppPublisher=Hospital Queue System
 AppId={{A3F2C1D0-4E5B-6F7A-8B9C-0D1E2F3A4B5C}
 DefaultDirName={autopf}\QueueSystem
@@ -22,13 +22,16 @@ MinVersion=6.1
 Name: "thai"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "สร้าง Shortcut บน Desktop (เปิดระบบคิวในเบราว์เซอร์)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
-Name: "firewall"; Description: "เปิด Firewall อนุญาต Port 3000 (สำหรับเชื่อมต่อจากเครื่องอื่นใน LAN)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
+Name: "desktopicon";  Description: "สร้าง Shortcut บน Desktop (เปิดระบบคิวในเบราว์เซอร์)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
+Name: "firewall";     Description: "เปิด Firewall อนุญาต Port 3000 (สำหรับเชื่อมต่อจากเครื่องอื่นใน LAN)"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
+Name: "installsound"; Description: "ติดตั้งเสียงภาษาไทย (Thai TTS) สำหรับประกาศหมายเลขคิว"; GroupDescription: "ตัวเลือกเพิ่มเติม:"; Flags: checkedonce
 
 [Files]
 ; ── โปรแกรมหลัก ──────────────────────────────────────────────────────────
 Source: "QueueServer.exe";     DestDir: "{app}";          Flags: ignoreversion
 Source: "nssm.exe";            DestDir: "{app}\tools";    Flags: ignoreversion
+; ── ตัวติดตั้งเสียงภาษาไทยสำหรับ Client ────────────────────────────────
+Source: "Setup_Sound.exe";     DestDir: "{app}";          Flags: ignoreversion skipifsourcedoesntexist
 ; ── หน้าเว็บ ─────────────────────────────────────────────────────────────
 Source: "..\public\*";         DestDir: "{app}\public";   Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -112,6 +115,64 @@ begin
   end;
 end;
 
+// ── เขียน PS1 script ──────────────────────────────────────────────────────
+procedure WritePS(FileName, Content: String);
+var L: TStringList;
+begin
+  L := TStringList.Create;
+  try L.Text := Content; L.SaveToFile(FileName);
+  finally L.Free; end;
+end;
+
+// ── ติดตั้งเสียงภาษาไทย (รวมอยู่ใน installer หลัก) ──────────────────────
+procedure InstallThaiTTS();
+var
+  D, sAudio, sInstall, sCheck: String;
+  RC: Integer;
+begin
+  D := ExpandConstant('{tmp}') + '\';
+  sAudio   := D + 'qs_audio.ps1';
+  sCheck   := D + 'qs_check.ps1';
+  sInstall := D + 'qs_install.ps1';
+
+  // 1. แก้ Windows Audio Services
+  WritePS(sAudio,
+    'foreach ($s in @("AudioEndpointBuilder","Audiosrv")) {' + #13#10 +
+    '  try {' + #13#10 +
+    '    Set-Service $s -StartupType Automatic -EA SilentlyContinue' + #13#10 +
+    '    $svc = Get-Service $s -EA SilentlyContinue' + #13#10 +
+    '    if ($svc -and $svc.Status -ne "Running") { Start-Service $s -EA SilentlyContinue }' + #13#10 +
+    '  } catch {}' + #13#10 +
+    '}' + #13#10 +
+    'exit 0');
+  Exec('powershell.exe',
+    '-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + sAudio + '"',
+    D, SW_HIDE, ewWaitUntilTerminated, RC);
+
+  // 2. ตรวจสอบว่ามี Thai TTS แล้วหรือยัง
+  WritePS(sCheck,
+    '$ErrorActionPreference = "SilentlyContinue"' + #13#10 +
+    'try {' + #13#10 +
+    '  $c = Get-WindowsCapability -Online -Name "Language.Speech~~~th-TH~0.0.1.0"' + #13#10 +
+    '  if ($c -and $c.State -eq "Installed") { exit 0 }' + #13#10 +
+    '  exit 1' + #13#10 +
+    '} catch { exit 2 }');
+  Exec('powershell.exe',
+    '-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + sCheck + '"',
+    D, SW_HIDE, ewWaitUntilTerminated, RC);
+  if RC = 0 then Exit;  // มีอยู่แล้ว ไม่ต้องติดตั้ง
+
+  // 3. ดาวน์โหลดและติดตั้ง Thai TTS (Microsoft Pattara)
+  WritePS(sInstall,
+    'try {' + #13#10 +
+    '  Add-WindowsCapability -Online -Name "Language.Speech~~~th-TH~0.0.1.0" -ErrorAction Stop' + #13#10 +
+    '  exit 0' + #13#10 +
+    '} catch { exit 1 }');
+  Exec('powershell.exe',
+    '-NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + sInstall + '"',
+    D, SW_HIDE, ewWaitUntilTerminated, RC);
+end;
+
 // ── หลังติดตั้งไฟล์เสร็จ ──────────────────────────────────────────────────
 procedure CurStepChanged(CurStep: TSetupStep);
 var
@@ -134,11 +195,9 @@ begin
       Sleep(1500);
     end;
 
-    // ติดตั้ง service ใหม่ ── QueueServer.exe รัน Node.js ในตัว ไม่ต้อง cmd
+    // ติดตั้ง service ใหม่
     Exec(NssmExe, 'install QueueSystem "' + AppDir + '\QueueServer.exe"',
       AppDir, SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
-    // ตั้งค่า service
     Exec(NssmExe, 'set QueueSystem AppDirectory "' + AppDir + '"',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec(NssmExe, 'set QueueSystem DisplayName "Queue Management System"',
@@ -166,6 +225,10 @@ begin
       Exec('netsh', 'advfirewall firewall add rule name="Queue System Port 3000" dir=in action=allow protocol=TCP localport=3000',
         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     end;
+
+    // ติดตั้งเสียงภาษาไทย (ถ้าเลือก)
+    if WizardIsTaskSelected('installsound') then
+      InstallThaiTTS();
 
     // เริ่ม service
     Exec(NssmExe, 'start QueueSystem', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);

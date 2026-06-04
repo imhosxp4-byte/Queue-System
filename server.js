@@ -1808,6 +1808,26 @@ app.post('/api/server/restart', (req, res) => {
   }, 300);
 });
 
+// ── ดาวน์โหลด Setup_Sound.exe ────────────────────────────────────────────
+app.get('/download/Setup_Sound.exe', (req, res) => {
+  const filePath = path.join(APP_DIR, 'Setup_Sound.exe');
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send(
+      '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ไม่พบไฟล์</title>' +
+      '<style>body{font-family:\'Segoe UI\',sans-serif;background:#0f1923;color:#fff;display:flex;' +
+      'align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px}' +
+      'h2{color:#ef5350}p{color:#90caf9;font-size:.9rem;text-align:center}' +
+      'code{background:#1a2a3a;padding:4px 10px;border-radius:6px;font-size:.85rem;color:#80deea}</style></head>' +
+      '<body><h2>ไม่พบไฟล์ Setup_Sound.exe</h2>' +
+      '<p>กรุณาวาง <code>Setup_Sound.exe</code> ไว้ในโฟลเดอร์เดียวกับ QueueServer<br>' +
+      'แล้วรีสตาร์ท QueueServer</p></body></html>'
+    );
+  }
+  res.setHeader('Content-Disposition', 'attachment; filename="Setup_Sound.exe"');
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.sendFile(filePath);
+});
+
 // ── Server info (for multi-PC connection guide) ───────────────────────────
 app.get('/api/server-info', (req, res) => {
   const nets = os.networkInterfaces();
